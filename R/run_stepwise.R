@@ -101,7 +101,11 @@ write_payload_timeseries <- function(payload_file, out_csv, scenario) {
   if (is.null(rep_obj)) return(data.frame())
   payload_env <- getFromNamespace("mfclshiny_payload_env", "mfclshiny")()
   ts <- tryCatch(payload_env$mp_extract_rep_timeseries(rep_obj, scenario = scenario), error = function(e) data.frame())
-  if (!nrow(ts)) return(ts)
+  if (is.list(ts) && !is.data.frame(ts)) {
+    pieces <- ts[vapply(ts, is.data.frame, logical(1))]
+    ts <- bind_rows_fill(pieces)
+  }
+  if (!is.data.frame(ts) || !nrow(ts)) return(data.frame())
   ts$model_token <- scenario
   ts$model_key <- scenario
   ts$plot_label <- scenario
