@@ -52,6 +52,8 @@ help:
 	  'make kflow TRIGGER_NEXT=false' \
 	  '  Submit only the selected model folder, without launching plot/report afterward.' \
 	  '' \
+	  'Note: MFCL_FEVALS is applied by the runner only for last_par/single; doitall.sh must read it explicitly.' \
+	  '' \
 	  'Common overrides: STEP_SELECT, MFCL_FEVALS, MFCL_LIVE_LOG, TRIGGER_NEXT, OUTPUT_DIR.'
 
 list:

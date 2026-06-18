@@ -12,7 +12,11 @@
 #   STEP_SELECT=all
 #     Run every row where enabled is TRUE.
 #   MFCL_FEVALS=10
-#     Override the per-row `fevals` value for one quick test job.
+#     Override the per-row `fevals` value for one quick direct-MFCL test job.
+#     This is automatically applied only for run_mode "last_par" or "single".
+#     For run_mode "doitall", the value is passed to doitall.sh as the
+#     environment variables MFCL_FEVALS and SMOKE_FEVALS, but the script must
+#     explicitly use them.
 #
 # Folder convention:
 #   steps/<step_id>/model/
@@ -40,6 +44,10 @@ stepwise_run <- list(
   trigger_next = TRUE,
 
   # Blank means use each row's `fevals`.
+  # This controls the runner's quick-test -switch arguments for "last_par" and
+  # "single" modes. It does not automatically modify a doitall.sh run.
+  # In "doitall" mode, the value is only made available to the script as
+  # MFCL_FEVALS/SMOKE_FEVALS.
   # Set a number here to override every selected row, for example:
   #   mfcl_fevals = "1"   # very quick smoke run
   #   mfcl_fevals = "50"  # longer local/cluster check
@@ -79,8 +87,12 @@ stepwise_job_title <- function(step_select = stepwise_value("default_step_select
 #   run_mode:
 #     "last_par"  Continue from the latest numbered .par and write the next one.
 #                 Example: 11.par -> 12.par. This is the normal quick check.
+#                 Uses `fevals` through runner-generated MFCL -switch arguments.
 #     "single"    Use `input_par` and `output_par` exactly as listed.
+#                 Uses `fevals` through runner-generated MFCL -switch arguments.
 #     "doitall"   Run doitall.sh from the model folder, then keep the final .par.
+#                 Does not automatically use `fevals`; doitall.sh must read
+#                 MFCL_FEVALS/SMOKE_FEVALS if that behavior is wanted.
 #   source_dir:
 #     Blank means auto-detect `steps/<step_id>/model/`.
 #     Use "." to use files directly in `steps/<step_id>/`.
@@ -93,7 +105,9 @@ stepwise_job_title <- function(step_select = stepwise_value("default_step_select
 #     Blank lets "last_par" choose the next numbered par.
 #     Required for "single" if you want a precise output name.
 #   fevals:
-#     Quick test function evaluations for this row; override with MFCL_FEVALS.
+#     Quick test function evaluations for this row. Override with MFCL_FEVALS.
+#     Applied by this runner only for "last_par" and "single"; only passed
+#     through as an environment variable for "doitall".
 #   notes:
 #     Free text for humans. Use this to document why the model exists.
 stepwise_models <- data.frame(

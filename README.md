@@ -28,7 +28,9 @@ The main user-editable file is `stepwise-config.R` in the repo root:
 - `output_par`: optional explicit output par for `single` or `last_par`. Leave
   blank with `last_par` to write the next numbered par, for example `11.par`
   to `12.par`.
-- `fevals`: quick test evaluations for the current model.
+- `fevals`: quick test evaluations for direct runner modes. This is applied by
+  the runner for `last_par` and `single`; in `doitall` mode it is only passed to
+  `doitall.sh` as `MFCL_FEVALS`/`SMOKE_FEVALS`.
 
 Manual model editing workflow:
 
@@ -45,7 +47,9 @@ Useful Kflow job config fields:
 - `STEP_SELECT=01-base-11par`: run one folder.
 - `STEP_SELECT=01-base-11par,03-review-11par`: run selected folders.
 - `STEP_SELECT=all`: run every enabled numbered folder.
-- `MFCL_FEVALS=10`: override `fevals` for the submitted job.
+- `MFCL_FEVALS=10`: override `fevals` for `last_par`/`single` jobs. For
+  `doitall`, the value is available to `doitall.sh` as an environment variable
+  only if that script uses it.
 - `MFCL_LIVE_LOG=true`: stream the full MFCL log into the Kflow log view.
 - `MFCL_LIVE_LOG=false`: suppress the live MFCL stream in the Kflow log.
 
@@ -71,22 +75,11 @@ Shortcut commands:
   this machine.
 - `make docker STEP_SELECT=01-base-11par`: run on this machine inside
   `ghcr.io/pacificcommunity/tuna-flow:v1.5`.
-- `make kflow STEP_SELECT=01-base-11par KFLOW_API_TOKEN=...`: submit the same
-  selected model folder to Kflow.
+- `make kflow STEP_SELECT=01-base-11par`: submit the same selected model folder
+  to Kflow. This requires your local shell to already have the Kflow API token
+  environment variable set.
 - `make fix-permissions`: repair root-owned `outputs/`, `work/`, or runtime
   cache files left by older local Docker runs, then run `make clean`.
-
-Kflow API token:
-
-- On the Kflow app host, the token lives in
-  `/home/kyuhank/apps/kflow-app/.env` as `KFLOW_API_TOKEN=...`.
-- Do not put the token in this repo or in `stepwise-config.R`.
-- For command-line submission from your machine, export it for the shell session:
-
-```bash
-export KFLOW_API_TOKEN="$(ssh nouofpsubmit.corp.spc.int 'grep "^KFLOW_API_TOKEN=" /home/kyuhank/apps/kflow-app/.env | cut -d= -f2-')"
-make kflow STEP_SELECT=01-base-11par
-```
 
 Outputs are written under `outputs/models/<step-id>/` and include
 only `model_payload.rds` and the final `.par` file from the run. The top-level

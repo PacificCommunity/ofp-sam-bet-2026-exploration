@@ -112,9 +112,17 @@ run_mfcl <- function(program, args, log_file, live_log = TRUE) {
   system2("bash", c("-c", command), wait = TRUE)
 }
 
-run_script <- function(script, program, log_file, live_log = TRUE) {
+run_script <- function(script, program, log_file, live_log = TRUE, fevals = "") {
   if (!file.exists(script)) stop("Run script not found: ", basename(script), call. = FALSE)
-  command <- sprintf("set -o pipefail; PROGRAM_PATH=%s bash %s", shQuote(program), shQuote(script))
+  script_env <- c(sprintf("PROGRAM_PATH=%s", shQuote(program)))
+  if (nzchar(as.character(fevals))) {
+    script_env <- c(
+      script_env,
+      sprintf("MFCL_FEVALS=%s", shQuote(as.character(fevals))),
+      sprintf("SMOKE_FEVALS=%s", shQuote(as.character(fevals)))
+    )
+  }
+  command <- sprintf("set -o pipefail; %s bash %s", paste(script_env, collapse = " "), shQuote(script))
   if (isTRUE(live_log)) {
     command <- sprintf("%s 2>&1 | tee %s >&2", command, shQuote(log_file))
     return(system2("bash", c("-c", command), wait = TRUE))
@@ -356,7 +364,8 @@ for (i in seq_len(nrow(step_table))) {
   status <- tryCatch({
     if (run_mode %in% c("doitall", "script")) {
       message("  script: ", run_script_name)
-      run_script(file.path(model_dir, run_script_name), program = program, log_file = log_file, live_log = mfcl_live_log)
+      message("  fevals: ", fevals, " (available to script as MFCL_FEVALS; not applied by the runner)")
+      run_script(file.path(model_dir, run_script_name), program = program, log_file = log_file, live_log = mfcl_live_log, fevals = fevals)
     } else {
       if (run_mode %in% c("last", "latest", "last_par", "latest_par")) {
         input_par <- best_par(model_dir)
@@ -369,6 +378,7 @@ for (i in seq_len(nrow(step_table))) {
       if (!nzchar(output_par)) output_par <- next_par_name(input_par)
       message("  input:  ", frq, " + ", input_par)
       message("  output: ", output_par)
+      message("  fevals: ", fevals, " (applied through runner -switch arguments)")
       args <- c(frq, input_par, output_par, smoke_switch_args(fevals))
       run_mfcl(program, args, log_file = log_file, live_log = mfcl_live_log)
     }
