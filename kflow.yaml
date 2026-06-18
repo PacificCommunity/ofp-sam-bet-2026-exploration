@@ -1,21 +1,78 @@
+# Kflow task defaults for the BET 2026 stepwise model runner.
+#
+# This file describes how Kflow should run the repo. Most model-specific edits
+# belong in stepwise-config.R; this file is for Docker, resources, default env,
+# saved outputs, and automatic follow-up tasks.
+
+# Stable task id shown in Kflow and used by the API:
+#   /api/job/ofp-sam-bet-2026-stepwise
 name: ofp-sam-bet-2026-stepwise
 description: Run numbered BET 2026 stepwise MFCL model folders.
+
+# Command executed inside the Docker container after checkout.
 command: bash run.sh
+
+# Use the tagged tuna-flow image so local/Kflow runs do not drift unexpectedly.
+# Change deliberately, for example:
+#   ghcr.io/pacificcommunity/tuna-flow:v1.5
+#   ghcr.io/pacificcommunity/tuna-flow:latest
 docker_image: ghcr.io/pacificcommunity/tuna-flow:v1.5
+
+# HTCondor resource request. Increase memory/disk before increasing CPUs unless
+# the MFCL command itself can use more threads.
 resources:
   cpus: 2
   memory: 12GB
   disk: 8GB
+
 env:
+  # Default selected model folder. Override per job in the Kflow job config.
+  # Examples: 01-base-11par, 01-base-11par,03-review-11par, all
   STEP_SELECT: 01-base-11par
+
+  # true streams the full MFCL output to Kflow logs. false keeps logs quieter.
   MFCL_LIVE_LOG: "true"
+
+  # mfclshiny is private, so runtime package updates need a forwarded GitHub
+  # token from Kflow. Leave these true for cluster jobs.
   KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES: "true"
   KFLOW_RUNTIME_UPDATE: auto
   KFLOW_RUNTIME_PACKAGES: mfclshiny=PacificCommunity/mfclshiny@main
   KFLOW_RUNTIME_GITHUB_AUTH: "true"
   KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME: "true"
+
+# Keep artifacts compact. The runner writes only model_payload.rds, final .par,
+# and small index CSVs under outputs/.
 output_patterns:
   - outputs/**
+
+# Automatic dependency chain:
+#   stepwise succeeds -> run ofp-sam-bet-2026-plot with this job as input
+#   plot succeeds     -> run ofp-sam-bet-2026-report from the plot task config
+#
+# One-off command-line override:
+#   make kflow TRIGGER_NEXT=false STEP_SELECT=01-base-11par
+triggers:
+  on_success:
+    - key: plot-from-stepwise
+      report: ofp-sam-bet-2026-plot
+      input_jobs:
+        - "{{ job.id }}"
+      env:
+        FLOW_GROUP: "{{ job.config.FLOW_GROUP }}"
+        JOB_TITLE: BET plots from stepwise
+        RUN_LABEL: "plot-from-{{ job.id }}"
+        KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES: "true"
+        KFLOW_RUNTIME_UPDATE: auto
+        KFLOW_RUNTIME_PACKAGES: mfclshiny=PacificCommunity/mfclshiny@main
+        KFLOW_RUNTIME_GITHUB_AUTH: "true"
+        KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME: "true"
+      tags:
+        auto: "true"
+        stage: plot
+
+# Fields exposed as optional job config in the Kflow UI.
+# Add a field here only if the user should be able to override it at launch.
 job_config:
   optional:
     - RUN_LABEL

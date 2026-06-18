@@ -382,7 +382,9 @@ for (i in seq_len(nrow(step_table))) {
   }
   message("  final par: ", final_output_par)
 
+  message("  building model_payload.rds")
   payload_status <- build_payload(model_dir, step_id)
+  message("  payload: ", payload_status)
   payload_file <- file.path(model_dir, "model_payload.rds")
   footer <- par_footer(final_par)
 

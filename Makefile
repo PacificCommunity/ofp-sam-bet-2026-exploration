@@ -10,6 +10,9 @@ MFCL_LIVE_LOG ?= $(call yml,y$$env$$MFCL_LIVE_LOG,true)
 OUTPUT_DIR ?= outputs
 PROGRAM_PATH ?= $(call yml,y$$env$$PROGRAM_PATH,/home/mfcl/mfclo64)
 DOCKER_IMAGE ?= $(call yml,y$$docker_image,ghcr.io/pacificcommunity/tuna-flow:v1.5)
+HOST_UID ?= $(shell id -u 2>/dev/null || echo 1000)
+HOST_GID ?= $(shell id -g 2>/dev/null || echo 1000)
+DOCKER_HOME ?= /work/.docker-home
 
 KFLOW_URL ?= http://127.0.0.1:8089
 KFLOW_TASK ?= $(call yml,y$$name,ofp-sam-bet-2026-stepwise)
@@ -23,7 +26,7 @@ KFLOW_RUNTIME_PACKAGES ?= $(call yml,y$$env$$KFLOW_RUNTIME_PACKAGES,mfclshiny=Pa
 KFLOW_RUNTIME_GITHUB_AUTH ?= $(call yml,y$$env$$KFLOW_RUNTIME_GITHUB_AUTH,true)
 KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME ?= $(call yml,y$$env$$KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME,true)
 
-.PHONY: help list clean local docker kflow
+.PHONY: help list clean fix-permissions local docker kflow
 
 help:
 	@printf '%s\n' \
@@ -40,6 +43,9 @@ help:
 	  'make docker STEP_SELECT=01-base-11par' \
 	  '  Run locally inside the configured tuna-flow Docker image.' \
 	  '' \
+	  'make fix-permissions' \
+	  '  Repair root-owned files left by older local Docker runs.' \
+	  '' \
 	  'make kflow STEP_SELECT=01-base-11par KFLOW_API_TOKEN=...' \
 	  '  Submit the selected model folder to Kflow.' \
 	  '' \
@@ -52,7 +58,15 @@ list:
 	@Rscript -e "source('$(CONFIG_R)'); print(stepwise_models, row.names = FALSE)"
 
 clean:
-	rm -rf '$(OUTPUT_DIR)' work .R-library .kflow-runtime-cache
+	rm -rf '$(OUTPUT_DIR)' work .R-library .kflow-runtime-cache .docker-home
+
+fix-permissions:
+	docker run --rm \
+	  -v "$$(pwd):/work" \
+	  -w /work \
+	  --user 0:0 \
+	  '$(DOCKER_IMAGE)' \
+	  bash -lc "chown -R $(HOST_UID):$(HOST_GID) outputs work .R-library .kflow-runtime-cache .docker-home 2>/dev/null || true"
 
 local:
 	STEP_SELECT='$(STEP_SELECT)' \
@@ -76,9 +90,15 @@ docker:
 	  echo 'mfclshiny is private. Run `gh auth login` or pass GH_TOKEN=... / GITHUB_PAT=... to make docker.' >&2; \
 	  exit 42; \
 	fi; \
+	mkdir -p .docker-home .R-library .kflow-runtime-cache; \
 	docker run --rm \
+	  --user '$(HOST_UID):$(HOST_GID)' \
 	  -v "$$(pwd):/work" \
 	  -w /work \
+	  -e HOME='$(DOCKER_HOME)' \
+	  -e XDG_CACHE_HOME='$(DOCKER_HOME)/.cache' \
+	  -e R_LIBS_USER='/work/.R-library' \
+	  -e KFLOW_RUNTIME_LIBRARY='/work/.R-library' \
 	  -e STEP_SELECT='$(STEP_SELECT)' \
 	  -e MFCL_FEVALS='$(MFCL_FEVALS)' \
 	  -e MFCL_LIVE_LOG='$(MFCL_LIVE_LOG)' \

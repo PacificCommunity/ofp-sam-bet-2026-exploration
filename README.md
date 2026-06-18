@@ -49,6 +49,17 @@ Useful Kflow job config fields:
 - `MFCL_LIVE_LOG=true`: stream the full MFCL log into the Kflow log view.
 - `MFCL_LIVE_LOG=false`: suppress the live MFCL stream in the Kflow log.
 
+Dependency triggers:
+
+- The saved Kflow task has an `on_success` trigger that launches
+  `ofp-sam-bet-2026-plot`, which then launches `ofp-sam-bet-2026-report`.
+- For command-line submissions, `stepwise-config.R` controls the default with
+  `stepwise_run$trigger_next`.
+- Use `make kflow TRIGGER_NEXT=false` to submit only the selected model without
+  launching plot/report afterward.
+- In the Kflow app, the same behavior is visible in the task's trigger/job
+  settings; use it when a one-off run should stop after stepwise.
+
 The saved Kflow task defaults to `STEP_SELECT=01-base-11par`, so adding a new
 folder does not automatically submit every model. Select the folders explicitly
 in the job config when launching from Kflow.
@@ -62,6 +73,20 @@ Shortcut commands:
   `ghcr.io/pacificcommunity/tuna-flow:v1.5`.
 - `make kflow STEP_SELECT=01-base-11par KFLOW_API_TOKEN=...`: submit the same
   selected model folder to Kflow.
+- `make fix-permissions`: repair root-owned `outputs/`, `work/`, or runtime
+  cache files left by older local Docker runs, then run `make clean`.
+
+Kflow API token:
+
+- On the Kflow app host, the token lives in
+  `/home/kyuhank/apps/kflow-app/.env` as `KFLOW_API_TOKEN=...`.
+- Do not put the token in this repo or in `stepwise-config.R`.
+- For command-line submission from your machine, export it for the shell session:
+
+```bash
+export KFLOW_API_TOKEN="$(ssh nouofpsubmit.corp.spc.int 'grep "^KFLOW_API_TOKEN=" /home/kyuhank/apps/kflow-app/.env | cut -d= -f2-')"
+make kflow STEP_SELECT=01-base-11par
+```
 
 Outputs are written under `outputs/models/<step-id>/` and include
 only `model_payload.rds` and the final `.par` file from the run. The top-level
@@ -72,5 +97,6 @@ live Kflow log but is not kept as an artifact.
 The default input files are copied into each starter model folder under
 `steps/<step-id>/model/`, so every model folder is self-contained. Docker runs
 use the MFCL executable bundled in the tuna-flow image at `/home/mfcl/mfclo64`
-by default. For local non-Docker testing, override it with
-`PROGRAM_PATH=/path/to/mfclo64`.
+by default. Local Docker runs use your host UID/GID so generated files can be
+cleaned up without `sudo`. For local non-Docker testing, override the executable
+with `PROGRAM_PATH=/path/to/mfclo64`.

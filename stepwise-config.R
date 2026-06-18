@@ -1,12 +1,48 @@
-# Edit this file to choose and describe the independent stepwise models.
-# Each row points at one folder under steps/. Kflow can run one row with
-# STEP_SELECT=01-base-11par, several rows with commas, or every enabled row with
-# STEP_SELECT=all.
+# BET 2026 stepwise model configuration.
+#
+# This is the main file to edit when adding, selecting, naming, or lightly
+# changing model runs. Each row in `stepwise_models` points to one independent
+# model folder under `steps/`.
+#
+# Common launch examples:
+#   STEP_SELECT=01-base-11par
+#     Run only steps/01-base-11par.
+#   STEP_SELECT=01-base-11par,03-review-11par
+#     Run two independent model folders in one job.
+#   STEP_SELECT=all
+#     Run every row where enabled is TRUE.
+#   MFCL_FEVALS=10
+#     Override the per-row `fevals` value for one quick test job.
+#
+# Folder convention:
+#   steps/<step_id>/model/
+#     Put that model's MFCL inputs here: .frq, .ini, .tag, .age_length, .par,
+#     doitall.sh if needed, and any related model files.
+#   steps/<step_id>/patch.R
+#     Optional. Use only for a small scripted edit that should happen just
+#     before MFCL runs.
 
 stepwise_run <- list(
+  # Default model folder used by `make local`, `make docker`, and `make kflow`
+  # when STEP_SELECT is not supplied. Keep this narrow so adding new folders
+  # does not accidentally run everything.
   default_step_select = "01-base-11par",
+
+  # Label used to group the automatic stepwise -> plot -> report chain in Kflow.
+  # Example: "bet-2026-e2e", "bet-2026-debug", "bet-2026-base-check".
   flow_group = "bet-2026-e2e",
+
+  # TRUE: command-line `make kflow` keeps the default dependency chain and
+  # launches plot/report when stepwise succeeds.
+  # FALSE: `make kflow` submits only the selected stepwise model job.
+  # One-off override:
+  #   make kflow TRIGGER_NEXT=false STEP_SELECT=01-base-11par
   trigger_next = TRUE,
+
+  # Blank means use each row's `fevals`.
+  # Set a number here to override every selected row, for example:
+  #   mfcl_fevals = "1"   # very quick smoke run
+  #   mfcl_fevals = "50"  # longer local/cluster check
   mfcl_fevals = ""
 )
 
@@ -25,6 +61,41 @@ stepwise_job_title <- function(step_select = stepwise_value("default_step_select
   paste("BET stepwise", step_select)
 }
 
+# Model table.
+#
+# Add a new model by copying one row, changing `step_id`, and creating the
+# matching folder under steps/. Keep labels short because they are reused in
+# Kflow, plots, and summaries.
+#
+# Column guide:
+#   step_id:
+#     Folder name under `steps/`. Use numbered names so the intended order is
+#     obvious, for example "04-steepness-low".
+#   enabled:
+#     TRUE to allow STEP_SELECT=all to run it. FALSE keeps the row documented
+#     but skipped by all-mode.
+#   model_label:
+#     Human-readable short name for Kflow/plot/report labels.
+#   run_mode:
+#     "last_par"  Continue from the latest numbered .par and write the next one.
+#                 Example: 11.par -> 12.par. This is the normal quick check.
+#     "single"    Use `input_par` and `output_par` exactly as listed.
+#     "doitall"   Run doitall.sh from the model folder, then keep the final .par.
+#   source_dir:
+#     Blank means auto-detect `steps/<step_id>/model/`.
+#     Use "." to use files directly in `steps/<step_id>/`.
+#     Use a relative or absolute folder only for a deliberate shared source.
+#   input_par:
+#     Starting par file for "last_par" or "single"; use "latest" to auto-pick.
+#   frq:
+#     MFCL frequency file name, usually "bet.frq".
+#   output_par:
+#     Blank lets "last_par" choose the next numbered par.
+#     Required for "single" if you want a precise output name.
+#   fevals:
+#     Quick test function evaluations for this row; override with MFCL_FEVALS.
+#   notes:
+#     Free text for humans. Use this to document why the model exists.
 stepwise_models <- data.frame(
   step_id = c(
     "01-base-11par",
