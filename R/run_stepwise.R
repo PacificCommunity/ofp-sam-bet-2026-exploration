@@ -49,8 +49,8 @@ run_mfcl <- function(program, args, log_file, live_log = TRUE) {
     return(system2(program, args, stdout = log_file, stderr = log_file, wait = TRUE))
   }
   quoted <- paste(c(shQuote(program), shQuote(args)), collapse = " ")
-  command <- sprintf("%s 2>&1 | tee %s >&2", quoted, shQuote(log_file))
-  system2("bash", c("-o", "pipefail", "-c", command), wait = TRUE)
+  command <- sprintf("set -o pipefail; %s 2>&1 | tee %s >&2", quoted, shQuote(log_file))
+  system2("bash", c("-c", command), wait = TRUE)
 }
 
 bind_rows_fill <- function(rows) {
