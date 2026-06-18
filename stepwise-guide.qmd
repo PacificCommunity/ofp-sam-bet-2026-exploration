@@ -1,0 +1,183 @@
+---
+title: "BET 2026 Stepwise Guide"
+subtitle: "Editable model folders, runtime settings, and Kflow launch checks"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    theme: cosmo
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r setup}
+source("stepwise-config.R")
+
+has_yaml <- requireNamespace("yaml", quietly = TRUE) && file.exists("kflow.yaml")
+kflow_config <- if (has_yaml) yaml::read_yaml("kflow.yaml") else list()
+
+as_text <- function(value, default = "") {
+  if (is.null(value) || length(value) == 0 || is.na(value[[1]])) {
+    return(default)
+  }
+  if (is.logical(value)) {
+    return(tolower(as.character(value[[1]])))
+  }
+  as.character(value[[1]])
+}
+
+step_exists <- function(step_id) {
+  dir.exists(file.path("steps", step_id))
+}
+
+model_dir <- function(step_id) {
+  file.path("steps", step_id, "model")
+}
+
+source_status <- function(step_id, source_dir) {
+  if (!is.na(source_dir) && nzchar(source_dir)) {
+    if (identical(source_dir, ".")) {
+      path <- file.path("steps", step_id)
+    } else if (grepl("^/|^[A-Za-z]:", source_dir)) {
+      path <- source_dir
+    } else {
+      path <- file.path("steps", step_id, source_dir)
+    }
+  } else {
+    path <- model_dir(step_id)
+  }
+
+  if (dir.exists(path)) {
+    "ok"
+  } else {
+    paste("missing:", path)
+  }
+}
+
+model_checks <- within(stepwise_models, {
+  step_folder <- ifelse(vapply(step_id, step_exists, logical(1)), "ok", "missing")
+  source_folder <- mapply(source_status, step_id, source_dir, USE.NAMES = FALSE)
+  run_mode_valid <- ifelse(run_mode %in% c("last_par", "single", "doitall"), "ok", "check")
+})
+```
+
+# What To Edit
+
+Most edits should happen in only two places:
+
+- `stepwise-config.R`: choose default settings and register each model row.
+- `steps/<step_id>/model/`: keep the MFCL input files for that model.
+
+Use `patch.R` inside a step folder only when a model needs a small scripted edit before MFCL runs. Each step folder is independent, so a new sensitivity or review model should usually be a new numbered folder under `steps/`.
+
+# Current Defaults
+
+```{r defaults-table}
+defaults <- data.frame(
+  setting = c(
+    "default_step_select",
+    "flow_group",
+    "trigger_next",
+    "mfcl_fevals",
+    "docker_image",
+    "program_path"
+  ),
+  value = c(
+    stepwise_value("default_step_select", "01-base-11par"),
+    stepwise_value("flow_group", "bet-2026-e2e"),
+    stepwise_value("trigger_next", "true"),
+    stepwise_value("mfcl_fevals", ""),
+    as_text(kflow_config$docker_image, "ghcr.io/pacificcommunity/tuna-flow:v1.5"),
+    as_text(kflow_config$env$PROGRAM_PATH, "/home/mfcl/mfclo64")
+  ),
+  meaning = c(
+    "Model selection used when STEP_SELECT is not supplied.",
+    "Kflow group label used to connect stepwise, plot, and report jobs.",
+    "Whether command-line Kflow submissions keep the downstream plot/report chain.",
+    "Blank uses the row-level fevals value; a number overrides selected rows.",
+    "Docker image used by Kflow and local Docker runs.",
+    "MFCL executable path inside the Docker image."
+  ),
+  stringsAsFactors = FALSE
+)
+knitr::kable(defaults)
+```
+
+# Model Rows
+
+```{r model-table}
+model_display <- stepwise_models[, c(
+  "step_id",
+  "enabled",
+  "model_label",
+  "run_mode",
+  "input_par",
+  "frq",
+  "output_par",
+  "fevals",
+  "notes"
+)]
+knitr::kable(model_display)
+```
+
+# Folder Checks
+
+```{r checks-table}
+checks_display <- model_checks[, c(
+  "step_id",
+  "enabled",
+  "run_mode",
+  "step_folder",
+  "source_folder",
+  "run_mode_valid"
+)]
+knitr::kable(checks_display)
+```
+
+# Run Modes
+
+`last_par` continues from a numbered `.par` file and writes the next numbered file. For example, `11.par` becomes `12.par`. This is the usual quick model-check mode.
+
+`single` runs exactly the listed input and output `.par` files. Use it when the output name should be explicit instead of inferred.
+
+`doitall` runs `doitall.sh` from the model folder. `MFCL_FEVALS` is only passed as an environment variable in this mode; the script must read it explicitly if a quick test should use it.
+
+# Launch Examples
+
+```bash
+make list
+make local STEP_SELECT=01-base-11par PROGRAM_PATH=/path/to/mfclo64
+make docker STEP_SELECT=01-base-11par
+make kflow STEP_SELECT=01-base-11par
+make kflow STEP_SELECT=01-base-11par TRIGGER_NEXT=false
+```
+
+Use comma-separated model IDs to run several independent folders in one job:
+
+```bash
+make docker STEP_SELECT=01-base-11par,03-review-11par
+make kflow STEP_SELECT=01-base-11par,03-review-11par
+```
+
+# Adding A Model
+
+1. Copy an existing folder under `steps/`.
+2. Rename it with the next numbered ID, such as `04-steepness-low`.
+3. Put the model's MFCL inputs in `steps/04-steepness-low/model/`.
+4. Copy one row in `stepwise-config.R` and update `step_id`, `model_label`, `run_mode`, and notes.
+5. Run `make list`, then `make docs`, then launch with `STEP_SELECT=04-steepness-low`.
+
+# Downstream Jobs
+
+Kflow stores the normal dependency chain as `stepwise -> plot -> report`. The `stepwise_run$trigger_next` value controls the default behavior for command-line submissions through `make kflow`.
+
+Set `TRIGGER_NEXT=false` for a one-off model-only run:
+
+```bash
+make kflow STEP_SELECT=01-base-11par TRIGGER_NEXT=false
+```
+
+Keep `TRIGGER_NEXT=true` when the selected model should feed the plot and report tasks after the stepwise job succeeds.

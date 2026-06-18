@@ -3,6 +3,7 @@
 # This is the main file to edit when adding, selecting, naming, or lightly
 # changing model runs. Each row in `stepwise_models` points to one independent
 # model folder under `steps/`.
+# For the human-readable guide, run `make docs` to render stepwise-guide.qmd.
 #
 # Common launch examples:
 #   STEP_SELECT=01-base-11par
@@ -34,7 +35,7 @@ stepwise_run <- list(
 
   # Label used to group the automatic stepwise -> plot -> report chain in Kflow.
   # Example: "bet-2026-e2e", "bet-2026-debug", "bet-2026-base-check".
-  flow_group = "bet-2026-e2e",
+  flow_group = "bet-2026-x111",
 
   # TRUE: command-line `make kflow` keeps the default dependency chain and
   # launches plot/report when stepwise succeeds.

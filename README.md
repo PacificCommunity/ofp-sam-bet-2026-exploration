@@ -6,6 +6,10 @@ The task runs numbered model folders under `steps/`. Each folder is one
 independent model. To add a model, copy an existing folder, give it the next
 number, and add the row to `stepwise-config.R`.
 
+For a rendered, user-facing guide, run:
+
+- `make docs`: render `stepwise-guide.qmd` to `stepwise-guide.html`.
+
 Current starter sequence:
 
 - `steps/01-base-11par`: quick base run from `11.par` in
@@ -70,6 +74,7 @@ in the job config when launching from Kflow.
 
 Shortcut commands:
 
+- `make docs`: render the Quarto guide with the current model table and checks.
 - `make list`: show the rows in `stepwise-config.R`.
 - `make local STEP_SELECT=01-base-11par PROGRAM_PATH=/path/to/mfclo64`: run on
   this machine.

@@ -5,3 +5,10 @@
 /.kflow-runtime-cache/
 .Rhistory
 .RData
+*.Rproj
+.Rproj.user
+.positai
+/.quarto/
+/.quarto-cache/
+/*.html
+/*_files/

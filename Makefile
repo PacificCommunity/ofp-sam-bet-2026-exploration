@@ -26,13 +26,17 @@ KFLOW_RUNTIME_PACKAGES ?= $(call yml,y$$env$$KFLOW_RUNTIME_PACKAGES,mfclshiny=Pa
 KFLOW_RUNTIME_GITHUB_AUTH ?= $(call yml,y$$env$$KFLOW_RUNTIME_GITHUB_AUTH,true)
 KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME ?= $(call yml,y$$env$$KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME,true)
 
-.PHONY: help list clean fix-permissions local docker kflow
+.PHONY: help docs list clean fix-permissions local docker kflow
 
 help:
 	@printf '%s\n' \
 	  'BET 2026 stepwise shortcuts' \
 	  '' \
 	  'Models live in stepwise-config.R; Kflow/runtime defaults live in kflow.yaml.' \
+	  'Run `make docs` for the Quarto guide with the current model table.' \
+	  '' \
+	  'make docs' \
+	  '  Render stepwise-guide.qmd to HTML.' \
 	  '' \
 	  'make list' \
 	  '  Show configured model rows from stepwise-config.R.' \
@@ -55,6 +59,9 @@ help:
 	  'Note: MFCL_FEVALS is applied by the runner only for last_par/single; doitall.sh must read it explicitly.' \
 	  '' \
 	  'Common overrides: STEP_SELECT, MFCL_FEVALS, MFCL_LIVE_LOG, TRIGGER_NEXT, OUTPUT_DIR.'
+
+docs:
+	quarto render stepwise-guide.qmd
 
 list:
 	@Rscript -e "source('$(CONFIG_R)'); print(stepwise_models, row.names = FALSE)"
