@@ -44,6 +44,15 @@ truthy <- function(x, default = TRUE) {
   tolower(trimws(as.character(x[[1]]))) %in% c("1", "true", "yes", "y", "on")
 }
 
+run_mfcl <- function(program, args, log_file, live_log = TRUE) {
+  if (!isTRUE(live_log)) {
+    return(system2(program, args, stdout = log_file, stderr = log_file, wait = TRUE))
+  }
+  quoted <- paste(c(shQuote(program), shQuote(args)), collapse = " ")
+  command <- sprintf("%s 2>&1 | tee %s >&2", quoted, shQuote(log_file))
+  system2("bash", c("-o", "pipefail", "-c", command), wait = TRUE)
+}
+
 bind_rows_fill <- function(rows) {
   rows <- rows[vapply(rows, function(x) is.data.frame(x) && nrow(x), logical(1))]
   if (!length(rows)) return(data.frame(stringsAsFactors = FALSE))
@@ -106,17 +115,24 @@ out_dir <- env("OUTPUT_DIR", "outputs")
 work_dir <- file.path(root, "work")
 input_root <- file.path(work_dir, "inputs")
 program <- env("PROGRAM_PATH", "/home/mfcl/mfclo64")
+mfcl_live_log <- truthy(env("MFCL_LIVE_LOG", "true"), default = TRUE)
 step_select <- strsplit(env("STEP_SELECT", ""), ",", fixed = TRUE)[[1]]
 step_select <- trimws(step_select[nzchar(trimws(step_select))])
 
 steps <- sort(list.dirs("steps", recursive = FALSE, full.names = TRUE))
 steps <- steps[grepl("^[0-9][0-9]-", basename(steps))]
-if (length(step_select)) {
+if (length(step_select) && !any(tolower(step_select) %in% c("all", "*"))) {
   unknown <- setdiff(step_select, basename(steps))
   if (length(unknown)) stop("Unknown STEP_SELECT value(s): ", paste(unknown, collapse = ", "), call. = FALSE)
   steps <- steps[basename(steps) %in% step_select]
 }
 if (!length(steps)) stop("No step folders selected under steps/.", call. = FALSE)
+dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+write.csv(
+  data.frame(step_id = basename(steps), step_dir = steps, stringsAsFactors = FALSE),
+  file.path(out_dir, "selected-steps.csv"),
+  row.names = FALSE
+)
 
 model_rows <- list()
 for (step_dir in steps) {
@@ -156,7 +172,7 @@ for (step_dir in steps) {
   message("Running ", step_id, " (", label, ")")
   old <- setwd(model_dir)
   status <- tryCatch(
-    system2(program, args, stdout = log_file, stderr = log_file, wait = TRUE),
+    run_mfcl(program, args, log_file = log_file, live_log = mfcl_live_log),
     finally = setwd(old)
   )
   if (!identical(status, 0L)) stop("MFCL failed for ", step_id, " with status ", status, call. = FALSE)
@@ -164,16 +180,25 @@ for (step_dir in steps) {
   final_par <- file.path(model_dir, output_par)
   if (!file.exists(final_par)) stop("MFCL did not create ", output_par, call. = FALSE)
 
+  payload_status <- "mfclshiny_not_available"
   if (requireNamespace("mfclshiny", quietly = TRUE)) {
-    try(mfclshiny::build_model_payload(model_dir, overwrite = TRUE, recursive = FALSE), silent = TRUE)
+    payload_status <- tryCatch({
+      if ("build_model_payload" %in% getNamespaceExports("mfclshiny")) {
+        mfclshiny::build_model_payload(model_dir, overwrite = TRUE, recursive = FALSE)
+      } else if ("build_model_payloads" %in% getNamespaceExports("mfclshiny")) {
+        mfclshiny::build_model_payloads(model_dir, recursive = FALSE, overwrite = TRUE)
+      }
+      "ok"
+    }, error = function(e) paste("error:", conditionMessage(e)))
   }
+  writeLines(payload_status, file.path(model_dir, "model-payload-status.txt"))
   payload_file <- file.path(model_dir, "model_payload.rds")
   ts <- write_payload_timeseries(payload_file, file.path(model_dir, "depletion.csv"), label)
   footer <- par_footer(final_par)
 
   step_out <- file.path(out_dir, "models", step_id)
   dir.create(step_out, recursive = TRUE, showWarnings = FALSE)
-  keep <- unique(c(output_par, "model_payload.rds", "depletion.csv", "length.fit", "weight.fit", "temporary_tag_report", "tag.rep", "mfcl.log", frq))
+  keep <- unique(c(output_par, "model_payload.rds", "model-payload-status.txt", "depletion.csv", "length.fit", "weight.fit", "temporary_tag_report", "tag.rep", "mfcl.log", frq))
   for (file in keep) {
     src <- file.path(model_dir, file)
     if (file.exists(src)) file.copy(src, file.path(step_out, basename(file)), overwrite = TRUE)
@@ -188,6 +213,7 @@ for (step_dir in steps) {
     objective = footer[["objective"]],
     max_gradient = footer[["max_gradient"]],
     payload = file.exists(file.path(step_out, "model_payload.rds")),
+    payload_status = payload_status,
     depletion_rows = nrow(ts),
     stringsAsFactors = FALSE
   )

@@ -6,6 +6,11 @@ resources:
   cpus: 2
   memory: 12GB
   disk: 8GB
+env:
+  STEP_SELECT: 01-base-11par
+  MFCL_LIVE_LOG: "true"
+  KFLOW_RUNTIME_UPDATE: auto
+  KFLOW_RUNTIME_PACKAGES: mfclshiny=PacificCommunity/mfclshiny@main
 output_patterns:
   - outputs/**
 job_config:
@@ -17,4 +22,5 @@ job_config:
     - PROGRAM_PATH
     - SMOKE_FEVALS
     - MFCL_LIVE_LOG
+    - KFLOW_RUNTIME_UPDATE
     - KFLOW_RUNTIME_PACKAGES
