@@ -64,7 +64,7 @@ markdown_table <- function(df) {
 generated_note <- paste0(
   "<!-- This section is generated from ",
   config_path,
-  ". It is refreshed by Makefile targets and the local pre-commit hook. -->"
+  ". It is refreshed by Makefile targets and the local pre-commit hook once a Makefile target has run. -->"
 )
 
 readme_section <- function(lines, heading, body) {

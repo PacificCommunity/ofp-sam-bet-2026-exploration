@@ -43,11 +43,8 @@ help:
 	  '' \
 	  'Models live in job-config.R; Kflow/runtime defaults live in kflow.yaml.' \
 	  '' \
-	  'make setup' \
-	  '  Enable the local git hook that refreshes README.md before commits.' \
-	  '' \
 	  'make list' \
-	  '  Refresh README.md, then show configured model rows from job-config.R.' \
+	  '  Refresh README.md, enable the commit hook, then show configured model rows from job-config.R.' \
 	  '' \
 	  'make local STEP_SELECT=01-base-11par PROGRAM_PATH=/path/to/mfclo64' \
 	  '  Run directly on this machine.' \
@@ -71,13 +68,17 @@ help:
 setup: hooks
 
 hooks:
-	@git config core.hooksPath .githooks
-	@printf '%s\n' 'Git hooks enabled from .githooks.'
+	@if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then \
+	  current="$$(git config --get core.hooksPath 2>/dev/null || true)"; \
+	  if [[ "$$current" != ".githooks" ]]; then \
+	    git config core.hooksPath .githooks; \
+	  fi; \
+	fi
 
 README.md: $(README_SOURCES)
 	@CONFIG_R='$(CONFIG_R)' README_MD='README.md' Rscript R/update_readme.R
 
-readme:
+readme: hooks
 	@CONFIG_R='$(CONFIG_R)' README_MD='README.md' Rscript R/update_readme.R
 
 list: readme

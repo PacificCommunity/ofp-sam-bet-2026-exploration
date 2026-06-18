@@ -13,8 +13,9 @@ Most routine edits should happen in only two places:
 - `job-config.R`: choose default settings and register each model row.
 - `steps/<step_id>/model/`: keep the MFCL input files for that model.
 
-README tables are refreshed automatically before the main Makefile run targets
-and before commits after `make setup` has been run once in the checkout.
+README tables are refreshed automatically before the main Makefile run targets.
+Those targets also enable the local pre-commit hook for later commits in the
+checkout.
 
 Internal R helper functions live in `R/stepwise_config_helpers.R`; they should
 not be edited when adding ordinary model runs.
@@ -26,7 +27,7 @@ under `steps/`.
 
 ## Current Defaults
 
-<!-- This section is generated from job-config.R. It is refreshed by Makefile targets and the local pre-commit hook. -->
+<!-- This section is generated from job-config.R. It is refreshed by Makefile targets and the local pre-commit hook once a Makefile target has run. -->
 
 | `setting` | `value` | `meaning` |
 | --- | --- | --- |
@@ -40,7 +41,7 @@ under `steps/`.
 
 ## Model Rows
 
-<!-- This section is generated from job-config.R. It is refreshed by Makefile targets and the local pre-commit hook. -->
+<!-- This section is generated from job-config.R. It is refreshed by Makefile targets and the local pre-commit hook once a Makefile target has run. -->
 
 | `step_id` | `enabled` | `model_label` | `job_title` | `job_key` | `run_mode` | `input_par` | `frq` | `output_par` | `fevals` |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -51,7 +52,7 @@ under `steps/`.
 
 ## Folder Checks
 
-<!-- This section is generated from job-config.R. It is refreshed by Makefile targets and the local pre-commit hook. -->
+<!-- This section is generated from job-config.R. It is refreshed by Makefile targets and the local pre-commit hook once a Makefile target has run. -->
 
 | `step_id` | `expected_source_folder` | `status` |
 | --- | --- | --- |
@@ -134,9 +135,8 @@ tasks after the stepwise job succeeds.
 
 | Command | Purpose |
 | --- | --- |
-| `make setup` | Enable the local pre-commit hook that refreshes README tables. |
 | `make readme` | Force-refresh README tables from `job-config.R`. |
-| `make list` | Refresh README tables, then show the rows in `job-config.R`. |
+| `make list` | Refresh README tables, enable the commit hook, then show the rows in `job-config.R`. |
 | `make local STEP_SELECT=01-base-11par PROGRAM_PATH=/path/to/mfclo64` | Run directly on this machine. |
 | `make docker STEP_SELECT=01-base-11par` | Run locally inside `ghcr.io/pacificcommunity/tuna-flow:v1.5`. |
 | `make kflow STEP_SELECT=01-base-11par` | Submit the selected model folder to Kflow from a configured shell. |
