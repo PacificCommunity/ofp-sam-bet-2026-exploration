@@ -13,6 +13,9 @@ Most routine edits should happen in only two places:
 - `job-config.R`: choose default settings and register each model row.
 - `steps/<step_id>/model/`: keep the MFCL input files for that model.
 
+README tables are refreshed automatically before the main Makefile run targets
+and before commits after `make setup` has been run once in the checkout.
+
 Internal R helper functions live in `R/stepwise_config_helpers.R`; they should
 not be edited when adding ordinary model runs.
 
@@ -23,50 +26,39 @@ under `steps/`.
 
 ## Current Defaults
 
-| Setting | Value | Meaning |
+<!-- This section is generated from job-config.R. It is refreshed by Makefile targets and the local pre-commit hook. -->
+
+| `setting` | `value` | `meaning` |
 | --- | --- | --- |
 | `default_step_select` | `01-base-11par` | Model selection used when `STEP_SELECT` is not supplied. |
 | `flow_group` | `bet-2026-x111` | Kflow group label used to connect stepwise, plot, and report jobs. |
 | `trigger_next` | `true` | Whether command-line Kflow submissions keep the downstream plot/report chain. |
-| `mfcl_fevals` | blank | Blank uses the row-level `fevals` value; a number overrides selected rows. |
+| `mfcl_fevals` | `blank` | Blank uses the row-level `fevals` value; a number overrides selected rows. |
 | `docker_image` | `ghcr.io/pacificcommunity/tuna-flow:v1.5` | Docker image used by Kflow and local Docker runs. |
 | `program_path` | `/home/mfcl/mfclo64` | MFCL executable path inside the Docker image. |
 
-Run `make list` to print the current model table directly from
-`job-config.R`.
-
-Kflow job titles and selectors use the selected model row where possible:
-
-- `JOB_TITLE`: readable title shown in the job list.
-- `MODEL_LABEL`: short human label for the selected model.
-- `JOB_KEY`: stable selector label for dependency links.
-
-`make kflow` computes these fields from `job-config.R`. When launching
-directly from the Kflow UI and changing `STEP_SELECT`, update the label fields
-in the job config as well if the job list should show the selected model label
-before the run starts.
-
-Kflow `Job config` is intended to match the selected row in `job-config.R`.
 
 ## Model Rows
 
+<!-- This section is generated from job-config.R. It is refreshed by Makefile targets and the local pre-commit hook. -->
+
 | `step_id` | `enabled` | `model_label` | `job_title` | `job_key` | `run_mode` | `input_par` | `frq` | `output_par` | `fevals` |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `01-base-11par` | `TRUE` | Base 11.par | BET stepwise: Base 11.par | `01-base-11par` | `last_par` | `11.par` | `bet.frq` | blank | `1` |
-| `02-continue-11par` | `TRUE` | Base 11.par model 02 | BET stepwise: Base 11.par model 02 | `02-continue-11par` | `last_par` | `11.par` | `bet.frq` | blank | `1` |
-| `03-review-11par` | `TRUE` | Base 11.par model 03 | BET stepwise: Base 11.par model 03 | `03-review-11par` | `last_par` | `11.par` | `bet.frq` | blank | `1` |
+| `01-base-11par` | `TRUE` | Base 11.par | BET stepwise: Base 11.par | `01-base-11par` | `last_par` | `11.par` | `bet.frq` | `blank` | `1` |
+| `02-continue-11par` | `TRUE` | Base 11.par model 02 | BET stepwise: Base 11.par model 02 | `02-continue-11par` | `last_par` | `11.par` | `bet.frq` | `blank` | `1` |
+| `03-review-11par` | `TRUE` | Base 11.par model 03 | BET stepwise: Base 11.par model 03 | `03-review-11par` | `last_par` | `11.par` | `bet.frq` | `blank` | `1` |
+
 
 ## Folder Checks
 
-| `step_id` | Expected source folder | Status |
-| --- | --- | --- |
-| `01-base-11par` | `steps/01-base-11par/model/` | should exist |
-| `02-continue-11par` | `steps/02-continue-11par/model/` | should exist |
-| `03-review-11par` | `steps/03-review-11par/model/` | should exist |
+<!-- This section is generated from job-config.R. It is refreshed by Makefile targets and the local pre-commit hook. -->
 
-The runner auto-detects `steps/<step_id>/model/` when `source_dir` is blank.
-Use `source_dir = "."` only when the MFCL files should live directly inside the
-step folder.
+| `step_id` | `expected_source_folder` | `status` |
+| --- | --- | --- |
+| `01-base-11par` | `steps/01-base-11par/model` | `exists` |
+| `02-continue-11par` | `steps/02-continue-11par/model` | `exists` |
+| `03-review-11par` | `steps/03-review-11par/model` | `exists` |
+
 
 ## Run Modes
 
@@ -106,7 +98,7 @@ make kflow STEP_SELECT=01-base-11par,03-review-11par
 4. Copy one row in `job-config.R`.
 5. Update `step_id`, `model_label`, `job_title`, `job_key`, `run_mode`,
    `input_par`, `frq`, `output_par`, and `fevals`.
-6. Run `make list`.
+6. Run `make list` to refresh the README tables and check the row.
 7. Launch the selected model with `STEP_SELECT=04-steepness-low`.
 
 ## Useful Launch Fields
@@ -142,7 +134,9 @@ tasks after the stepwise job succeeds.
 
 | Command | Purpose |
 | --- | --- |
-| `make list` | Show the rows in `job-config.R`. |
+| `make setup` | Enable the local pre-commit hook that refreshes README tables. |
+| `make readme` | Force-refresh README tables from `job-config.R`. |
+| `make list` | Refresh README tables, then show the rows in `job-config.R`. |
 | `make local STEP_SELECT=01-base-11par PROGRAM_PATH=/path/to/mfclo64` | Run directly on this machine. |
 | `make docker STEP_SELECT=01-base-11par` | Run locally inside `ghcr.io/pacificcommunity/tuna-flow:v1.5`. |
 | `make kflow STEP_SELECT=01-base-11par` | Submit the selected model folder to Kflow from a configured shell. |

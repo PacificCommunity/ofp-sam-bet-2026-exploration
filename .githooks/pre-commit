@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONFIG_R="${CONFIG_R:-job-config.R}"
+README_MD="${README_MD:-README.md}"
+
+if [[ ! -f "$CONFIG_R" ]]; then
+  echo "Skipping README refresh because $CONFIG_R was not found." >&2
+  exit 0
+fi
+
+if ! command -v Rscript >/dev/null 2>&1; then
+  echo "Rscript is required to refresh README.md from $CONFIG_R." >&2
+  exit 1
+fi
+
+CONFIG_R="$CONFIG_R" README_MD="$README_MD" Rscript R/update_readme.R
+git add "$README_MD"
