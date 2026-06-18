@@ -21,7 +21,7 @@ stepwise_models <- data.frame(
   output_par = c("final.par", "final.par", "final.par"),
   fevals = c(1L, 1L, 1L),
   notes = c(
-    "Starter base model from the bundled BET input files.",
+    "Starter base model from the model files in steps/01-base-11par/model.",
     "Independent model slot. Add model files or patch.R in the matching step folder.",
     "Independent model slot. Add model files or patch.R in the matching step folder."
   ),

@@ -9,7 +9,7 @@ number, and add the row to `stepwise-config.R`.
 Current starter sequence:
 
 - `steps/01-base-11par`: quick base run from `11.par` in
-  the bundled `mfcl/inputs/2023_4region_1007` folder.
+  `steps/01-base-11par/model/`.
 - `steps/02-continue-11par`: independent model folder from the same `11.par`.
 - `steps/03-review-11par`: independent model folder from the same `11.par`.
 
@@ -19,8 +19,7 @@ The main user-editable file is `stepwise-config.R` in the repo root:
 - `enabled`: set `false` to keep a model documented without running it.
 - `model_label`: short label used in Kflow and downstream plots.
 - `source_dir`: optional source folder. Leave blank to auto-detect files in
-  `steps/<step-id>/model`, then directly in `steps/<step-id>/`, then fall back
-  to the bundled BET inputs.
+  `steps/<step-id>/model`, then directly in `steps/<step-id>/`.
 - `input_par`: starting par file, or `latest`.
 - `frq`: MFCL frequency file name.
 - `output_par`: final par file saved for this model. The starter rows all use
@@ -66,6 +65,8 @@ only `model_payload.rds` and the final par file. The top-level
 summary for Kflow and the downstream plot task. MFCL detail is visible in the
 live Kflow log but is not kept as an artifact.
 
-The default input files are copied into this repository under `mfcl/` and
-`metadata/`, so a Kflow run does not need to clone
-`PacificCommunity/ofp-sam-bet2026-inputs`.
+The default input files are copied into each starter model folder under
+`steps/<step-id>/model/`, so every model folder is self-contained. Docker runs
+use the MFCL executable bundled in the tuna-flow image at `/home/mfcl/mfclo64`
+by default. For local non-Docker testing, override it with
+`PROGRAM_PATH=/path/to/mfclo64`.

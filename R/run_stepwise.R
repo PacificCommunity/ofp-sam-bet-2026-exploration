@@ -214,7 +214,7 @@ program <- env("PROGRAM_PATH", "/home/mfcl/mfclo64")
 mfcl_live_log <- truthy(env("MFCL_LIVE_LOG", "true"), default = TRUE)
 step_select <- strsplit(env("STEP_SELECT", ""), ",", fixed = TRUE)[[1]]
 step_select <- trimws(step_select[nzchar(trimws(step_select))])
-default_input_dir <- env("DEFAULT_INPUT_DIR", "mfcl/inputs/2023_4region_1007")
+default_input_dir <- env("DEFAULT_INPUT_DIR", "")
 
 step_table <- read_step_table(file.path(root, "stepwise-config.R"), file.path(root, "steps"))
 if (length(step_select) && !any(tolower(step_select) %in% c("all", "*"))) {
