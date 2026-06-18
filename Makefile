@@ -1,7 +1,8 @@
 SHELL := /usr/bin/env bash
 
 CONFIG_R ?= stepwise-config.R
-cfg = $(shell Rscript -e 'source("$(CONFIG_R)"); cat(stepwise_value("$(1)", "$(2)"))')
+CONFIG_HELPERS_R ?= R/stepwise_config_helpers.R
+cfg = $(shell Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_value("$(1)", "$(2)"))')
 yml = $(shell Rscript -e 'y <- yaml::read_yaml("kflow.yaml"); v <- $(1); if (is.null(v) || length(v) == 0 || is.na(v[[1]])) v <- "$(2)"; if (is.logical(v)) v <- tolower(as.character(v)); cat(as.character(v[[1]]))')
 
 STEP_SELECT ?= $(call cfg,default_step_select,01-base-11par)
@@ -18,9 +19,9 @@ KFLOW_URL ?= http://127.0.0.1:8089
 KFLOW_TASK ?= $(call yml,y$$name,ofp-sam-bet-2026-stepwise)
 FLOW_GROUP ?= $(call cfg,flow_group,bet-2026-e2e)
 TRIGGER_NEXT ?= $(call cfg,trigger_next,true)
-JOB_TITLE ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_R)"); cat(stepwise_job_title(Sys.getenv("STEP_SELECT")))')
-MODEL_LABEL ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_R)"); cat(stepwise_model_label(Sys.getenv("STEP_SELECT")))')
-JOB_KEY ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_R)"); cat(stepwise_job_key(Sys.getenv("STEP_SELECT")))')
+JOB_TITLE ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_job_title(Sys.getenv("STEP_SELECT")))')
+MODEL_LABEL ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_model_label(Sys.getenv("STEP_SELECT")))')
+JOB_KEY ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_job_key(Sys.getenv("STEP_SELECT")))')
 
 KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES ?= $(call yml,y$$env$$KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES,true)
 KFLOW_RUNTIME_UPDATE ?= $(call yml,y$$env$$KFLOW_RUNTIME_UPDATE,auto)

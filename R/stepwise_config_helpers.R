@@ -1,0 +1,92 @@
+source_stepwise_config <- function(path = "stepwise-config.R") {
+  source(path, local = .GlobalEnv)
+  invisible(TRUE)
+}
+
+stepwise_value <- function(name, default = "") {
+  value <- stepwise_run[[name]]
+  if (is.null(value) || length(value) == 0 || is.na(value[[1]])) {
+    return(default)
+  }
+  if (is.logical(value)) {
+    return(tolower(as.character(value[[1]])))
+  }
+  as.character(value[[1]])
+}
+
+stepwise_selected_models <- function(step_select = stepwise_value("default_step_select")) {
+  selected <- trimws(strsplit(as.character(step_select), ",", fixed = TRUE)[[1]])
+  selected <- selected[nzchar(selected)]
+  if (!length(selected)) {
+    selected <- stepwise_value("default_step_select")
+  }
+  if (any(tolower(selected) %in% c("all", "*"))) {
+    enabled <- if ("enabled" %in% names(stepwise_models)) {
+      tolower(as.character(stepwise_models$enabled)) %in% c("true", "t", "1", "yes", "y")
+    } else {
+      rep(TRUE, nrow(stepwise_models))
+    }
+    return(stepwise_models[enabled, , drop = FALSE])
+  }
+  out <- stepwise_models[stepwise_models$step_id %in% selected, , drop = FALSE]
+  if (!nrow(out)) {
+    return(data.frame(step_id = selected, model_label = selected, stringsAsFactors = FALSE))
+  }
+  out
+}
+
+stepwise_first_value <- function(rows, column, fallback) {
+  if (column %in% names(rows)) {
+    value <- trimws(as.character(rows[[column]][[1]]))
+    if (length(value) && nzchar(value) && !is.na(value)) {
+      return(value)
+    }
+  }
+  fallback
+}
+
+stepwise_model_labels <- function(rows) {
+  labels <- if ("model_label" %in% names(rows)) {
+    trimws(as.character(rows$model_label))
+  } else {
+    rep("", nrow(rows))
+  }
+  labels[!nzchar(labels) | is.na(labels)] <- rows$step_id[!nzchar(labels) | is.na(labels)]
+  labels
+}
+
+stepwise_model_label <- function(step_select = stepwise_value("default_step_select")) {
+  rows <- stepwise_selected_models(step_select)
+  if (!nrow(rows)) {
+    return(as.character(step_select))
+  }
+  labels <- stepwise_model_labels(rows)
+  if (length(labels) == 1L) {
+    return(labels[[1]])
+  }
+  paste0(labels[[1]], " +", length(labels) - 1L, " models")
+}
+
+stepwise_job_key <- function(step_select = stepwise_value("default_step_select")) {
+  rows <- stepwise_selected_models(step_select)
+  if (!nrow(rows)) {
+    key <- as.character(step_select)
+  } else if (nrow(rows) == 1L) {
+    key <- stepwise_first_value(rows, "job_key", rows$step_id[[1]])
+  } else {
+    key <- paste0(rows$step_id[[1]], "-plus-", nrow(rows) - 1L)
+  }
+  key <- tolower(gsub("[^A-Za-z0-9_.-]+", "-", key))
+  gsub("^-+|-+$", "", key)
+}
+
+stepwise_job_title <- function(step_select = stepwise_value("default_step_select")) {
+  rows <- stepwise_selected_models(step_select)
+  if (nrow(rows) == 1L) {
+    title <- stepwise_first_value(rows, "job_title", "")
+    if (nzchar(title)) {
+      return(title)
+    }
+  }
+  paste("BET stepwise:", stepwise_model_label(step_select))
+}

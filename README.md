@@ -13,6 +13,9 @@ Most routine edits should happen in only two places:
 - `stepwise-config.R`: choose default settings and register each model row.
 - `steps/<step_id>/model/`: keep the MFCL input files for that model.
 
+Internal R helper functions live in `R/stepwise_config_helpers.R`; they should
+not be edited when adding ordinary model runs.
+
 Use `patch.R` inside a step folder only when a model needs a small scripted edit
 before MFCL runs. Each step folder is independent, so a new sensitivity, review,
 self-test, or diagnostic-style model should usually be a new numbered folder
@@ -45,11 +48,11 @@ before the run starts.
 
 ## Model Rows
 
-| `step_id` | `enabled` | `model_label` | `run_mode` | `input_par` | `frq` | `output_par` | `fevals` | Notes |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `01-base-11par` | `TRUE` | Base 11.par | `last_par` | `11.par` | `bet.frq` | blank | `1` | Starter base model from the model files in `steps/01-base-11par/model`. |
-| `02-continue-11par` | `TRUE` | Base 11.par model 02 | `last_par` | `11.par` | `bet.frq` | blank | `1` | Independent model slot. Add model files or `patch.R` in the matching step folder. |
-| `03-review-11par` | `TRUE` | Base 11.par model 03 | `last_par` | `11.par` | `bet.frq` | blank | `1` | Independent model slot. Add model files or `patch.R` in the matching step folder. |
+| `step_id` | `enabled` | `model_label` | `job_title` | `job_key` | `run_mode` | `input_par` | `frq` | `output_par` | `fevals` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `01-base-11par` | `TRUE` | Base 11.par | BET stepwise: Base 11.par | `01-base-11par` | `last_par` | `11.par` | `bet.frq` | blank | `1` |
+| `02-continue-11par` | `TRUE` | Base 11.par model 02 | BET stepwise: Base 11.par model 02 | `02-continue-11par` | `last_par` | `11.par` | `bet.frq` | blank | `1` |
+| `03-review-11par` | `TRUE` | Base 11.par model 03 | BET stepwise: Base 11.par model 03 | `03-review-11par` | `last_par` | `11.par` | `bet.frq` | blank | `1` |
 
 ## Folder Checks
 
@@ -99,8 +102,8 @@ make kflow STEP_SELECT=01-base-11par,03-review-11par
 2. Rename it with the next numbered ID, such as `04-steepness-low`.
 3. Put the model's MFCL inputs in `steps/04-steepness-low/model/`.
 4. Copy one row in `stepwise-config.R`.
-5. Update `step_id`, `model_label`, `run_mode`, `input_par`, `frq`, `output_par`,
-   `fevals`, and `notes`.
+5. Update `step_id`, `model_label`, `job_title`, `job_key`, `run_mode`,
+   `input_par`, `frq`, `output_par`, and `fevals`.
 6. Run `make list`.
 7. Launch the selected model with `STEP_SELECT=04-steepness-low`.
 
