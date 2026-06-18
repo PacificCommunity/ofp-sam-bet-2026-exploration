@@ -30,6 +30,16 @@ env:
   # Examples: 01-base-11par, 01-base-11par,03-review-11par, all
   STEP_SELECT: 01-base-11par
 
+  # Default Kflow display labels for the default model. `make kflow` computes
+  # these from stepwise-config.R. When launching directly from the Kflow UI and
+  # changing STEP_SELECT, update these fields too if the job list should show
+  # the selected model label before the run starts.
+  JOB_TITLE: "BET stepwise: Base 11.par"
+  JOB_LABEL: "Base 11.par"
+  MODEL_LABEL: "Base 11.par"
+  JOB_KEY: 01-base-11par
+  RUN_LABEL: 01-base-11par
+
   # true streams the full MFCL output to Kflow logs. false keeps logs quieter.
   MFCL_LIVE_LOG: "true"
 
@@ -77,6 +87,9 @@ job_config:
   optional:
     - RUN_LABEL
     - JOB_TITLE
+    - JOB_LABEL
+    - JOB_KEY
+    - MODEL_LABEL
     - FLOW_GROUP
     - STEP_SELECT
     - PROGRAM_PATH

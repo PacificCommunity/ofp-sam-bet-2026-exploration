@@ -32,6 +32,17 @@ under `steps/`.
 Run `make list` to print the current model table directly from
 `stepwise-config.R`.
 
+Kflow job titles and selectors use the selected model row where possible:
+
+- `JOB_TITLE`: readable title shown in the job list.
+- `JOB_LABEL` and `MODEL_LABEL`: short human label for the selected model.
+- `JOB_KEY` and `RUN_LABEL`: stable selector label for dependency links.
+
+`make kflow` computes these fields from `stepwise-config.R`. When launching
+directly from the Kflow UI and changing `STEP_SELECT`, update the label fields
+in the job config as well if the job list should show the selected model label
+before the run starts.
+
 ## Model Rows
 
 | `step_id` | `enabled` | `model_label` | `run_mode` | `input_par` | `frq` | `output_par` | `fevals` | Notes |
@@ -103,6 +114,8 @@ make kflow STEP_SELECT=01-base-11par,03-review-11par
 | `MFCL_FEVALS` | `10` | Override `fevals` for `last_par` and `single` jobs. |
 | `MFCL_LIVE_LOG` | `true` | Stream the full MFCL output into the Kflow log view. |
 | `MFCL_LIVE_LOG` | `false` | Keep the Kflow log quieter. |
+| `JOB_TITLE` | `BET stepwise: Base 11.par` | Human title shown in Kflow. |
+| `JOB_KEY` | `01-base-11par` | Stable label used by Kflow dependency selectors. |
 | `TRIGGER_NEXT` | `false` | Command-line override to submit only the selected stepwise model without plot/report follow-up. |
 
 ## Downstream Jobs
