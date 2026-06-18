@@ -18,12 +18,16 @@ The main user-editable file is `stepwise-config.R` in the repo root:
 - `step_id`: folder name under `steps/`.
 - `enabled`: set `false` to keep a model documented without running it.
 - `model_label`: short label used in Kflow and downstream plots.
+- `run_mode`: how to run the model. Use `last_par` to continue from the latest
+  numbered `.par` and write the next number, `doitall` to run `doitall.sh`, or
+  `single` to use the listed `input_par` and `output_par`.
 - `source_dir`: optional source folder. Leave blank to auto-detect files in
   `steps/<step-id>/model`, then directly in `steps/<step-id>/`.
 - `input_par`: starting par file, or `latest`.
 - `frq`: MFCL frequency file name.
-- `output_par`: final par file saved for this model. The starter rows all use
-  `final.par`, so every model folder has the same output file name.
+- `output_par`: optional explicit output par for `single` or `last_par`. Leave
+  blank with `last_par` to write the next numbered par, for example `11.par`
+  to `12.par`.
 - `fevals`: quick test evaluations for the current model.
 
 Manual model editing workflow:
@@ -60,7 +64,7 @@ Shortcut commands:
   selected model folder to Kflow.
 
 Outputs are written under `outputs/models/<step-id>/` and include
-only `model_payload.rds` and the final par file. The top-level
+only `model_payload.rds` and the final `.par` file from the run. The top-level
 `outputs/model-index.csv` and `outputs/selected-steps.csv` give a compact run
 summary for Kflow and the downstream plot task. MFCL detail is visible in the
 live Kflow log but is not kept as an artifact.

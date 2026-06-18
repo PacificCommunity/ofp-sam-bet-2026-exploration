@@ -71,6 +71,33 @@ latest_par <- function(model_dir) {
   pars[order(info$mtime, pars)][[length(pars)]]
 }
 
+par_number <- function(path) {
+  stem <- tools::file_path_sans_ext(basename(path))
+  value <- suppressWarnings(as.integer(stem))
+  if (is.na(value)) NA_integer_ else value
+}
+
+next_par_name <- function(input_par) {
+  stem <- tools::file_path_sans_ext(basename(input_par))
+  ext <- tools::file_ext(basename(input_par))
+  number <- suppressWarnings(as.integer(stem))
+  if (is.na(number)) {
+    return(paste0(stem, "-next.", if (nzchar(ext)) ext else "par"))
+  }
+  width <- max(nchar(stem), nchar(as.character(number + 1L)))
+  sprintf(paste0("%0", width, "d.par"), number + 1L)
+}
+
+best_par <- function(model_dir) {
+  pars <- list.files(model_dir, pattern = "[.]par[0-9]*$", full.names = FALSE)
+  if (!length(pars)) return("")
+  numbers <- vapply(pars, par_number, integer(1))
+  if (any(!is.na(numbers))) {
+    return(pars[order(ifelse(is.na(numbers), -Inf, numbers), pars)][[length(pars)]])
+  }
+  latest_par(model_dir)
+}
+
 truthy <- function(x, default = TRUE) {
   if (is.null(x) || !length(x) || !nzchar(as.character(x[[1]]))) return(default)
   tolower(trimws(as.character(x[[1]]))) %in% c("1", "true", "yes", "y", "on")
@@ -83,6 +110,16 @@ run_mfcl <- function(program, args, log_file, live_log = TRUE) {
   quoted <- paste(c(shQuote(program), shQuote(args)), collapse = " ")
   command <- sprintf("set -o pipefail; %s 2>&1 | tee %s >&2", quoted, shQuote(log_file))
   system2("bash", c("-c", command), wait = TRUE)
+}
+
+run_script <- function(script, program, log_file, live_log = TRUE) {
+  if (!file.exists(script)) stop("Run script not found: ", basename(script), call. = FALSE)
+  command <- sprintf("set -o pipefail; PROGRAM_PATH=%s bash %s", shQuote(program), shQuote(script))
+  if (isTRUE(live_log)) {
+    command <- sprintf("%s 2>&1 | tee %s >&2", command, shQuote(log_file))
+    return(system2("bash", c("-c", command), wait = TRUE))
+  }
+  system2("bash", c("-c", command), stdout = log_file, stderr = log_file, wait = TRUE)
 }
 
 bind_rows_fill <- function(rows) {
@@ -245,8 +282,10 @@ for (i in seq_len(nrow(step_table))) {
   label <- cfg$MODEL_LABEL %||% step_id
   source_dir <- cfg$SOURCE_DIR %||% ""
   input_subdir <- cfg$INPUT_SUBDIR %||% default_input_dir
-  input_par <- cfg$INPUT_PAR %||% "11.par"
-  output_par <- cfg$OUTPUT_PAR %||% "final.par"
+  run_mode <- tolower(cfg$RUN_MODE %||% "last_par")
+  input_par <- cfg$INPUT_PAR %||% "latest"
+  output_par <- cfg$OUTPUT_PAR %||% ""
+  run_script_name <- cfg$RUN_SCRIPT %||% "doitall.sh"
   fevals <- suppressWarnings(as.integer(env("MFCL_FEVALS", env("SMOKE_FEVALS", cfg$FEVALS %||% cfg$SMOKE_FEVALS %||% "1"))))
   if (!is.finite(fevals) || fevals < 1L) fevals <- 1L
 
@@ -265,26 +304,39 @@ for (i in seq_len(nrow(step_table))) {
   frqs <- list.files(model_dir, pattern = "[.]frq$", full.names = FALSE)
   frq <- cfg$FRQ %||% if (length(frqs)) frqs[[1]] else ""
   if (!nzchar(frq) || is.na(frq)) stop("No .frq file found for ", step_id, call. = FALSE)
-  if (!nzchar(input_par) || identical(tolower(input_par), "latest")) input_par <- latest_par(model_dir)
-  if (!nzchar(input_par) || !file.exists(file.path(model_dir, input_par))) {
-    stop("Input par not found for ", step_id, ": ", input_par, call. = FALSE)
-  }
-
   log_file <- file.path(model_dir, "mfcl.log")
-  args <- c(frq, input_par, output_par, smoke_switch_args(fevals))
   message("Running ", step_id, " (", label, ")")
   message("  source: ", relative_display_path(model_source, root))
-  message("  input:  ", frq, " + ", input_par)
-  message("  output: ", output_par)
+  message("  mode:   ", run_mode)
   old <- setwd(model_dir)
-  status <- tryCatch(
-    run_mfcl(program, args, log_file = log_file, live_log = mfcl_live_log),
-    finally = setwd(old)
-  )
+  status <- tryCatch({
+    if (run_mode %in% c("doitall", "script")) {
+      message("  script: ", run_script_name)
+      run_script(file.path(model_dir, run_script_name), program = program, log_file = log_file, live_log = mfcl_live_log)
+    } else {
+      if (run_mode %in% c("last", "latest", "last_par", "latest_par")) {
+        input_par <- best_par(model_dir)
+      } else if (!nzchar(input_par) || identical(tolower(input_par), "latest")) {
+        input_par <- best_par(model_dir)
+      }
+      if (!nzchar(input_par) || !file.exists(file.path(model_dir, input_par))) {
+        stop("Input par not found for ", step_id, ": ", input_par, call. = FALSE)
+      }
+      if (!nzchar(output_par)) output_par <- next_par_name(input_par)
+      message("  input:  ", frq, " + ", input_par)
+      message("  output: ", output_par)
+      args <- c(frq, input_par, output_par, smoke_switch_args(fevals))
+      run_mfcl(program, args, log_file = log_file, live_log = mfcl_live_log)
+    }
+  }, finally = setwd(old))
   if (!identical(status, 0L)) stop("MFCL failed for ", step_id, " with status ", status, call. = FALSE)
 
-  final_par <- file.path(model_dir, output_par)
-  if (!file.exists(final_par)) stop("MFCL did not create ", output_par, call. = FALSE)
+  final_output_par <- if (run_mode %in% c("doitall", "script")) best_par(model_dir) else output_par
+  final_par <- file.path(model_dir, final_output_par)
+  if (!nzchar(final_output_par) || !file.exists(final_par)) {
+    stop("MFCL did not create a final par file for ", step_id, call. = FALSE)
+  }
+  message("  final par: ", final_output_par)
 
   payload_status <- build_payload(model_dir, step_id)
   payload_file <- file.path(model_dir, "model_payload.rds")
@@ -292,7 +344,7 @@ for (i in seq_len(nrow(step_table))) {
 
   step_out <- file.path(out_dir, "models", step_id)
   dir.create(step_out, recursive = TRUE, showWarnings = FALSE)
-  keep <- unique(c(output_par, "model_payload.rds"))
+  keep <- unique(c(final_output_par, "model_payload.rds"))
   for (file in keep) {
     src <- file.path(model_dir, file)
     if (file.exists(src)) file.copy(src, file.path(step_out, basename(file)), overwrite = TRUE)
@@ -301,9 +353,10 @@ for (i in seq_len(nrow(step_table))) {
     step_id = step_id,
     model_label = label,
     model_source = relative_display_path(model_source, root),
+    run_mode = run_mode,
     input_par = input_par,
     frq = frq,
-    output_par = output_par,
+    output_par = final_output_par,
     fevals = fevals,
     objective = footer[["objective"]],
     max_gradient = footer[["max_gradient"]],
