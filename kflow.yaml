@@ -1,7 +1,7 @@
 # Kflow task defaults for the BET 2026 stepwise model runner.
 #
 # This file describes how Kflow should run the repo. Most model-specific edits
-# belong in stepwise-config.R; this file is for Docker, resources, default env,
+# belong in job-config.R; this file is for Docker, resources, default env,
 # saved outputs, and automatic follow-up tasks.
 
 # Stable task id shown in Kflow and used by the API:
@@ -31,14 +31,17 @@ env:
   STEP_SELECT: 01-base-11par
 
   # Default Kflow display labels for the default model. `make kflow` computes
-  # these from stepwise-config.R. When launching directly from the Kflow UI and
+  # these from job-config.R. When launching directly from the Kflow UI and
   # changing STEP_SELECT, update these fields too if the job list should show
   # the selected model label before the run starts.
   JOB_TITLE: "BET stepwise: Base 11.par"
-  JOB_LABEL: "Base 11.par"
   MODEL_LABEL: "Base 11.par"
   JOB_KEY: 01-base-11par
-  RUN_LABEL: 01-base-11par
+  RUN_MODE: last_par
+  INPUT_PAR: 11.par
+  FRQ: bet.frq
+  OUTPUT_PAR: ""
+  FEVALS: "1"
 
   # true streams the full MFCL output to Kflow logs. false keeps logs quieter.
   MFCL_LIVE_LOG: "true"
@@ -85,13 +88,16 @@ triggers:
 # Add a field here only if the user should be able to override it at launch.
 job_config:
   optional:
-    - RUN_LABEL
     - JOB_TITLE
-    - JOB_LABEL
     - JOB_KEY
     - MODEL_LABEL
     - FLOW_GROUP
     - STEP_SELECT
+    - RUN_MODE
+    - INPUT_PAR
+    - FRQ
+    - OUTPUT_PAR
+    - FEVALS
     - PROGRAM_PATH
     - MFCL_FEVALS
     - SMOKE_FEVALS

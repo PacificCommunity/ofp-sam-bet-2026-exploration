@@ -174,7 +174,7 @@ read_step_table <- function(path, steps_root) {
     cfg_env <- new.env(parent = globalenv())
     source(path, local = cfg_env)
     if (!exists("stepwise_models", envir = cfg_env, inherits = FALSE)) {
-      stop("stepwise-config.R must define stepwise_models.", call. = FALSE)
+      stop("job-config.R must define stepwise_models.", call. = FALSE)
     }
     table <- get("stepwise_models", envir = cfg_env, inherits = FALSE)
     if (!is.data.frame(table)) stop("stepwise_models must be a data frame.", call. = FALSE)
@@ -183,10 +183,10 @@ read_step_table <- function(path, steps_root) {
     dirs <- dirs[grepl("^[0-9][0-9]-", dirs)]
     table <- data.frame(step_id = dirs, stringsAsFactors = FALSE)
   }
-  if (!"step_id" %in% names(table)) stop("stepwise-config.R must include a step_id column.", call. = FALSE)
+  if (!"step_id" %in% names(table)) stop("job-config.R must include a step_id column.", call. = FALSE)
   table$step_id <- trimws(as.character(table$step_id))
   table <- table[nzchar(table$step_id), , drop = FALSE]
-  if (!nrow(table)) stop("No step rows found in stepwise-config.R.", call. = FALSE)
+  if (!nrow(table)) stop("No step rows found in job-config.R.", call. = FALSE)
   table
 }
 
@@ -305,7 +305,8 @@ step_select <- strsplit(env("STEP_SELECT", ""), ",", fixed = TRUE)[[1]]
 step_select <- trimws(step_select[nzchar(trimws(step_select))])
 default_input_dir <- env("DEFAULT_INPUT_DIR", "")
 
-step_table <- read_step_table(file.path(root, "stepwise-config.R"), file.path(root, "steps"))
+config_path <- env("CONFIG_R", "job-config.R")
+step_table <- read_step_table(file.path(root, config_path), file.path(root, "steps"))
 if (length(step_select) && !any(tolower(step_select) %in% c("all", "*"))) {
   unknown <- setdiff(step_select, step_table$step_id)
   if (length(unknown)) stop("Unknown STEP_SELECT value(s): ", paste(unknown, collapse = ", "), call. = FALSE)

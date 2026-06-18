@@ -10,7 +10,7 @@ other folders, or as part of the full stepwise -> plot -> report Kflow chain.
 
 Most routine edits should happen in only two places:
 
-- `stepwise-config.R`: choose default settings and register each model row.
+- `job-config.R`: choose default settings and register each model row.
 - `steps/<step_id>/model/`: keep the MFCL input files for that model.
 
 Internal R helper functions live in `R/stepwise_config_helpers.R`; they should
@@ -33,18 +33,20 @@ under `steps/`.
 | `program_path` | `/home/mfcl/mfclo64` | MFCL executable path inside the Docker image. |
 
 Run `make list` to print the current model table directly from
-`stepwise-config.R`.
+`job-config.R`.
 
 Kflow job titles and selectors use the selected model row where possible:
 
 - `JOB_TITLE`: readable title shown in the job list.
-- `JOB_LABEL` and `MODEL_LABEL`: short human label for the selected model.
-- `JOB_KEY` and `RUN_LABEL`: stable selector label for dependency links.
+- `MODEL_LABEL`: short human label for the selected model.
+- `JOB_KEY`: stable selector label for dependency links.
 
-`make kflow` computes these fields from `stepwise-config.R`. When launching
+`make kflow` computes these fields from `job-config.R`. When launching
 directly from the Kflow UI and changing `STEP_SELECT`, update the label fields
 in the job config as well if the job list should show the selected model label
 before the run starts.
+
+Kflow `Job config` is intended to match the selected row in `job-config.R`.
 
 ## Model Rows
 
@@ -101,7 +103,7 @@ make kflow STEP_SELECT=01-base-11par,03-review-11par
 1. Copy an existing folder under `steps/`.
 2. Rename it with the next numbered ID, such as `04-steepness-low`.
 3. Put the model's MFCL inputs in `steps/04-steepness-low/model/`.
-4. Copy one row in `stepwise-config.R`.
+4. Copy one row in `job-config.R`.
 5. Update `step_id`, `model_label`, `job_title`, `job_key`, `run_mode`,
    `input_par`, `frq`, `output_par`, and `fevals`.
 6. Run `make list`.
@@ -140,7 +142,7 @@ tasks after the stepwise job succeeds.
 
 | Command | Purpose |
 | --- | --- |
-| `make list` | Show the rows in `stepwise-config.R`. |
+| `make list` | Show the rows in `job-config.R`. |
 | `make local STEP_SELECT=01-base-11par PROGRAM_PATH=/path/to/mfclo64` | Run directly on this machine. |
 | `make docker STEP_SELECT=01-base-11par` | Run locally inside `ghcr.io/pacificcommunity/tuna-flow:v1.5`. |
 | `make kflow STEP_SELECT=01-base-11par` | Submit the selected model folder to Kflow from a configured shell. |

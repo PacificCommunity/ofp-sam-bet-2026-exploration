@@ -1,6 +1,6 @@
 SHELL := /usr/bin/env bash
 
-CONFIG_R ?= stepwise-config.R
+CONFIG_R ?= job-config.R
 CONFIG_HELPERS_R ?= R/stepwise_config_helpers.R
 cfg = $(shell Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_value("$(1)", "$(2)"))')
 yml = $(shell Rscript -e 'y <- yaml::read_yaml("kflow.yaml"); v <- $(1); if (is.null(v) || length(v) == 0 || is.na(v[[1]])) v <- "$(2)"; if (is.logical(v)) v <- tolower(as.character(v)); cat(as.character(v[[1]]))')
@@ -22,6 +22,11 @@ TRIGGER_NEXT ?= $(call cfg,trigger_next,true)
 JOB_TITLE ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_job_title(Sys.getenv("STEP_SELECT")))')
 MODEL_LABEL ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_model_label(Sys.getenv("STEP_SELECT")))')
 JOB_KEY ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_job_key(Sys.getenv("STEP_SELECT")))')
+RUN_MODE ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_row_value(Sys.getenv("STEP_SELECT"), "run_mode"))')
+INPUT_PAR ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_row_value(Sys.getenv("STEP_SELECT"), "input_par"))')
+FRQ ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_row_value(Sys.getenv("STEP_SELECT"), "frq"))')
+OUTPUT_PAR ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_row_value(Sys.getenv("STEP_SELECT"), "output_par"))')
+FEVALS ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_row_value(Sys.getenv("STEP_SELECT"), "fevals"))')
 
 KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES ?= $(call yml,y$$env$$KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES,true)
 KFLOW_RUNTIME_UPDATE ?= $(call yml,y$$env$$KFLOW_RUNTIME_UPDATE,auto)
@@ -35,10 +40,10 @@ help:
 	@printf '%s\n' \
 	  'BET 2026 stepwise shortcuts' \
 	  '' \
-	  'Models live in stepwise-config.R; Kflow/runtime defaults live in kflow.yaml.' \
+	  'Models live in job-config.R; Kflow/runtime defaults live in kflow.yaml.' \
 	  '' \
 	  'make list' \
-	  '  Show configured model rows from stepwise-config.R.' \
+	  '  Show configured model rows from job-config.R.' \
 	  '' \
 	  'make local STEP_SELECT=01-base-11par PROGRAM_PATH=/path/to/mfclo64' \
 	  '  Run directly on this machine.' \
@@ -121,5 +126,5 @@ docker:
 
 kflow:
 	@test -n "$${KFLOW_API_TOKEN:-}" || { echo 'Set KFLOW_API_TOKEN before running make kflow.' >&2; exit 2; }
-	@STEP_SELECT='$(STEP_SELECT)' MFCL_FEVALS='$(MFCL_FEVALS)' MFCL_LIVE_LOG='$(MFCL_LIVE_LOG)' FLOW_GROUP='$(FLOW_GROUP)' JOB_TITLE='$(JOB_TITLE)' MODEL_LABEL='$(MODEL_LABEL)' JOB_LABEL='$(MODEL_LABEL)' JOB_KEY='$(JOB_KEY)' RUN_LABEL='$(JOB_KEY)' TRIGGER_NEXT='$(TRIGGER_NEXT)' KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES='$(KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES)' KFLOW_RUNTIME_UPDATE='$(KFLOW_RUNTIME_UPDATE)' KFLOW_RUNTIME_PACKAGES='$(KFLOW_RUNTIME_PACKAGES)' KFLOW_RUNTIME_GITHUB_AUTH='$(KFLOW_RUNTIME_GITHUB_AUTH)' KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME='$(KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME)' python3 -c 'import json, os; env={k:os.environ[k] for k in ("STEP_SELECT","MFCL_FEVALS","MFCL_LIVE_LOG","FLOW_GROUP","JOB_TITLE","MODEL_LABEL","JOB_LABEL","JOB_KEY","RUN_LABEL","KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES","KFLOW_RUNTIME_UPDATE","KFLOW_RUNTIME_PACKAGES","KFLOW_RUNTIME_GITHUB_AUTH","KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME") if os.environ.get(k,"")}; payload={"env":env,"tags":{"stage":"stepwise","flow":os.environ["FLOW_GROUP"],"step":os.environ["STEP_SELECT"],"model_label":os.environ["MODEL_LABEL"],"job_key":os.environ["JOB_KEY"],"trigger_next":os.environ["TRIGGER_NEXT"]}}; flag=os.environ["TRIGGER_NEXT"].strip().lower(); payload.update({"triggers": {}} if flag in ("0","false","no","off","none","skip") else {}); print(json.dumps(payload))' | curl -sS -H "Authorization: Bearer $${KFLOW_API_TOKEN}" -H 'Content-Type: application/json' -X POST "$(KFLOW_URL)/api/job/$(KFLOW_TASK)" -d @-
+	@STEP_SELECT='$(STEP_SELECT)' MFCL_FEVALS='$(MFCL_FEVALS)' MFCL_LIVE_LOG='$(MFCL_LIVE_LOG)' FLOW_GROUP='$(FLOW_GROUP)' JOB_TITLE='$(JOB_TITLE)' MODEL_LABEL='$(MODEL_LABEL)' JOB_KEY='$(JOB_KEY)' RUN_MODE='$(RUN_MODE)' INPUT_PAR='$(INPUT_PAR)' FRQ='$(FRQ)' OUTPUT_PAR='$(OUTPUT_PAR)' FEVALS='$(FEVALS)' TRIGGER_NEXT='$(TRIGGER_NEXT)' KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES='$(KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES)' KFLOW_RUNTIME_UPDATE='$(KFLOW_RUNTIME_UPDATE)' KFLOW_RUNTIME_PACKAGES='$(KFLOW_RUNTIME_PACKAGES)' KFLOW_RUNTIME_GITHUB_AUTH='$(KFLOW_RUNTIME_GITHUB_AUTH)' KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME='$(KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME)' python3 -c 'import json, os; env={k:os.environ[k] for k in ("STEP_SELECT","MFCL_FEVALS","MFCL_LIVE_LOG","FLOW_GROUP","JOB_TITLE","MODEL_LABEL","JOB_KEY","RUN_MODE","INPUT_PAR","FRQ","OUTPUT_PAR","FEVALS","KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES","KFLOW_RUNTIME_UPDATE","KFLOW_RUNTIME_PACKAGES","KFLOW_RUNTIME_GITHUB_AUTH","KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME") if os.environ.get(k,"")}; payload={"env":env,"tags":{"stage":"stepwise","flow":os.environ["FLOW_GROUP"],"step":os.environ["STEP_SELECT"],"model_label":os.environ["MODEL_LABEL"],"job_key":os.environ["JOB_KEY"],"run_mode":os.environ["RUN_MODE"],"trigger_next":os.environ["TRIGGER_NEXT"]}}; flag=os.environ["TRIGGER_NEXT"].strip().lower(); payload.update({"triggers": {}} if flag in ("0","false","no","off","none","skip") else {}); print(json.dumps(payload))' | curl -sS -H "Authorization: Bearer $${KFLOW_API_TOKEN}" -H 'Content-Type: application/json' -X POST "$(KFLOW_URL)/api/job/$(KFLOW_TASK)" -d @-
 	@printf '\n'

@@ -1,4 +1,4 @@
-source_stepwise_config <- function(path = "stepwise-config.R") {
+source_stepwise_config <- function(path = "job-config.R") {
   source(path, local = .GlobalEnv)
   invisible(TRUE)
 }
@@ -43,6 +43,22 @@ stepwise_first_value <- function(rows, column, fallback) {
     }
   }
   fallback
+}
+
+stepwise_row_value <- function(step_select, column, default = "") {
+  rows <- stepwise_selected_models(step_select)
+  if (!nrow(rows) || !column %in% names(rows)) {
+    return(default)
+  }
+  values <- trimws(as.character(rows[[column]]))
+  values <- unique(values[nzchar(values) & !is.na(values)])
+  if (!length(values)) {
+    return(default)
+  }
+  if (length(values) == 1L) {
+    return(values[[1]])
+  }
+  paste0(values[[1]], " +", length(values) - 1L, " values")
 }
 
 stepwise_model_labels <- function(rows) {
