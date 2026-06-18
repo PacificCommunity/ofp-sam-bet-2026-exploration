@@ -46,8 +46,8 @@ help:
 	  'make fix-permissions' \
 	  '  Repair root-owned files left by older local Docker runs.' \
 	  '' \
-	  'make kflow STEP_SELECT=01-base-11par KFLOW_API_TOKEN=...' \
-	  '  Submit the selected model folder to Kflow.' \
+	  'make kflow STEP_SELECT=01-base-11par' \
+	  '  Submit the selected model folder to Kflow with your shell credentials.' \
 	  '' \
 	  'make kflow TRIGGER_NEXT=false' \
 	  '  Submit only the selected model folder, without launching plot/report afterward.' \
