@@ -404,11 +404,8 @@ for (i in seq_len(nrow(step_table))) {
   keep <- unique(c(
     final_output_par,
     "model_payload.rds",
-    "temporary_tag_report",
     "fishery_map.R",
-    "tag_rep_map.R",
-    frq,
-    list.files(model_dir, pattern = "[.]tag$", full.names = FALSE)
+    "tag_rep_map.R"
   ))
   for (file in keep) {
     src <- file.path(model_dir, file)
@@ -426,7 +423,7 @@ for (i in seq_len(nrow(step_table))) {
     objective = footer[["objective"]],
     max_gradient = footer[["max_gradient"]],
     payload = file.exists(file.path(step_out, "model_payload.rds")),
-    temporary_tag_report = file.exists(file.path(step_out, "temporary_tag_report")),
+    raw_mfcl_inputs_saved = FALSE,
     payload_status = payload_status,
     stringsAsFactors = FALSE
   )

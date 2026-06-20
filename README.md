@@ -145,11 +145,14 @@ tasks after the stepwise job succeeds.
 
 ## Outputs
 
-Outputs are written under `outputs/models/<step_id>/` and include only
-`model_payload.rds` and the final `.par` file from the run. The top-level
-`outputs/model-index.csv` and `outputs/selected-steps.csv` give a compact run
-summary for Kflow and the downstream plot task. MFCL detail is visible in the
-live Kflow log but is not kept as a saved artifact.
+Outputs are written under `outputs/models/<step_id>/` and include only files
+needed by downstream plotting: `model_payload.rds`, the final `.par`, and small
+fishery/tag-label mapping scripts when present. Raw MFCL inputs and bulky
+intermediate files such as `.frq`, `.tag`, and `temporary_tag_report` are not
+kept in the Kflow artifact. The top-level `outputs/model-index.csv` and
+`outputs/selected-steps.csv` give a compact run summary for Kflow and the
+downstream results task. MFCL detail is visible in the live Kflow log but is not
+kept as a saved artifact.
 
 The default input files are copied into each starter model folder under
 `steps/<step_id>/model/`, so every model folder is self-contained. Docker runs

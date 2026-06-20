@@ -67,21 +67,21 @@ output_patterns:
   - outputs/**
 
 # Automatic dependency chain:
-#   stepwise succeeds -> run ofp-sam-bet-2026-outputs with this job as input
-#   outputs succeeds  -> run curation, then draft, from downstream task config
+#   stepwise succeeds -> run ofp-sam-bet-2026-results with this job as input
+#   results succeeds  -> run the report task from downstream task config
 #
 # One-off command-line override:
 #   make kflow TRIGGER_NEXT=false STEP_SELECT=01-base-11par
 triggers:
   on_success:
-    - key: outputs-from-stepwise
-      report: ofp-sam-bet-2026-outputs
+    - key: results-from-stepwise
+      report: ofp-sam-bet-2026-results
       input_jobs:
         - "{{ job.id }}"
       env:
         FLOW_GROUP: "{{ job.config.FLOW_GROUP }}"
-        JOB_TITLE: BET outputs from stepwise
-        RUN_LABEL: "outputs-from-{{ job.id }}"
+        JOB_TITLE: BET results from stepwise
+        RUN_LABEL: "results-from-{{ job.id }}"
         KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES: "true"
         KFLOW_RUNTIME_UPDATE: auto
         KFLOW_RUNTIME_PACKAGES: mfclshiny=PacificCommunity/mfclshiny@9bd29ff
@@ -99,7 +99,7 @@ triggers:
         KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME: "true"
       tags:
         auto: "true"
-        stage: outputs
+        stage: results
 
 # Fields exposed as optional job config in the Kflow UI.
 # Add a field here only if the user should be able to override it at launch.
