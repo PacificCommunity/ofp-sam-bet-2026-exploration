@@ -35,7 +35,7 @@ under `steps/`.
 | `flow_group` | `bet-2026-x111` | Kflow group label used to connect stepwise, plot, and report jobs. |
 | `trigger_next` | `true` | Whether command-line Kflow submissions keep the downstream plot/report chain. |
 | `mfcl_fevals` | `blank` | Blank uses the row-level `fevals` value; a number overrides selected rows. |
-| `docker_image` | `ghcr.io/pacificcommunity/tuna-flow:v1.5` | Docker image used by Kflow and local Docker runs. |
+| `docker_image` | `ghcr.io/pacificcommunity/tuna-flow:v1.6` | Docker image used by Kflow and local Docker runs. |
 | `program_path` | `/home/mfcl/mfclo64` | MFCL executable path inside the Docker image. |
 
 
