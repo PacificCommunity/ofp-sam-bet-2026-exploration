@@ -106,8 +106,8 @@ defaults <- data.frame(
   ),
   meaning = c(
     "Model selection used when `STEP_SELECT` is not supplied.",
-    "Kflow group label used to connect stepwise, plot, and report jobs.",
-    "Whether command-line Kflow submissions keep the downstream plot/report chain.",
+    "Kflow group label used to connect stepwise, results, and report jobs.",
+    "Whether command-line Kflow submissions keep the downstream results/report chain.",
     "Blank uses the row-level `fevals` value; a number overrides selected rows.",
     "Docker image used by Kflow and local Docker runs.",
     "MFCL executable path inside the Docker image."

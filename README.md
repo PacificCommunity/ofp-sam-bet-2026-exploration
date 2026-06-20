@@ -4,7 +4,7 @@ Kflow task repository for BET 2026 stepwise MFCL model runs.
 
 This repository is organized around numbered model folders under `steps/`. Each
 folder is one independent model that can be run alone, together with selected
-other folders, or as part of the full stepwise -> plot -> report Kflow chain.
+other folders, or as part of the full stepwise -> results -> report Kflow chain.
 
 ## What To Edit
 
@@ -32,8 +32,8 @@ under `steps/`.
 | `setting` | `value` | `meaning` |
 | --- | --- | --- |
 | `default_step_select` | `01-base-11par` | Model selection used when `STEP_SELECT` is not supplied. |
-| `flow_group` | `bet-2026-x111` | Kflow group label used to connect stepwise, plot, and report jobs. |
-| `trigger_next` | `true` | Whether command-line Kflow submissions keep the downstream plot/report chain. |
+| `flow_group` | `bet-2026-base` | Kflow group label used to connect stepwise, results, and report jobs. |
+| `trigger_next` | `true` | Whether command-line Kflow submissions keep the downstream results/report chain. |
 | `mfcl_fevals` | `blank` | Blank uses the row-level `fevals` value; a number overrides selected rows. |
 | `docker_image` | `ghcr.io/pacificcommunity/tuna-flow:v1.6` | Docker image used by Kflow and local Docker runs. |
 | `program_path` | `/home/mfcl/mfclo64` | MFCL executable path inside the Docker image. |
@@ -114,11 +114,14 @@ make kflow STEP_SELECT=01-base-11par,03-review-11par
 | `MFCL_LIVE_LOG` | `false` | Keep the Kflow log quieter. |
 | `JOB_TITLE` | `BET stepwise: Base 11.par` | Human title shown in Kflow. |
 | `JOB_KEY` | `01-base-11par` | Stable label used by Kflow dependency selectors. |
-| `TRIGGER_NEXT` | `false` | Command-line override to submit only the selected stepwise model without plot/report follow-up. |
+| `FLOW_GROUP` | `bet-2026-base` | Short run-group label that keeps the stepwise, results, and report jobs together in Kflow. |
+| `TRIGGER_NEXT` | `false` | Submit only the selected stepwise model without results/report follow-up. |
+| `PLOT_MAX_FISHERIES` | `18` | Limit fishery-level diagnostic figures sent to the results task. |
+| `REPORT_QMD` | `assessment-report.qmd` | Report entrypoint passed through to the report task. |
 
 ## Downstream Jobs
 
-Kflow stores the normal dependency chain as `stepwise -> plot -> report`. The
+Kflow stores the normal dependency chain as `stepwise -> results -> report`. The
 `stepwise_run$trigger_next` value controls the default behavior for command-line
 submissions through `make kflow`.
 
@@ -128,7 +131,7 @@ Set `TRIGGER_NEXT=false` for a one-off model-only run:
 make kflow STEP_SELECT=01-base-11par TRIGGER_NEXT=false
 ```
 
-Keep `TRIGGER_NEXT=true` when the selected model should feed the plot and report
+Keep `TRIGGER_NEXT=true` when the selected model should feed the results and report
 tasks after the stepwise job succeeds.
 
 ## Shortcut Commands

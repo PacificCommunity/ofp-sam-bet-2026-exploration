@@ -42,8 +42,17 @@ env:
   # changing STEP_SELECT, update these fields too if the job list should show
   # the selected model label before the run starts.
   JOB_TITLE: "BET stepwise: Base 11.par"
+  JOB_DESCRIPTION: "Run the selected BET model folder and save compact plot-ready payloads."
   MODEL_LABEL: "Base 11.par"
   JOB_KEY: 01-base-11par
+  FLOW_GROUP: bet-2026-base
+  FLOW_SPECIES: BET
+  FLOW_SPECIES_LABEL: bigeye tuna
+  FLOW_ASSESSMENT_YEAR: "2026"
+  PLOT_TITLE: BET 2026 report-ready figures
+  PLOT_MAX_FISHERIES: "18"
+  REPORT_QMD: assessment-report.qmd
+  REPORT_FILE_STEM: bet-2026-report
   RUN_MODE: last_par
   INPUT_PAR: 11.par
   FRQ: bet.frq
@@ -60,6 +69,9 @@ env:
   KFLOW_RUNTIME_PACKAGES: mfclshiny=PacificCommunity/mfclshiny@9bd29ff
   KFLOW_RUNTIME_GITHUB_AUTH: "true"
   KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME: "true"
+  KFLOW_REPORT_COMMIT_GENERATED: "true"
+  KFLOW_REPORT_PUSH_GENERATED: "true"
+  KFLOW_REPORT_PUBLISH_REQUIRED: "true"
 
 # Keep artifacts compact. The runner writes only model_payload.rds, final .par,
 # and small index CSVs under outputs/.
@@ -80,8 +92,19 @@ triggers:
         - "{{ job.id }}"
       env:
         FLOW_GROUP: "{{ job.config.FLOW_GROUP }}"
-        JOB_TITLE: BET results from stepwise
-        RUN_LABEL: "results-from-{{ job.id }}"
+        JOB_TITLE: BET results
+        JOB_KEY: results
+        JOB_DESCRIPTION: Build report-ready figures and tables from the selected stepwise model payload.
+        PLOT_TITLE: "{{ job.config.PLOT_TITLE }}"
+        PLOT_MAX_FISHERIES: "{{ job.config.PLOT_MAX_FISHERIES }}"
+        FLOW_SPECIES: "{{ job.config.FLOW_SPECIES }}"
+        FLOW_SPECIES_LABEL: "{{ job.config.FLOW_SPECIES_LABEL }}"
+        FLOW_ASSESSMENT_YEAR: "{{ job.config.FLOW_ASSESSMENT_YEAR }}"
+        REPORT_QMD: "{{ job.config.REPORT_QMD }}"
+        REPORT_FILE_STEM: "{{ job.config.REPORT_FILE_STEM }}"
+        KFLOW_REPORT_COMMIT_GENERATED: "{{ job.config.KFLOW_REPORT_COMMIT_GENERATED }}"
+        KFLOW_REPORT_PUSH_GENERATED: "{{ job.config.KFLOW_REPORT_PUSH_GENERATED }}"
+        KFLOW_REPORT_PUBLISH_REQUIRED: "{{ job.config.KFLOW_REPORT_PUBLISH_REQUIRED }}"
         KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES: "true"
         KFLOW_RUNTIME_UPDATE: auto
         KFLOW_RUNTIME_PACKAGES: mfclshiny=PacificCommunity/mfclshiny@9bd29ff
@@ -105,20 +128,32 @@ triggers:
 # Add a field here only if the user should be able to override it at launch.
 job_config:
   optional:
+    - STEP_SELECT
+    - TRIGGER_NEXT
+    - FLOW_GROUP
     - JOB_TITLE
+    - JOB_DESCRIPTION
     - JOB_KEY
     - MODEL_LABEL
-    - FLOW_GROUP
-    - STEP_SELECT
     - RUN_MODE
     - INPUT_PAR
     - FRQ
     - OUTPUT_PAR
     - FEVALS
-    - PROGRAM_PATH
     - MFCL_FEVALS
+    - PROGRAM_PATH
     - SMOKE_FEVALS
     - MFCL_LIVE_LOG
+    - PLOT_TITLE
+    - PLOT_MAX_FISHERIES
+    - FLOW_SPECIES
+    - FLOW_SPECIES_LABEL
+    - FLOW_ASSESSMENT_YEAR
+    - REPORT_QMD
+    - REPORT_FILE_STEM
+    - KFLOW_REPORT_COMMIT_GENERATED
+    - KFLOW_REPORT_PUSH_GENERATED
+    - KFLOW_REPORT_PUBLISH_REQUIRED
     - KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES
     - KFLOW_RUNTIME_UPDATE
     - KFLOW_RUNTIME_PACKAGES

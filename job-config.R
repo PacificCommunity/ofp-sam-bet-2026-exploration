@@ -5,8 +5,9 @@ stepwise_run <- list(
   # Default model when STEP_SELECT is not provided.
   default_step_select = "01-base-11par",
 
-  # Shared Kflow group for stepwise -> plot -> report jobs.
-  flow_group = "bet-2026-x111",
+  # Short Kflow group label for one stepwise -> results -> report chain.
+  # Override per launch when running several chains at once.
+  flow_group = "bet-2026-base",
 
   # TRUE runs downstream plot/report after stepwise succeeds.
   trigger_next = TRUE,
