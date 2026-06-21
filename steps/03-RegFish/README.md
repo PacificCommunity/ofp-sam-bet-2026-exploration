@@ -28,7 +28,7 @@ First 5-region / 33-fishery BET input step, ending in 2021.
 ## Outstanding Checks
 
 - After fitting, review the 5-region selectivity/tag grouping inherited from the workbook mapping.
-- The `.frq` region-location line has 28 extraction-fishery values by design; the five index fisheries are appended separately.
+- The `.frq` region-location line must contain all 33 fisheries: 28 extraction fisheries followed by index fishery regions 1-5.
 
 ## Status
 

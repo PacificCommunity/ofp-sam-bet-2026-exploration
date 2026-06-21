@@ -94,6 +94,72 @@ chop_frq <- function(from, to, max_year = 2021L) {
   invisible(to)
 }
 
+first_data_line_after <- function(lines, marker_i) {
+  for (i in seq.int(marker_i + 1L, length(lines))) {
+    txt <- trimws(lines[[i]])
+    if (!nzchar(txt) || startsWith(txt, "#")) next
+    return(i)
+  }
+  stop("Could not find data line after line ", marker_i, call. = FALSE)
+}
+
+frq_header_counts <- function(lines, path = "<frq>") {
+  header_i <- grep("^[[:space:]]*[0-9]+[[:space:]]+[0-9]+[[:space:]]+", lines)
+  if (!length(header_i)) {
+    stop("Could not find MFCL frq header counts in ", path, call. = FALSE)
+  }
+  words <- read_words(lines[[header_i[[1L]]]])
+  if (length(words) < 4L) {
+    stop("Malformed MFCL frq header counts in ", path, call. = FALSE)
+  }
+  list(
+    n_regions = as.integer(words[[1L]]),
+    n_fisheries = as.integer(words[[2L]]),
+    n_tag_groups = as.integer(words[[4L]])
+  )
+}
+
+file_eol <- function(path) {
+  size <- file.info(path)$size
+  if (is.na(size) || size <= 1L) return("\n")
+  raw <- readBin(path, what = "raw", n = size)
+  bytes <- as.integer(raw)
+  if (any(bytes[-length(bytes)] == 13L & bytes[-1L] == 10L)) "\r\n" else "\n"
+}
+
+ensure_frq_fishery_region_locations <- function(path, index_regions = 1:5) {
+  eol <- file_eol(path)
+  lines <- readLines(path, warn = FALSE)
+  counts <- frq_header_counts(lines, path)
+  marker <- grep("Region in which each fishery is located", lines, fixed = TRUE)
+  if (length(marker) != 1L) {
+    stop("Expected one fishery-region line marker in ", path, call. = FALSE)
+  }
+  location_i <- first_data_line_after(lines, marker)
+  values <- read_words(lines[[location_i]])
+  if (length(values) == counts$n_fisheries) {
+    return(invisible(FALSE))
+  }
+  if (length(values) + length(index_regions) != counts$n_fisheries) {
+    stop(
+      "Fishery-region count mismatch in ", path, ": found ", length(values),
+      " values for ", counts$n_fisheries, " fisheries.",
+      call. = FALSE
+    )
+  }
+  if (counts$n_regions != length(index_regions)) {
+    stop(
+      "Cannot infer index fishery regions for ", path, ": found ",
+      counts$n_regions, " regions but ", length(index_regions),
+      " index region codes were provided.",
+      call. = FALSE
+    )
+  }
+  lines[[location_i]] <- paste(c(values, as.character(index_regions)), collapse = " ")
+  writeLines(lines, path, sep = eol, useBytes = TRUE)
+  invisible(TRUE)
+}
+
 format_mfcl_number <- function(x) {
   format(x, digits = 15L, scientific = FALSE, trim = TRUE)
 }
@@ -455,6 +521,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     chop_frq(frq_source, frq_out, max_year = frq_chop_year)
     frq_note <- paste0("chopped to records with year <= ", frq_chop_year)
   }
+  ensure_frq_fishery_region_locations(frq_out)
   copy_one(ini_source, file.path(model_dir, "bet.ini"))
   apply_fixm_m(file.path(model_dir, "bet.ini"))
   copy_one(tag_source, file.path(model_dir, "bet.tag"))
@@ -548,6 +615,7 @@ write_readme(
   "Ready for Kflow smoke runs; full MFCL fit not run here."
 )
 
+ensure_frq_fishery_region_locations(file.path(root, "steps", "03-RegFish", "model", "bet.frq"))
 write_generated_tag_rep_map(file.path(root, "steps", "03-RegFish", "model"))
 
 write_readme(
@@ -576,7 +644,7 @@ write_readme(
   ),
   c(
     "After fitting, review the 5-region selectivity/tag grouping inherited from the workbook mapping.",
-    "The `.frq` region-location line has 28 extraction-fishery values by design; the five index fisheries are appended separately."
+    "The `.frq` region-location line must contain all 33 fisheries: 28 extraction fisheries followed by index fishery regions 1-5."
   ),
   "Ready for Kflow smoke runs; full MFCL fit not run here."
 )
