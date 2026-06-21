@@ -4,35 +4,53 @@
   <a href="kflow.yaml"><img src="kflow-ready.svg" alt="Kflow ready task"></a>
 </p>
 
-Kflow task repository for BET 2026 stepwise MFCL model runs.
+Kflow task for running numbered BET 2026 MFCL model folders and saving compact
+model payloads for downstream results and report jobs.
 
-This repository is Kflow-ready: Kflow discovers and runs it from
-[`kflow.yaml`](kflow.yaml), records each stepwise job as a reproducible
-workflow artifact, and passes compact model payloads to the downstream results
-task.
+## Workflow Role
 
-This repository is organized around numbered model folders under `steps/`. Each
-folder is one independent model that can be run alone, together with selected
-other folders, or as part of the full stepwise -> results -> report Kflow chain.
+```text
+ofp-sam-bet-2026-stepwise -> ofp-sam-bet-2026-results -> ofp-sam-bet-2026-report
+```
 
-## What To Edit
+Each folder under `steps/` is an independent model run. Run one folder, a
+comma-separated set, or all enabled rows.
 
-Most routine edits should happen in only two places:
+## Edit Here
 
-- `job-config.R`: choose default settings and register each model row.
-- `steps/<step_id>/model/`: keep the MFCL input files for that model.
+- `job-config.R`: model list, labels, defaults, input/output filenames, and
+  evaluation counts.
+- `steps/<step_id>/model/`: MFCL input files for one model.
+- `steps/<step_id>/patch.R`: optional scripted edit before MFCL runs.
+- `metadata/`: optional labels used by downstream plots and reports.
 
-README tables are refreshed automatically before the main Makefile run targets.
-Those targets also enable the local pre-commit hook for later commits in the
-checkout.
+Run `make list` after editing `job-config.R`; it refreshes the generated README
+tables and checks model folders.
 
-Internal R helper functions live in `R/stepwise_config_helpers.R`; they should
-not be edited when adding ordinary model runs.
+## Run
 
-Use `patch.R` inside a step folder only when a model needs a small scripted edit
-before MFCL runs. Each step folder is independent, so a new sensitivity, review,
-self-test, or diagnostic-style model should usually be a new numbered folder
-under `steps/`.
+```bash
+make list
+make local STEP_SELECT=01-base-11par PROGRAM_PATH=/path/to/mfclo64
+make docker STEP_SELECT=01-base-11par
+make kflow STEP_SELECT=01-base-11par
+make kflow STEP_SELECT=01-base-11par TRIGGER_NEXT=false
+```
+
+Run several folders:
+
+```bash
+make kflow STEP_SELECT=01-base-11par,03-review-11par
+```
+
+## Add A Model
+
+1. Copy a folder under `steps/`.
+2. Rename it with the next numbered ID, for example `04-steepness-low`.
+3. Put MFCL inputs in `steps/04-steepness-low/model/`.
+4. Add one row in `job-config.R`.
+5. Run `make list`.
+6. Launch with `STEP_SELECT=04-steepness-low`.
 
 ## Current Defaults
 
@@ -70,105 +88,28 @@ under `steps/`.
 | `03-review-11par` | `steps/03-review-11par/model` | `exists` |
 
 
-## Run Modes
+## Useful Kflow Config
 
-`last_par` continues from a numbered `.par` file and writes the next numbered
-file. For example, `11.par` becomes `12.par`. This is the usual quick
-model-check mode.
-
-`single` runs exactly the listed input and output `.par` files. Use it when the
-output name should be explicit instead of inferred.
-
-`doitall` runs `doitall.sh` from the model folder. `MFCL_FEVALS` is only passed
-as an environment variable in this mode; the script must read it explicitly if a
-quick test should use it.
-
-## Launch Examples
-
-```bash
-make list
-make local STEP_SELECT=01-base-11par PROGRAM_PATH=/path/to/mfclo64
-make docker STEP_SELECT=01-base-11par
-make kflow STEP_SELECT=01-base-11par
-make kflow STEP_SELECT=01-base-11par TRIGGER_NEXT=false
-```
-
-Use comma-separated model IDs to run several independent folders in one job:
-
-```bash
-make docker STEP_SELECT=01-base-11par,03-review-11par
-make kflow STEP_SELECT=01-base-11par,03-review-11par
-```
-
-## Adding A Model
-
-1. Copy an existing folder under `steps/`.
-2. Rename it with the next numbered ID, such as `04-steepness-low`.
-3. Put the model's MFCL inputs in `steps/04-steepness-low/model/`.
-4. Copy one row in `job-config.R`.
-5. Update `step_id`, `model_label`, `job_title`, `job_key`, `run_mode`,
-   `input_par`, `frq`, `output_par`, and `fevals`.
-6. Run `make list` to refresh the README tables and check the row.
-7. Launch the selected model with `STEP_SELECT=04-steepness-low`.
-
-## Useful Launch Fields
-
-| Field | Example | Meaning |
+| Field | Typical value | Purpose |
 | --- | --- | --- |
 | `STEP_SELECT` | `01-base-11par` | Run one model folder. |
-| `STEP_SELECT` | `01-base-11par,03-review-11par` | Run selected independent folders. |
-| `STEP_SELECT` | `all` | Run every row where `enabled` is `TRUE`. |
-| `MFCL_FEVALS` | `10` | Override `fevals` for `last_par` and `single` jobs. |
-| `MFCL_LIVE_LOG` | `true` | Stream the full MFCL output into the Kflow log view. |
-| `MFCL_LIVE_LOG` | `false` | Keep the Kflow log quieter. |
-| `JOB_TITLE` | `BET stepwise: Base 11.par` | Human title shown in Kflow. |
-| `JOB_KEY` | `01-base-11par` | Stable label used by Kflow dependency selectors. |
-| `FLOW_GROUP` | `bet-2026-base` | Short run-group label that keeps the stepwise, results, and report jobs together in Kflow. |
-| `TRIGGER_NEXT` | `false` | Submit only the selected stepwise model without results/report follow-up. |
-| `PLOT_MAX_FISHERIES` | `18` | Limit fishery-level diagnostic figures sent to the results task. |
-| `REPORT_QMD` | `assessment-report.qmd` | Report entrypoint passed through to the report task. |
-
-## Downstream Jobs
-
-Kflow stores the normal dependency chain as `stepwise -> results -> report`. The
-`stepwise_run$trigger_next` value controls the default behavior for command-line
-submissions through `make kflow`.
-
-Set `TRIGGER_NEXT=false` for a one-off model-only run:
-
-```bash
-make kflow STEP_SELECT=01-base-11par TRIGGER_NEXT=false
-```
-
-Keep `TRIGGER_NEXT=true` when the selected model should feed the results and report
-tasks after the stepwise job succeeds.
-
-## Shortcut Commands
-
-| Command | Purpose |
-| --- | --- |
-| `make readme` | Force-refresh README tables from `job-config.R`. |
-| `make list` | Refresh README tables, enable the commit hook, then show the rows in `job-config.R`. |
-| `make local STEP_SELECT=01-base-11par PROGRAM_PATH=/path/to/mfclo64` | Run directly on this machine. |
-| `make docker STEP_SELECT=01-base-11par` | Run locally inside `ghcr.io/pacificcommunity/tuna-flow:v1.5`. |
-| `make kflow STEP_SELECT=01-base-11par` | Submit the selected model folder to Kflow from a configured shell. |
-| `make fix-permissions` | Repair root-owned local Docker outputs or runtime cache files. |
-| `make clean` | Remove generated local outputs and runtime cache folders. |
+| `STEP_SELECT` | `01-base-11par,03-review-11par` | Run selected model folders. |
+| `STEP_SELECT` | `all` | Run every enabled row. |
+| `MFCL_FEVALS` | `10` | Override row-level `fevals`. |
+| `MFCL_LIVE_LOG` | `true` | Stream MFCL output into the Kflow log. |
+| `TRIGGER_NEXT` | `false` | Stop after stepwise; do not launch results/report. |
+| `FLOW_GROUP` | `bet-2026-base` | Shared label for the chain. |
 
 ## Outputs
 
-Outputs are written under `outputs/models/<step_id>/` and include only files
-needed by downstream plotting: `model_payload.rds`, the final `.par`, and small
-fishery/tag-label mapping scripts when present. Raw MFCL inputs and bulky
-intermediate files such as `.frq`, `.tag`, and `temporary_tag_report` are not
-kept in the Kflow artifact. The top-level `outputs/model-index.csv` and
-`outputs/selected-steps.csv` give a compact run summary for Kflow and the
-downstream results task. MFCL detail is visible in the live Kflow log but is not
-kept as a saved artifact.
+Saved artifacts are intentionally compact:
 
-The default input files are copied into each starter model folder under
-`steps/<step_id>/model/`, so every model folder is self-contained. Docker runs
-use the MFCL executable bundled in the tuna-flow image at `/home/mfcl/mfclo64`
-by default. Local Docker runs use your host UID/GID so generated files can be
-cleaned up without `sudo`. For local non-Docker testing, override the executable
-with `PROGRAM_PATH=/path/to/mfclo64`.
+```text
+outputs/model-index.csv
+outputs/selected-steps.csv
+outputs/models/<step_id>/model_payload.rds
+outputs/models/<step_id>/<final-par-file>
+```
+
+Bulky raw inputs and intermediate files such as `.frq`, `.tag`, and
+`temporary_tag_report` are not kept in the Kflow artifact.
