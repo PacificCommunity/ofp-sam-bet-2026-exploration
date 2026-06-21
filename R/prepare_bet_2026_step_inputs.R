@@ -873,6 +873,7 @@ make_step(
   tag_source = new_tag,
   age_source = old_age,
   frq_chop_year = 2021L,
+  mix_from_ini = TRUE,
   title = "04 WtAsLen21",
   summary = "Transition step using the 2026 weights-as-lengths frequency file, chopped back to the 2023 terminal year.",
   bullets = c(
@@ -889,7 +890,7 @@ make_step(
   ),
   control_notes = c(
     "03-RegFish 5-region `doitall.sh` controls retained.",
-    "The all-release-group mixing period remains fixed at 2 for this pre-mix step."
+    "The all-release-group mixing-period override is removed so terminal-year release groups 18 and 58 can use the 1-period `.ini` setting."
   ),
   outstanding = c(
     "Confirm the 2021 chop of the 2026 weights-as-lengths `.frq` gives the intended transition-only comparison.",
@@ -904,6 +905,7 @@ make_step(
   tag_source = new_tag,
   age_source = old_age,
   frq_chop_year = 2021L,
+  mix_from_ini = TRUE,
   title = "05 WtAsLenPlusLen21",
   summary = "Transition step using weights converted to lengths plus observed lengths, still chopped to 2021.",
   bullets = c(
@@ -920,7 +922,7 @@ make_step(
   ),
   control_notes = c(
     "03-RegFish 5-region `doitall.sh` controls retained.",
-    "The all-release-group mixing period remains fixed at 2 for this pre-mix step."
+    "The all-release-group mixing-period override is removed so terminal-year release groups 18 and 58 can use the 1-period `.ini` setting."
   ),
   outstanding = c(
     "Confirm the 2021 chop of the plus-length `.frq` matches the stepwise plan's 2023-terminal comparison.",

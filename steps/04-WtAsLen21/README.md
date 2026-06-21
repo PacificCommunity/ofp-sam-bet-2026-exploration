@@ -20,7 +20,7 @@ Transition step using the 2026 weights-as-lengths frequency file, chopped back t
 ## Control Notes
 
 - 03-RegFish 5-region `doitall.sh` controls retained.
-- The all-release-group mixing period remains fixed at 2 for this pre-mix step.
+- The all-release-group mixing-period override is removed so terminal-year release groups 18 and 58 can use the 1-period `.ini` setting.
 
 ## Outstanding Checks
 
