@@ -103,6 +103,82 @@ first_data_line_after <- function(lines, marker_i) {
   stop("Could not find data line after line ", marker_i, call. = FALSE)
 }
 
+ensure_ini_tag_flags <- function(path, n_tag_groups, default_mixing_period = 2L) {
+  eol <- file_eol(path)
+  lines <- readLines(path, warn = FALSE)
+  marker <- grep("^# ini version number$", trimws(lines))
+  if (length(marker) != 1L) {
+    stop("Expected one # ini version number marker in ", path, call. = FALSE)
+  }
+  version_i <- first_data_line_after(lines, marker)
+  tag_marker <- grep("^# tag flags$", trimws(lines))
+  notes <- character()
+
+  if (!length(tag_marker)) {
+    age_marker <- grep("^# number of age classes$", trimws(lines))
+    if (length(age_marker) != 1L) {
+      stop("Expected one # number of age classes marker in ", path, call. = FALSE)
+    }
+    age_value_i <- first_data_line_after(lines, age_marker)
+    flag_row <- paste(c(default_mixing_period, 1L, rep(0L, 8L)), collapse = " ")
+    flag_block <- c("# tag flags", rep(flag_row, n_tag_groups))
+    lines[[version_i]] <- "1007"
+    lines <- c(lines[seq_len(age_value_i)], flag_block, lines[(age_value_i + 1L):length(lines)])
+    writeLines(lines, path, sep = eol, useBytes = TRUE)
+    return(paste0(
+      "inserted MFCL 1007 tag flags for ", n_tag_groups,
+      " release groups with ", default_mixing_period,
+      " mixing periods and reporting rates excluded during mixing"
+    ))
+  }
+
+  if (length(tag_marker) != 1L) {
+    stop("Expected one # tag flags block in ", path, call. = FALSE)
+  }
+  next_comment <- which(seq_along(lines) > tag_marker & grepl("^[[:space:]]*#", lines))
+  if (!length(next_comment)) {
+    stop("Could not find the end of # tag flags in ", path, call. = FALSE)
+  }
+  flag_idx <- seq.int(tag_marker + 1L, next_comment[[1L]] - 1L)
+  flag_idx <- flag_idx[nzchar(trimws(lines[flag_idx]))]
+  if (length(flag_idx) != n_tag_groups) {
+    stop(
+      "Expected ", n_tag_groups, " tag flag rows in ", path,
+      " but found ", length(flag_idx), ".",
+      call. = FALSE
+    )
+  }
+
+  zero_fixed <- 0L
+  for (i in flag_idx) {
+    words <- read_words(lines[[i]])
+    if (length(words) != 10L) {
+      stop("Malformed tag flag row in ", path, " at line ", i, call. = FALSE)
+    }
+    if (as.integer(words[[1L]]) < 1L) {
+      words[[1L]] <- "1"
+      zero_fixed <- zero_fixed + 1L
+    }
+    lines[[i]] <- paste(words, collapse = " ")
+  }
+
+  if (!identical(lines[[version_i]], "1007")) {
+    lines[[version_i]] <- "1007"
+    notes <- c(notes, "set ini version to 1007 for explicit tag flags")
+  }
+  if (zero_fixed) {
+    notes <- c(notes, paste0(
+      "raised ", zero_fixed,
+      " zero tag mixing periods to 1 because MFCL >=2.2.7.5 disallows 0"
+    ))
+  }
+  if (length(notes)) {
+    writeLines(lines, path, sep = eol, useBytes = TRUE)
+    return(paste(notes, collapse = "; "))
+  }
+  invisible("")
+}
+
 frq_header_counts <- function(lines, path = "<frq>") {
   header_i <- grep("^[[:space:]]*[0-9]+[[:space:]]+[0-9]+[[:space:]]+", lines)
   if (!length(header_i)) {
@@ -158,6 +234,63 @@ ensure_frq_fishery_region_locations <- function(path, index_regions = 1:5) {
   lines[[location_i]] <- paste(c(values, as.character(index_regions)), collapse = " ")
   writeLines(lines, path, sep = eol, useBytes = TRUE)
   invisible(TRUE)
+}
+
+frq_dataset_shape <- function(lines, path = "<frq>") {
+  dline <- grep("Datasets / LFIntervals", lines, fixed = TRUE)
+  if (length(dline) != 1L) {
+    stop("Expected one Datasets / LFIntervals line in ", path, call. = FALSE)
+  }
+  words <- read_words(lines[[dline + 1L]])
+  if (length(words) < 6L) {
+    stop("Malformed Datasets / LFIntervals line in ", path, call. = FALSE)
+  }
+  list(
+    n_lf = as.integer(words[[2L]]),
+    n_wf = as.integer(words[[6L]])
+  )
+}
+
+normalize_frq_absent_lf_records <- function(path) {
+  eol <- file_eol(path)
+  lines <- readLines(path, warn = FALSE)
+  shape <- frq_dataset_shape(lines, path)
+  start <- frq_record_start(lines)
+  both_len <- 7L + shape$n_lf + shape$n_wf
+  lf_only_len <- 8L + shape$n_lf
+  wf_only_len <- 8L + shape$n_wf
+  no_comp_len <- 9L
+  changed <- 0L
+
+  for (i in seq.int(start, length(lines))) {
+    if (!is_frq_record(lines[[i]])) next
+    words <- read_words(lines[[i]])
+    if (!identical(words[[8L]], "-1")) next
+
+    if (length(words) == both_len) {
+      # The first LF bin is already the absent-LF sentinel (-1). Drop the stray
+      # remaining LF bins so MFCL reads the following WF bins as one record.
+      words <- c(words[1:8], words[(8L + shape$n_lf):length(words)])
+      expected_len <- wf_only_len
+    } else if (length(words) == lf_only_len) {
+      # Same issue, but with no WF block after the stray LF bins.
+      words <- c(words[1:8], words[[length(words)]])
+      expected_len <- no_comp_len
+    } else {
+      next
+    }
+
+    if (length(words) != expected_len) {
+      stop("Unexpected normalized record length in ", path, " at line ", i, call. = FALSE)
+    }
+    lines[[i]] <- paste(words, collapse = " ")
+    changed <- changed + 1L
+  }
+
+  if (changed) {
+    writeLines(lines, path, sep = eol, useBytes = TRUE)
+  }
+  invisible(changed)
 }
 
 format_mfcl_number <- function(x) {
@@ -521,9 +654,25 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     chop_frq(frq_source, frq_out, max_year = frq_chop_year)
     frq_note <- paste0("chopped to records with year <= ", frq_chop_year)
   }
+  n_normalized <- normalize_frq_absent_lf_records(frq_out)
+  if (n_normalized) {
+    frq_note <- paste0(
+      frq_note,
+      "; normalized ", n_normalized,
+      " records with stray absent-LF bins"
+    )
+  }
   ensure_frq_fishery_region_locations(frq_out)
-  copy_one(ini_source, file.path(model_dir, "bet.ini"))
-  apply_fixm_m(file.path(model_dir, "bet.ini"))
+  frq_counts <- frq_header_counts(readLines(frq_out, warn = FALSE), frq_out)
+  ini_out <- file.path(model_dir, "bet.ini")
+  copy_one(ini_source, ini_out)
+  apply_fixm_m(ini_out)
+  ini_tag_note <- ensure_ini_tag_flags(ini_out, frq_counts$n_tag_groups)
+  ini_notes <- c("FixM M row applied", ini_tag_note)
+  ini_note <- paste(ini_notes[nzchar(ini_notes)], collapse = "; ")
+  if (nzchar(ini_tag_note) && "bet.ini" %in% names(input_notes)) {
+    input_notes[["bet.ini"]] <- paste(input_notes[["bet.ini"]], ini_tag_note, sep = "; ")
+  }
   copy_one(tag_source, file.path(model_dir, "bet.tag"))
   copy_one(age_source, file.path(model_dir, "bet.age_length"))
   copy_one(file.path(root, "steps", "03-RegFish", "model", "mfcl.cfg"), file.path(model_dir, "mfcl.cfg"))
@@ -540,7 +689,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
 
   entries <- list(
     list(role = "frq", file = "bet.frq", source = frq_source, note = frq_note),
-    list(role = "ini", file = "bet.ini", source = ini_source, note = "FixM M row applied"),
+    list(role = "ini", file = "bet.ini", source = ini_source, note = ini_note),
     list(role = "tag", file = "bet.tag", source = tag_source, note = "tag reporting map regenerated from ini/tag; five MFCL reporting-rate matrices parsed"),
     list(role = "age_length", file = "bet.age_length", source = age_source, note = "CAAL input"),
     list(role = "doitall", file = "doitall.sh", source = "steps/03-RegFish/model/doitall.sh", note = paste(c(
@@ -551,6 +700,10 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     ), collapse = "; "))
   )
   write_manifest(step_dir, entries)
+  outstanding <- c(
+    outstanding,
+    "Local MFCL `-makepar` smoke still reports 30 `caught before it was released` tag recapture warnings; review upstream tag prep before final production runs."
+  )
   write_readme(
     step_dir = step_dir,
     title = title,
@@ -615,7 +768,13 @@ write_readme(
   "Ready for Kflow smoke runs; full MFCL fit not run here."
 )
 
+normalize_frq_absent_lf_records(file.path(root, "steps", "03-RegFish", "model", "bet.frq"))
 ensure_frq_fishery_region_locations(file.path(root, "steps", "03-RegFish", "model", "bet.frq"))
+apply_fixm_m(file.path(root, "steps", "03-RegFish", "model", "bet.ini"))
+frq_counts_03 <- frq_header_counts(readLines(file.path(root, "steps", "03-RegFish", "model", "bet.frq"), warn = FALSE),
+                                   file.path(root, "steps", "03-RegFish", "model", "bet.frq"))
+ini_tag_note_03 <- ensure_ini_tag_flags(file.path(root, "steps", "03-RegFish", "model", "bet.ini"),
+                                        frq_counts_03$n_tag_groups)
 write_generated_tag_rep_map(file.path(root, "steps", "03-RegFish", "model"))
 
 write_readme(
@@ -628,12 +787,14 @@ write_readme(
     "Uses the old CAAL data re-assigned to the new fisheries.",
     "Uses the old/restructured tag setup with 90 release groups and 91 tag-event rows including pooled tags.",
     "Regenerates `tag_rep_map.R` from the five MFCL reporting-rate matrices in `bet.ini` plus release metadata in `bet.tag`.",
+    "Normalizes 84 old records that had an absent-LF sentinel followed by stray LF bins: 67 with WF data and 17 with no composition data.",
     "Applies Arni's 19/06/2026 CPUE index sigma suggestions for index fisheries 29-33.",
-    "Applies FixM M row while retaining the 5-region `.ini` structure."
+    "Applies FixM M row while retaining the 5-region `.ini` structure.",
+    "Inserts default MFCL 1007 tag flags for the pre-mix step: 2 mixing periods and reporting rates excluded during mixing."
   ),
   c(
     "bet.frq" = "5-region, 33-fishery structure, terminal year 2021",
-    "bet.ini" = "5-region ini with FixM M row",
+    "bet.ini" = "5-region ini with FixM M row and explicit default tag flags",
     "bet.tag" = "90 release-group tag input with low recap groups removed",
     "bet.age_length" = "old CAAL / age_length re-assigned to new fisheries"
   ),
@@ -644,7 +805,10 @@ write_readme(
   ),
   c(
     "After fitting, review the 5-region selectivity/tag grouping inherited from the workbook mapping.",
-    "The `.frq` region-location line must contain all 33 fisheries: 28 extraction fisheries followed by index fishery regions 1-5."
+    "The `.frq` region-location line must contain all 33 fisheries: 28 extraction fisheries followed by index fishery regions 1-5.",
+    "The 84 normalized absent-LF records should be reviewed against the upstream frq-build script so the source generator can eventually emit MFCL-ready records.",
+    "The upstream non-mix `.ini` files are labelled 1007 but omit `# tag flags`; generated 03-07 inputs now insert explicit default tag flags for MFCL >=2.2.7.5.",
+    "Local MFCL `-makepar` smoke still reports 30 `caught before it was released` tag recapture warnings; review upstream tag prep before final production runs."
   ),
   "Ready for Kflow smoke runs; full MFCL fit not run here."
 )

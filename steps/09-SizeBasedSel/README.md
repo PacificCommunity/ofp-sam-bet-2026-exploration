@@ -11,7 +11,7 @@ Size-based selectivity step after the main 0.2 KS tag mixing-period setup.
 ## Inputs
 
 - `bet.frq`: `bet.2026.wt.as.len.plus.len.frq`, full 2024
-- `bet.ini`: `bet.2026.mix-0.2.ini`, FixM M row applied
+- `bet.ini`: `bet.2026.mix-0.2.ini`, FixM M row applied; raised 36 zero tag mixing periods to 1 because MFCL >=2.2.7.5 disallows 0
 - `bet.tag`: `bet.2026.low.recaps.removed.tag`
 - `bet.age_length`: `bet.2026.age_length` (updated CAAL)
 - `input_manifest.csv`: machine-readable source/input notes
@@ -25,6 +25,7 @@ Size-based selectivity step after the main 0.2 KS tag mixing-period setup.
 
 - Confirm with the modelling group that BET should use the same flag-26 setting as the YFT 2026 size-based selectivity experiment.
 - Not yet reviewed after fitting: upper-age selectivity constraints inherited from 03-RegFish, especially `24.PL.ALL.WEST.3`.
+- Local MFCL `-makepar` smoke still reports 30 `caught before it was released` tag recapture warnings; review upstream tag prep before final production runs.
 
 ## Status
 

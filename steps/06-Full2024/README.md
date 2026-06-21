@@ -12,7 +12,7 @@ Full 2024 data step with weights-as-lengths plus lengths, new regional CPUE/inde
 ## Inputs
 
 - `bet.frq`: `bet.2026.wt.as.len.plus.len.frq`, full 2024
-- `bet.ini`: `bet.2026.ini`, FixM M row applied
+- `bet.ini`: `bet.2026.ini`, FixM M row applied; inserted MFCL 1007 tag flags for 91 release groups with 2 mixing periods and reporting rates excluded during mixing
 - `bet.tag`: `bet.2026.low.recaps.removed.tag`
 - `bet.age_length`: `bet.2023.new-structure.age_length` (old CAAL)
 - `input_manifest.csv`: machine-readable source/input notes
@@ -26,6 +26,7 @@ Full 2024 data step with weights-as-lengths plus lengths, new regional CPUE/inde
 
 - Full 2024 input behavior still needs a real MFCL fit and residual/CPUE-sigma review.
 - This step intentionally keeps old CAAL so the CAAL update is isolated in 07-CAAL2026.
+- Local MFCL `-makepar` smoke still reports 30 `caught before it was released` tag recapture warnings; review upstream tag prep before final production runs.
 
 ## Status
 

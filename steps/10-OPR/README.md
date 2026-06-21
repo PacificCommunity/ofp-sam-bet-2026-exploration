@@ -11,7 +11,7 @@ Orthogonal polynomial recruitment step after size-based selectivity.
 ## Inputs
 
 - `bet.frq`: `bet.2026.wt.as.len.plus.len.frq`, full 2024
-- `bet.ini`: `bet.2026.mix-0.2.ini`, FixM M row applied
+- `bet.ini`: `bet.2026.mix-0.2.ini`, FixM M row applied; raised 36 zero tag mixing periods to 1 because MFCL >=2.2.7.5 disallows 0
 - `bet.tag`: `bet.2026.low.recaps.removed.tag`
 - `bet.age_length`: `bet.2026.age_length` (updated CAAL)
 - `input_manifest.csv`: machine-readable source/input notes
@@ -28,6 +28,7 @@ Orthogonal polynomial recruitment step after size-based selectivity.
 
 - OPR year-effect dimension 70 follows the YFT 2026 experiment and should be revisited if the BET team chooses 50 or 30 instead.
 - Not yet implemented: optional OPR region-season interaction (`1 218`) if diagnostics suggest it is needed.
+- Local MFCL `-makepar` smoke still reports 30 `caught before it was released` tag recapture warnings; review upstream tag prep before final production runs.
 
 ## Status
 

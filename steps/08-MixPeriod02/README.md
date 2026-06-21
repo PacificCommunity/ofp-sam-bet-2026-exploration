@@ -12,7 +12,7 @@ Release-group-specific tag mixing periods using the 0.2 KS diagnostic cutoff.
 ## Inputs
 
 - `bet.frq`: `bet.2026.wt.as.len.plus.len.frq`, full 2024
-- `bet.ini`: `bet.2026.mix-0.2.ini`, FixM M row applied
+- `bet.ini`: `bet.2026.mix-0.2.ini`, FixM M row applied; raised 36 zero tag mixing periods to 1 because MFCL >=2.2.7.5 disallows 0
 - `bet.tag`: `bet.2026.low.recaps.removed.tag`
 - `bet.age_length`: `bet.2026.age_length` (updated CAAL)
 - `input_manifest.csv`: machine-readable source/input notes
@@ -26,6 +26,7 @@ Release-group-specific tag mixing periods using the 0.2 KS diagnostic cutoff.
 
 - Confirm that the 0.2 KS mix-period ini is the main 12-step path; the 0.15 version remains a sensitivity candidate.
 - After fitting, inspect tag residuals and release-group behavior before tuning tag-reporting assumptions further.
+- Local MFCL `-makepar` smoke still reports 30 `caught before it was released` tag recapture warnings; review upstream tag prep before final production runs.
 
 ## Status
 

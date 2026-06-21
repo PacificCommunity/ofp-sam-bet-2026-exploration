@@ -12,7 +12,7 @@ Transition step using weights converted to lengths plus observed lengths, still 
 ## Inputs
 
 - `bet.frq`: `bet.2026.wt.as.len.plus.len.frq`, chopped to 2021
-- `bet.ini`: `bet.2026.ini`, FixM M row applied
+- `bet.ini`: `bet.2026.ini`, FixM M row applied; inserted MFCL 1007 tag flags for 91 release groups with 2 mixing periods and reporting rates excluded during mixing
 - `bet.tag`: `bet.2026.low.recaps.removed.tag`
 - `bet.age_length`: `bet.2023.new-structure.age_length` (old CAAL)
 - `input_manifest.csv`: machine-readable source/input notes
@@ -26,6 +26,7 @@ Transition step using weights converted to lengths plus observed lengths, still 
 
 - Confirm the 2021 chop of the plus-length `.frq` matches the stepwise plan's 2023-terminal comparison.
 - Compare against 04-WtAsLen21 to isolate the effect of adding observed lengths.
+- Local MFCL `-makepar` smoke still reports 30 `caught before it was released` tag recapture warnings; review upstream tag prep before final production runs.
 
 ## Status
 

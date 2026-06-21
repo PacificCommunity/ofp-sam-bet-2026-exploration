@@ -1,6 +1,6 @@
 "role","file","source","note"
 "frq","bet.frq","/home/kyuhank/Desktop/SPC/bet_2026_input_repos/ofp-sam-2026-BET-YFT-frq-build/BET/bet.2026.wt.as.len.plus.len.frq","copied without year chopping"
-"ini","bet.ini","/home/kyuhank/Desktop/SPC/bet_2026_input_repos/ofp-sam-2026-BET-YFT-build-ini/BET/bet.2026.ini","FixM M row applied"
+"ini","bet.ini","/home/kyuhank/Desktop/SPC/bet_2026_input_repos/ofp-sam-2026-BET-YFT-build-ini/BET/bet.2026.ini","FixM M row applied; inserted MFCL 1007 tag flags for 91 release groups with 2 mixing periods and reporting rates excluded during mixing"
 "tag","bet.tag","/home/kyuhank/Desktop/SPC/bet_2026_input_repos/ofp-sam-2026-BET-YFT-tag-prep/BET/bet.2026.low.recaps.removed.tag","tag reporting map regenerated from ini/tag; five MFCL reporting-rate matrices parsed"
 "age_length","bet.age_length","/home/kyuhank/Desktop/SPC/bet_2026_input_repos/ofp-sam-2026-BET-YFT-age-length-build/BET/bet.2023.new-structure.age_length","CAAL input"
 "doitall","doitall.sh","steps/03-RegFish/model/doitall.sh","03-RegFish 5-region controls retained"

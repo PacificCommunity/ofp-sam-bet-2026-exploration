@@ -1,6 +1,6 @@
 "role","file","source","note"
 "frq","bet.frq","/home/kyuhank/Desktop/SPC/bet_2026_input_repos/ofp-sam-2026-BET-YFT-frq-build/BET/bet.2026.wt.as.len.plus.len.frq","copied with 1% per year effort-creep multiplier applied to index fisheries 29-33"
-"ini","bet.ini","/home/kyuhank/Desktop/SPC/bet_2026_input_repos/ofp-sam-2026-BET-YFT-build-ini/BET/ini.mix-period/bet.2026.mix-0.2.ini","FixM M row applied"
+"ini","bet.ini","/home/kyuhank/Desktop/SPC/bet_2026_input_repos/ofp-sam-2026-BET-YFT-build-ini/BET/ini.mix-period/bet.2026.mix-0.2.ini","FixM M row applied; raised 36 zero tag mixing periods to 1 because MFCL >=2.2.7.5 disallows 0"
 "tag","bet.tag","/home/kyuhank/Desktop/SPC/bet_2026_input_repos/ofp-sam-2026-BET-YFT-tag-prep/BET/bet.2026.low.recaps.removed.tag","tag reporting map regenerated from ini/tag; five MFCL reporting-rate matrices parsed"
 "age_length","bet.age_length","/home/kyuhank/Desktop/SPC/bet_2026_input_repos/ofp-sam-2026-BET-YFT-age-length-build/BET/bet.2026.age_length","CAAL input"
 "doitall","doitall.sh","steps/03-RegFish/model/doitall.sh","mixing override removed; fish flag 26 set to 3; OPR recruitment flags applied"

@@ -12,7 +12,7 @@ Full 2024 data step with the updated 2026 CAAL / age_length input.
 ## Inputs
 
 - `bet.frq`: `bet.2026.wt.as.len.plus.len.frq`, full 2024
-- `bet.ini`: `bet.2026.ini`, FixM M row applied
+- `bet.ini`: `bet.2026.ini`, FixM M row applied; inserted MFCL 1007 tag flags for 91 release groups with 2 mixing periods and reporting rates excluded during mixing
 - `bet.tag`: `bet.2026.low.recaps.removed.tag`
 - `bet.age_length`: `bet.2026.age_length` (updated CAAL)
 - `input_manifest.csv`: machine-readable source/input notes
@@ -26,6 +26,7 @@ Full 2024 data step with the updated 2026 CAAL / age_length input.
 
 - After fitting, compare CAAL likelihood and age residuals against 06-Full2024.
 - Confirm the 2026 CAAL source remains the chosen final CAAL file before later sensitivity runs.
+- Local MFCL `-makepar` smoke still reports 30 `caught before it was released` tag recapture warnings; review upstream tag prep before final production runs.
 
 ## Status
 
