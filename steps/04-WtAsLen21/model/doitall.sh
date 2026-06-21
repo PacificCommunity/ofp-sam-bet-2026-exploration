@@ -118,7 +118,7 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
 # Tag dynamics settings
   1 33 99    # maximum tag reporting rate for all fisheries is 0.99
   2 96 30    # pool tags after 30 quarters at liberty
-# Mixing periods are read from bet.ini tag flags for this step.
+  -9999 1 2  # set no. mixing periods for all tag release groups to 2
   2 198 1    # activate release group reporting rates
   -999 43 0  # estimate tag variance if = 1
   -999 44 0  # group all tags for variance estimation if = 1

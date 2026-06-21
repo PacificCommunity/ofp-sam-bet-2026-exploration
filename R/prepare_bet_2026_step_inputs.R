@@ -235,6 +235,26 @@ frq_header_counts <- function(lines, path = "<frq>") {
   )
 }
 
+set_frq_tag_group_count <- function(path, n_tag_groups) {
+  eol <- file_eol(path)
+  lines <- readLines(path, warn = FALSE)
+  header_i <- grep("^[[:space:]]*[0-9]+[[:space:]]+[0-9]+[[:space:]]+", lines)
+  if (!length(header_i)) {
+    stop("Could not find MFCL frq header counts in ", path, call. = FALSE)
+  }
+  words <- read_words(lines[[header_i[[1L]]]])
+  if (length(words) < 4L) {
+    stop("Malformed MFCL frq header counts in ", path, call. = FALSE)
+  }
+  if (identical(as.integer(words[[4L]]), as.integer(n_tag_groups))) {
+    return(invisible(FALSE))
+  }
+  words[[4L]] <- as.character(as.integer(n_tag_groups))
+  lines[[header_i[[1L]]]] <- paste(words, collapse = " ")
+  writeLines(lines, path, sep = eol, useBytes = TRUE)
+  invisible(TRUE)
+}
+
 file_eol <- function(path) {
   size <- file.info(path)$size
   if (is.na(size) || size <= 1L) return("\n")
@@ -672,6 +692,7 @@ write_doitall <- function(from, to, mix_from_ini = FALSE,
 
 make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
                       frq_chop_year = NA_integer_, mix_from_ini = FALSE,
+                      frq_tag_groups = NA_integer_,
                       frq_transform = NULL, doitall_edits = list(),
                       title, summary, bullets, input_notes, control_notes,
                       outstanding = character(),
@@ -703,6 +724,13 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     )
   }
   ensure_frq_fishery_region_locations(frq_out)
+  if (!is.na(frq_tag_groups) && set_frq_tag_group_count(frq_out, frq_tag_groups)) {
+    frq_note <- paste0(
+      frq_note,
+      "; reset frq tag-group header to ", frq_tag_groups,
+      " to match the selected tag input"
+    )
+  }
   frq_counts <- frq_header_counts(readLines(frq_out, warn = FALSE), frq_out)
   ini_out <- file.path(model_dir, "bet.ini")
   tag_out <- file.path(model_dir, "bet.tag")
@@ -863,37 +891,41 @@ old_age <- file.path(age_root, "bet.2023.new-structure.age_length")
 new_age <- file.path(age_root, "bet.2026.age_length")
 new_ini <- file.path(ini_root, "bet.2026.ini")
 new_tag <- file.path(tag_root, "bet.2026.low.recaps.removed.tag")
+regfish_ini <- file.path(root, "steps", "03-RegFish", "model", "bet.ini")
+regfish_tag <- file.path(root, "steps", "03-RegFish", "model", "bet.tag")
 full_plus_frq <- file.path(frq_root, "bet.2026.wt.as.len.plus.len.frq")
 wt_as_len_frq <- file.path(frq_root, "bet.2026.wt.as.len.frq")
 
 make_step(
   step_id = "04-WtAsLen21",
   frq_source = wt_as_len_frq,
-  ini_source = new_ini,
-  tag_source = new_tag,
+  ini_source = regfish_ini,
+  tag_source = regfish_tag,
   age_source = old_age,
   frq_chop_year = 2021L,
-  mix_from_ini = TRUE,
+  frq_tag_groups = 90L,
   title = "04 WtAsLen21",
   summary = "Transition step using the 2026 weights-as-lengths frequency file, chopped back to the 2023 terminal year.",
   bullets = c(
     "Derived `bet.frq` from `bet.2026.wt.as.len.frq` by keeping records with year <= 2021 and updating the dataset count.",
-    "Uses 2026 91-release tag/ini structure because the source `.frq` declares 91 tag groups.",
+    "Keeps the 03-RegFish 90-release tag/ini structure because this step remains a 2021-terminal comparison.",
+    "Resets the chopped `.frq` tag-group header from 91 to 90 to match the selected tag file.",
     "Keeps old CAAL (`bet.2023.new-structure.age_length`) as requested by the stepwise plan.",
-    "Applies the FixM M row to the 2026 ini."
+    "Applies the FixM M row to the 03-RegFish-compatible ini."
   ),
   input_notes = c(
-    "bet.frq" = "`bet.2026.wt.as.len.frq`, chopped to 2021",
-    "bet.ini" = "`bet.2026.ini`, FixM M row applied",
-    "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
+    "bet.frq" = "`bet.2026.wt.as.len.frq`, chopped to 2021 with tag-group header reset to 90",
+    "bet.ini" = "`steps/03-RegFish/model/bet.ini`, FixM M row applied",
+    "bet.tag" = "`steps/03-RegFish/model/bet.tag`",
     "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
   ),
   control_notes = c(
     "03-RegFish 5-region `doitall.sh` controls retained.",
-    "The all-release-group mixing-period override is removed so terminal-year release groups 18 and 58 can use the 1-period `.ini` setting."
+    "The all-release-group `-9999 1 2` mixing-period override is retained because this step uses the 03-RegFish 90-release tag set."
   ),
   outstanding = c(
     "Confirm the 2021 chop of the 2026 weights-as-lengths `.frq` gives the intended transition-only comparison.",
+    "Confirm with the modelling group that 04 should isolate the frequency-file transition while holding the 03-RegFish tag/ini structure.",
     "Review fit impacts before deciding whether any size-composition weighting needs adjustment at this stage."
   )
 )
@@ -901,31 +933,33 @@ make_step(
 make_step(
   step_id = "05-WtAsLenPlusLen21",
   frq_source = full_plus_frq,
-  ini_source = new_ini,
-  tag_source = new_tag,
+  ini_source = regfish_ini,
+  tag_source = regfish_tag,
   age_source = old_age,
   frq_chop_year = 2021L,
-  mix_from_ini = TRUE,
+  frq_tag_groups = 90L,
   title = "05 WtAsLenPlusLen21",
   summary = "Transition step using weights converted to lengths plus observed lengths, still chopped to 2021.",
   bullets = c(
     "Derived `bet.frq` from `bet.2026.wt.as.len.plus.len.frq` by keeping records with year <= 2021.",
     "Maintains the old CAAL input while moving the size-composition frequency file to the plus-length variant.",
-    "Keeps the 2026 91-release tag/ini structure for consistency with the `.frq` header.",
-    "Applies the FixM M row to the 2026 ini."
+    "Keeps the 03-RegFish 90-release tag/ini structure because this step remains a 2021-terminal comparison.",
+    "Resets the chopped `.frq` tag-group header from 91 to 90 to match the selected tag file.",
+    "Applies the FixM M row to the 03-RegFish-compatible ini."
   ),
   input_notes = c(
-    "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, chopped to 2021",
-    "bet.ini" = "`bet.2026.ini`, FixM M row applied",
-    "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
+    "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, chopped to 2021 with tag-group header reset to 90",
+    "bet.ini" = "`steps/03-RegFish/model/bet.ini`, FixM M row applied",
+    "bet.tag" = "`steps/03-RegFish/model/bet.tag`",
     "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
   ),
   control_notes = c(
     "03-RegFish 5-region `doitall.sh` controls retained.",
-    "The all-release-group mixing-period override is removed so terminal-year release groups 18 and 58 can use the 1-period `.ini` setting."
+    "The all-release-group `-9999 1 2` mixing-period override is retained because this step uses the 03-RegFish 90-release tag set."
   ),
   outstanding = c(
     "Confirm the 2021 chop of the plus-length `.frq` matches the stepwise plan's 2023-terminal comparison.",
+    "Confirm with the modelling group that 05 should isolate the plus-length transition while holding the 03-RegFish tag/ini structure.",
     "Compare against 04-WtAsLen21 to isolate the effect of adding observed lengths."
   )
 )
