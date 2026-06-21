@@ -556,10 +556,16 @@ write_manifest <- function(step_dir, entries) {
 }
 
 write_readme <- function(step_dir, title, summary, bullets, inputs, controls,
-                         outstanding = character(), status) {
+                         outstanding = character(), status,
+                         run_notes = character()) {
   bullet_lines <- paste0("- ", bullets)
   input_lines <- paste0("- `", names(inputs), "`: ", unname(inputs))
   control_lines <- paste0("- ", controls)
+  run_note_lines <- if (length(run_notes)) {
+    c("", "## Run Note", "", paste0("- ", run_notes))
+  } else {
+    character()
+  }
   outstanding_lines <- if (length(outstanding)) {
     paste0("- ", outstanding)
   } else {
@@ -581,6 +587,7 @@ write_readme <- function(step_dir, title, summary, bullets, inputs, controls,
     "## Control Notes",
     "",
     control_lines,
+    run_note_lines,
     "",
     "## Outstanding Checks",
     "",
@@ -695,6 +702,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
                       frq_tag_groups = NA_integer_,
                       frq_transform = NULL, doitall_edits = list(),
                       title, summary, bullets, input_notes, control_notes,
+                      run_notes = character(),
                       outstanding = character(),
                       status = "Ready for Kflow smoke runs; full MFCL fit not run here.") {
   step_dir <- file.path(root, "steps", step_id)
@@ -786,7 +794,8 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     inputs = c(input_notes, "input_manifest.csv" = "machine-readable source/input notes"),
     controls = control_notes,
     outstanding = outstanding,
-    status = status
+    status = status,
+    run_notes = run_notes
   )
 }
 
@@ -923,6 +932,11 @@ make_step(
     "03-RegFish 5-region `doitall.sh` controls retained.",
     "The all-release-group `-9999 1 2` mixing-period override is retained because this step uses the 03-RegFish 90-release tag set."
   ),
+  run_notes = c(
+    "Kflow failed when this 2021-chopped `.frq` was paired with the 2026 91-release `.ini/.tag`; MFCL stopped at tag release group 18 because its mixing period reached the terminal model period.",
+    "To make the step runnable as a 2021-terminal transition, `bet.ini` and `bet.tag` now come from 03-RegFish's 90-release setup, and the chopped `.frq` tag-group header is reset from 91 to 90.",
+    "Local `mfclo64 bet.frq bet.ini 00.par -makepar` now exits 0 and creates `00.par`; the remaining 30 `caught before it was released` messages are the known upstream tag-prep warnings also seen in 03."
+  ),
   outstanding = c(
     "Confirm the 2021 chop of the 2026 weights-as-lengths `.frq` gives the intended transition-only comparison.",
     "Confirm with the modelling group that 04 should isolate the frequency-file transition while holding the 03-RegFish tag/ini structure.",
@@ -956,6 +970,11 @@ make_step(
   control_notes = c(
     "03-RegFish 5-region `doitall.sh` controls retained.",
     "The all-release-group `-9999 1 2` mixing-period override is retained because this step uses the 03-RegFish 90-release tag set."
+  ),
+  run_notes = c(
+    "Kflow failed when this 2021-chopped `.frq` was paired with the 2026 91-release `.ini/.tag`; MFCL stopped at tag release group 18 because its mixing period reached the terminal model period.",
+    "To make the step runnable as a 2021-terminal transition, `bet.ini` and `bet.tag` now come from 03-RegFish's 90-release setup, and the chopped `.frq` tag-group header is reset from 91 to 90.",
+    "Local `mfclo64 bet.frq bet.ini 00.par -makepar` now exits 0 and creates `00.par`; the remaining 30 `caught before it was released` messages are the known upstream tag-prep warnings also seen in 03."
   ),
   outstanding = c(
     "Confirm the 2021 chop of the plus-length `.frq` matches the stepwise plan's 2023-terminal comparison.",

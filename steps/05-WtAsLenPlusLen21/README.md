@@ -23,6 +23,12 @@ Transition step using weights converted to lengths plus observed lengths, still 
 - 03-RegFish 5-region `doitall.sh` controls retained.
 - The all-release-group `-9999 1 2` mixing-period override is retained because this step uses the 03-RegFish 90-release tag set.
 
+## Run Note
+
+- Kflow failed when this 2021-chopped `.frq` was paired with the 2026 91-release `.ini/.tag`; MFCL stopped at tag release group 18 because its mixing period reached the terminal model period.
+- To make the step runnable as a 2021-terminal transition, `bet.ini` and `bet.tag` now come from 03-RegFish's 90-release setup, and the chopped `.frq` tag-group header is reset from 91 to 90.
+- Local `mfclo64 bet.frq bet.ini 00.par -makepar` now exits 0 and creates `00.par`; the remaining 30 `caught before it was released` messages are the known upstream tag-prep warnings also seen in 03.
+
 ## Outstanding Checks
 
 - Confirm the 2021 chop of the plus-length `.frq` matches the stepwise plan's 2023-terminal comparison.
