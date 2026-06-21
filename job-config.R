@@ -3,11 +3,11 @@
 
 stepwise_run <- list(
   # Default model when STEP_SELECT is not provided.
-  default_step_select = "01-base-11par",
+  default_step_select = "all",
 
   # Short Kflow group label for one stepwise -> results -> report chain.
   # Override per launch when running several chains at once.
-  flow_group = "bet-2026-base",
+  flow_group = "bet-2026-stepwise-v2",
 
   # TRUE runs downstream plot/report after stepwise succeeds.
   trigger_next = TRUE,
@@ -20,42 +20,74 @@ stepwise_run <- list(
 stepwise_models <- data.frame(
   # Folder name and Kflow selector.
   step_id = c(
-    "01-base-11par",
-    "02-continue-11par",
-    "03-review-11par"
+    "01-Diag23",
+    "02-FixM",
+    "03-RegFish",
+    "04-WtAsLen21",
+    "05-WtAsLenPlusLen21",
+    "06-Full2024",
+    "07-CAAL2026",
+    "08-MixPeriod02",
+    "09-SizeBasedSel",
+    "10-OPR",
+    "11-EffortCreep",
+    "12-DataWeight40"
   ),
-  enabled = c(TRUE, TRUE, TRUE),
+  enabled = rep(TRUE, 12),
 
   # Short model label used in logs, plots, and reports.
   model_label = c(
-    "Base 11.par",
-    "Base 11.par model 02",
-    "Base 11.par model 03"
+    "2023 diagnostic",
+    "FixM",
+    "New regions/fisheries",
+    "Weights as lengths, 2021",
+    "Weights as lengths plus lengths, 2021",
+    "Full 2024 data",
+    "Updated CAAL",
+    "Mixing periods 0.2",
+    "Size-based selectivity",
+    "OPR",
+    "Effort creep",
+    "Data weighting 40"
   ),
 
   # Title shown in the Kflow job list.
   job_title = c(
-    "BET stepwise: Base 11.par",
-    "BET stepwise: Base 11.par model 02",
-    "BET stepwise: Base 11.par model 03"
+    "BET stepwise: 2023 diagnostic",
+    "BET stepwise: FixM",
+    "BET stepwise: New regions/fisheries",
+    "BET stepwise: Weights as lengths to 2021",
+    "BET stepwise: Weights as lengths plus lengths to 2021",
+    "BET stepwise: Full 2024 data",
+    "BET stepwise: Updated CAAL",
+    "BET stepwise: Mixing periods 0.2",
+    "BET stepwise: Size-based selectivity",
+    "BET stepwise: OPR",
+    "BET stepwise: Effort creep",
+    "BET stepwise: Data weighting 40"
   ),
 
   # Stable key used by Kflow dependency links and selectors.
   job_key = c(
-    "01-base-11par",
-    "02-continue-11par",
-    "03-review-11par"
+    "01-diag23",
+    "02-fixm",
+    "03-regfish",
+    "04-wtaslen21",
+    "05-wtaslenpluslen21",
+    "06-full2024",
+    "07-caal2026",
+    "08-mixperiod02",
+    "09-sizebasedsel",
+    "10-opr",
+    "11-effortcreep",
+    "12-dataweight40"
   ),
 
   # Run settings for each model row.
-  run_mode = c(
-    "last_par",
-    "last_par",
-    "last_par"
-  ),
-  input_par = c("11.par", "11.par", "11.par"),
-  frq = c("bet.frq", "bet.frq", "bet.frq"),
-  output_par = c("", "", ""),
-  fevals = c(1L, 1L, 1L),
+  run_mode = rep("doitall", 12),
+  input_par = rep("", 12),
+  frq = rep("bet.frq", 12),
+  output_par = rep("", 12),
+  fevals = rep(1L, 12),
   stringsAsFactors = FALSE
 )

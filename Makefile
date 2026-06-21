@@ -6,7 +6,7 @@ README_SOURCES := $(CONFIG_R) $(CONFIG_HELPERS_R) R/update_readme.R kflow.yaml
 cfg = $(shell Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_value("$(1)", "$(2)"))')
 yml = $(shell Rscript -e 'y <- yaml::read_yaml("kflow.yaml"); v <- $(1); if (is.null(v) || length(v) == 0 || is.na(v[[1]])) v <- "$(2)"; if (is.logical(v)) v <- tolower(as.character(v)); cat(as.character(v[[1]]))')
 
-STEP_SELECT ?= $(call cfg,default_step_select,01-base-11par)
+STEP_SELECT ?= $(call cfg,default_step_select,all)
 MFCL_FEVALS ?= $(call cfg,mfcl_fevals,)
 MFCL_LIVE_LOG ?= $(call yml,y$$env$$MFCL_LIVE_LOG,true)
 OUTPUT_DIR ?= outputs
@@ -46,16 +46,16 @@ help:
 	  'make list' \
 	  '  Refresh README.md, enable the commit hook, then show configured model rows from job-config.R.' \
 	  '' \
-	  'make local STEP_SELECT=01-base-11par PROGRAM_PATH=/path/to/mfclo64' \
+	  'make local STEP_SELECT=all PROGRAM_PATH=/path/to/mfclo64' \
 	  '  Run directly on this machine.' \
 	  '' \
-	  'make docker STEP_SELECT=01-base-11par' \
+	  'make docker STEP_SELECT=all' \
 	  '  Run locally inside the configured tuna-flow Docker image.' \
 	  '' \
 	  'make fix-permissions' \
 	  '  Repair root-owned files left by older local Docker runs.' \
 	  '' \
-	  'make kflow STEP_SELECT=01-base-11par' \
+	  'make kflow STEP_SELECT=all' \
 	  '  Submit the selected model folder to Kflow with your shell credentials.' \
 	  '' \
 	  'make kflow TRIGGER_NEXT=false' \

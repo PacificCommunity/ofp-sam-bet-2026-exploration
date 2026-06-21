@@ -1,0 +1,871 @@
+root <- normalizePath(getwd(), winslash = "/", mustWork = TRUE)
+input_root <- "/home/kyuhank/Desktop/SPC/bet_2026_input_repos"
+
+frq_root <- file.path(input_root, "ofp-sam-2026-BET-YFT-frq-build", "BET")
+ini_root <- file.path(input_root, "ofp-sam-2026-BET-YFT-build-ini", "BET")
+tag_root <- file.path(input_root, "ofp-sam-2026-BET-YFT-tag-prep", "BET")
+age_root <- file.path(input_root, "ofp-sam-2026-BET-YFT-age-length-build", "BET")
+
+fixm_age_par_value <- "-2.54917483258212e+00"
+
+copy_one <- function(from, to) {
+  if (!file.exists(from)) stop("Missing source file: ", from, call. = FALSE)
+  dir.create(dirname(to), recursive = TRUE, showWarnings = FALSE)
+  ok <- file.copy(from, to, overwrite = TRUE, copy.date = TRUE)
+  if (!ok) stop("Failed to copy ", from, " to ", to, call. = FALSE)
+  invisible(to)
+}
+
+copy_if_exists <- function(from, to) {
+  if (file.exists(from)) copy_one(from, to)
+}
+
+read_words <- function(line) {
+  strsplit(trimws(line), "[[:space:]]+")[[1]]
+}
+
+replace_first_word <- function(line, value) {
+  words <- read_words(line)
+  words[[1]] <- value
+  paste(words, collapse = " ")
+}
+
+apply_fixm_m <- function(path) {
+  lines <- readLines(path, warn = FALSE)
+  age_i <- grep("^# age_pars$", trimws(lines))
+  if (length(age_i) != 1L) {
+    stop("Expected one # age_pars block in ", path, call. = FALSE)
+  }
+  block <- seq.int(age_i + 1L, min(length(lines), age_i + 12L))
+  words <- strsplit(trimws(lines[block]), "[[:space:]]+")
+  m_row <- which(vapply(words, function(x) {
+    length(x) >= 2L && identical(x[[2]], "-1") &&
+      grepl("^-2[.]6(0+)?$", x[[1]])
+  }, logical(1)))
+  if (!length(m_row)) {
+    already <- which(vapply(words, function(x) {
+      length(x) >= 2L && identical(x[[1]], fixm_age_par_value) &&
+        identical(x[[2]], "-1")
+    }, logical(1)))
+    if (!length(already)) {
+      stop("Could not find FixM M row in ", path, call. = FALSE)
+    }
+    return(invisible(FALSE))
+  }
+  target <- block[[m_row[[1]]]]
+  lines[[target]] <- replace_first_word(lines[[target]], fixm_age_par_value)
+  writeLines(lines, path, useBytes = TRUE)
+  invisible(TRUE)
+}
+
+frq_record_start <- function(lines) {
+  age_i <- grep("age_nage", lines, fixed = TRUE)
+  if (length(age_i) != 1L) stop("Expected one age_nage line", call. = FALSE)
+  age_i + 2L
+}
+
+is_frq_record <- function(line) {
+  grepl("^[[:space:]]*[0-9]{4}[[:space:]]", line)
+}
+
+frq_year <- function(line) {
+  as.integer(read_words(line)[[1]])
+}
+
+chop_frq <- function(from, to, max_year = 2021L) {
+  lines <- readLines(from, warn = FALSE)
+  start <- frq_record_start(lines)
+  header <- lines[seq_len(start - 1L)]
+  records <- lines[start:length(lines)]
+  keep <- vapply(records, function(line) {
+    if (!is_frq_record(line)) return(TRUE)
+    frq_year(line) <= max_year
+  }, logical(1))
+  records <- records[keep]
+  n_records <- sum(vapply(records, is_frq_record, logical(1)))
+
+  dline <- grep("Datasets / LFIntervals", header, fixed = TRUE)
+  if (length(dline) != 1L) {
+    stop("Expected one Datasets / LFIntervals line in ", from, call. = FALSE)
+  }
+  header[[dline + 1L]] <- replace_first_word(header[[dline + 1L]], n_records)
+  dir.create(dirname(to), recursive = TRUE, showWarnings = FALSE)
+  writeLines(c(header, records), to, useBytes = TRUE)
+  invisible(to)
+}
+
+format_mfcl_number <- function(x) {
+  format(x, digits = 15L, scientific = FALSE, trim = TRUE)
+}
+
+write_frq_with_effort_creep <- function(from, to, index_fisheries = 29:33,
+                                        base_year = 1952L, annual_rate = 0.01) {
+  lines <- readLines(from, warn = FALSE)
+  for (i in seq_along(lines)) {
+    if (!is_frq_record(lines[[i]])) next
+    words <- read_words(lines[[i]])
+    if (length(words) < 6L) next
+    fishery <- as.integer(words[[4]])
+    if (!fishery %in% index_fisheries) next
+    effort <- suppressWarnings(as.numeric(words[[6]]))
+    if (is.na(effort) || effort <= 0) next
+    year <- as.integer(words[[1]])
+    creep_multiplier <- 1 + annual_rate * (year - base_year)
+    words[[6]] <- format_mfcl_number(effort * creep_multiplier)
+    lines[[i]] <- paste(words, collapse = " ")
+  }
+  dir.create(dirname(to), recursive = TRUE, showWarnings = FALSE)
+  writeLines(lines, to, useBytes = TRUE)
+  invisible(to)
+}
+
+extract_ini_matrix <- function(path, marker) {
+  lines <- readLines(path, warn = FALSE)
+  idx <- grep(paste0("^", marker, "$"), trimws(lines))
+  if (length(idx) != 1L) stop("Expected one ", marker, " in ", path, call. = FALSE)
+  comment_idx <- grep("^#", trimws(lines))
+  end <- comment_idx[comment_idx > idx][[1]] - 1L
+  mat_lines <- lines[(idx + 1L):end]
+  mat_lines <- mat_lines[nzchar(trimws(mat_lines))]
+  rows <- strsplit(trimws(mat_lines), "[[:space:]]+")
+  ncols <- unique(lengths(rows))
+  if (length(ncols) != 1L) {
+    stop("Uneven matrix width in ", path, " at ", marker, call. = FALSE)
+  }
+  matrix(as.numeric(unlist(rows)), ncol = ncols, byrow = TRUE)
+}
+
+parse_tag_release_map <- function(path) {
+  lines <- readLines(path, warn = FALSE)
+  release_header <- grep("#[[:space:]]+[0-9]+ - RELEASE REGION", lines)
+  out <- lapply(release_header, function(i) {
+    title <- trimws(sub("^#[[:space:]]*", "", lines[[i]]))
+    group <- as.integer(sub("^([0-9]+).*", "\\1", title))
+    program <- sub(".*Tag_program[[:space:]]+", "", title)
+    vals <- read_words(lines[[i + 1L]])
+    data.frame(
+      release_group = group,
+      release_region = as.integer(vals[[1]]),
+      release_year = as.integer(vals[[2]]),
+      release_month = as.integer(vals[[3]]),
+      tag_program = program,
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, out)
+}
+
+compact_ints <- function(x) {
+  x <- sort(unique(as.integer(x)))
+  x <- x[!is.na(x)]
+  if (!length(x)) return("")
+  breaks <- c(TRUE, diff(x) != 1L)
+  starts <- x[breaks]
+  ends <- c(x[which(breaks)[-1L] - 1L], x[length(x)])
+  paste(ifelse(starts == ends, starts, paste0(starts, "-", ends)), collapse = ",")
+}
+
+format_unique_values <- function(x) {
+  x <- unique(as.vector(x))
+  x <- x[!is.na(x)]
+  if (!length(x)) return("")
+  paste(format(x, digits = 10L, scientific = FALSE, trim = TRUE), collapse = ",")
+}
+
+write_generated_tag_rep_map <- function(model_dir) {
+  ini <- file.path(model_dir, "bet.ini")
+  tag <- file.path(model_dir, "bet.tag")
+  flags <- extract_ini_matrix(ini, "# tag fish rep group flags")
+  fishery_env <- new.env(parent = baseenv())
+  fishery_map_path <- file.path(model_dir, "fishery_map.R")
+  if (file.exists(fishery_map_path)) {
+    sys.source(fishery_map_path, envir = fishery_env)
+  }
+  fishery_map <- fishery_env$fishery_map
+  if (is.null(fishery_map)) {
+    fishery_map <- data.frame(
+      fishery = seq_len(ncol(flags)),
+      fishery_name = paste0("fishery-", seq_len(ncol(flags))),
+      stringsAsFactors = FALSE
+    )
+  }
+  rep_init <- extract_ini_matrix(ini, "# tag fish rep")
+  active_flags <- extract_ini_matrix(ini, "# tag_fish_rep active flags")
+  rep_target <- extract_ini_matrix(ini, "# tag_fish_rep target")
+  rep_penalty <- extract_ini_matrix(ini, "# tag_fish_rep penalty")
+  matrix_dims <- vapply(
+    list(rep_init, flags, active_flags, rep_target, rep_penalty),
+    function(x) paste(dim(x), collapse = "x"),
+    character(1)
+  )
+  if (length(unique(matrix_dims)) != 1L) {
+    stop("Tag reporting-rate matrices have inconsistent dimensions in ", ini, call. = FALSE)
+  }
+  releases <- parse_tag_release_map(tag)
+  if (nrow(flags) != nrow(releases) + 1L) {
+    stop("Expected tag reporting matrix rows to equal release groups + pooled row in ", ini, call. = FALSE)
+  }
+  event_rows <- data.frame(
+    tag_event_row = seq_len(nrow(flags)),
+    event_type = ifelse(seq_len(nrow(flags)) <= nrow(releases), "release", "pooled"),
+    release_group = c(releases$release_group, rep(NA_integer_, nrow(flags) - nrow(releases))),
+    stringsAsFactors = FALSE
+  )
+  groups <- sort(unique(as.integer(flags)))
+  groups <- groups[!is.na(groups)]
+  group_rows <- lapply(groups, function(g) {
+    pos <- which(flags == g, arr.ind = TRUE)
+    idx <- flags == g
+    fishery_ids <- sort(unique(pos[, "col"]))
+    fishery_matches <- match(fishery_ids, fishery_map$fishery)
+    fishery_names <- fishery_map$fishery_name[fishery_matches]
+    fishery_names <- fishery_names[!is.na(fishery_names)]
+    tag_group_names <- if ("tag_recapture_name" %in% names(fishery_map)) {
+      unique(fishery_map$tag_recapture_name[fishery_matches])
+    } else character()
+    tag_group_names <- tag_group_names[!is.na(tag_group_names)]
+    release_rows <- sort(unique(pos[, "row"][pos[, "row"] <= nrow(releases)]))
+    release_subset <- releases[release_rows, , drop = FALSE]
+    pooled <- any(pos[, "row"] > nrow(releases))
+    programs <- unique(c(release_subset$tag_program, if (pooled) "pooled"))
+    programs <- programs[nzchar(programs)]
+    program_label <- paste(programs, collapse = "/")
+    fishery_label <- if (length(tag_group_names)) {
+      paste(tag_group_names, collapse = "/")
+    } else {
+      paste(fishery_ids, collapse = ",")
+    }
+    data.frame(
+      tag_rep_group = g,
+      tag_rep_name = paste0("group-", g, ": ", program_label, " / ", fishery_label),
+      fisheries = compact_ints(pos[, "col"]),
+      fishery_names = paste(fishery_names, collapse = "; "),
+      tag_recapture_names = paste(tag_group_names, collapse = "; "),
+      event_rows = compact_ints(pos[, "row"]),
+      release_groups = compact_ints(release_rows),
+      tag_programs = program_label,
+      release_regions = compact_ints(release_subset$release_region),
+      release_years = compact_ints(release_subset$release_year),
+      active = any(active_flags[idx] != 0),
+      initial_values = format_unique_values(rep_init[idx]),
+      target_values = format_unique_values(rep_target[idx]),
+      penalty_values = format_unique_values(rep_penalty[idx]),
+      stringsAsFactors = FALSE
+    )
+  })
+  tag_rep <- do.call(rbind, group_rows)
+
+  out <- c(
+    "# Generated by R/prepare_bet_2026_step_inputs.R from bet.ini and bet.tag.",
+    "# Tag reporting-rate matrices follow MFCL manual and tag_rep_rates.pptx.",
+    "# Rows are tag release events plus one pooled row; columns are fisheries.",
+    sprintf(
+      "tag_rep_matrix <- matrix(c(%s), nrow = %d, ncol = %d, byrow = TRUE)",
+      paste(as.integer(t(flags)), collapse = ", "),
+      nrow(flags),
+      ncol(flags)
+    ),
+    "",
+    sprintf(
+      "tag_rep_active_matrix <- matrix(c(%s), nrow = %d, ncol = %d, byrow = TRUE)",
+      paste(as.integer(t(active_flags)), collapse = ", "),
+      nrow(active_flags),
+      ncol(active_flags)
+    ),
+    "",
+    paste0("tag_rep_map <- ", paste(deparse(tag_rep), collapse = "\n")),
+    "",
+    paste0("tag_release_map <- ", paste(deparse(releases), collapse = "\n")),
+    "",
+    paste0("tag_event_map <- ", paste(deparse(event_rows), collapse = "\n")),
+    ""
+  )
+  writeLines(out, file.path(model_dir, "tag_rep_map.R"), useBytes = TRUE)
+}
+
+write_manifest <- function(step_dir, entries) {
+  manifest <- do.call(rbind, lapply(entries, function(x) {
+    data.frame(
+      role = x$role,
+      file = x$file,
+      source = x$source,
+      note = x$note,
+      stringsAsFactors = FALSE
+    )
+  }))
+  write.csv(manifest, file.path(step_dir, "input_manifest.csv"), row.names = FALSE)
+}
+
+write_readme <- function(step_dir, title, summary, bullets, inputs, controls,
+                         outstanding = character(), status) {
+  bullet_lines <- paste0("- ", bullets)
+  input_lines <- paste0("- `", names(inputs), "`: ", unname(inputs))
+  control_lines <- paste0("- ", controls)
+  outstanding_lines <- if (length(outstanding)) {
+    paste0("- ", outstanding)
+  } else {
+    "- No extra unresolved build items for this transition beyond fitting diagnostics."
+  }
+  lines <- c(
+    paste0("# ", title),
+    "",
+    summary,
+    "",
+    "## What Changed",
+    "",
+    bullet_lines,
+    "",
+    "## Inputs",
+    "",
+    input_lines,
+    "",
+    "## Control Notes",
+    "",
+    control_lines,
+    "",
+    "## Outstanding Checks",
+    "",
+    outstanding_lines,
+    "",
+    "## Status",
+    "",
+    status,
+    ""
+  )
+  writeLines(lines, file.path(step_dir, "README.md"), useBytes = TRUE)
+}
+
+replace_one_line <- function(lines, pattern, replacement) {
+  hit <- grep(pattern, lines)
+  if (length(hit) != 1L) {
+    stop("Expected one doitall line matching: ", pattern, call. = FALSE)
+  }
+  lines[[hit]] <- replacement
+  lines
+}
+
+apply_size_based_selectivity <- function(lines) {
+  replace_one_line(
+    lines,
+    "^[[:space:]]*-999[[:space:]]+26[[:space:]]+2[[:space:]]",
+    "  -999 26 3  # use length-based selectivity"
+  )
+}
+
+apply_opr <- function(lines, n_regions = 5L, year_effect = 70L,
+                      season_effect = 3L) {
+  phase3 <- grep("^[[:space:]]*2[[:space:]]+70[[:space:]]+1[[:space:]]", lines)
+  if (length(phase3) != 1L) {
+    stop("Expected one phase-3 recruitment flag block for OPR", call. = FALSE)
+  }
+  old_block <- lines[phase3:(phase3 + 2L)]
+  expected <- c("2[[:space:]]+70[[:space:]]+1",
+                "2[[:space:]]+71[[:space:]]+1",
+                "2[[:space:]]+178[[:space:]]+1")
+  if (!all(mapply(grepl, expected, old_block))) {
+    stop("Unexpected phase-3 recruitment flag block for OPR", call. = FALSE)
+  }
+  new_block <- c(
+    "# OPR settings. John's suggestion: switch to OPR in PHASE 3.",
+    "  1 149 0   # turn off recruitment-deviation penalty for OPR",
+    "  1 398 0   # terminal recruitment arithmetic mean under OPR setup",
+    "  2 177 0   # turn off old total-pop scaling for OPR",
+    "  2 32 0    # turn off overall population scaling parameter for OPR",
+    sprintf("  1 155 %d  # orthogonal polynomial recruitment - year effect", year_effect),
+    sprintf("  1 216 %d   # orthogonal polynomial recruitment - region effect", n_regions - 1L),
+    sprintf("  1 217 %d   # orthogonal polynomial recruitment - season effect", season_effect),
+    "  1 218 0   # orthogonal polynomial recruitment - no region:season interaction",
+    "  2 70 0    # turn off mean+deviate regional recruitment time series",
+    "  2 71 0    # turn off regional recruitment distribution deviations",
+    "  2 178 0   # turn off regional recruitment sum-product constraint"
+  )
+  lines <- c(lines[seq_len(phase3 - 1L)], new_block, lines[(phase3 + 3L):length(lines)])
+
+  region_flags <- grep("^[[:space:]]*-100000[[:space:]]+[1-5][[:space:]]+1([[:space:]]|$)", lines)
+  if (length(region_flags) != n_regions) {
+    stop("Expected ", n_regions, " time-invariant recruitment distribution flags", call. = FALSE)
+  }
+  for (i in region_flags) {
+    words <- read_words(lines[[i]])
+    words[[3]] <- "0"
+    lines[[i]] <- paste0("  ", paste(words, collapse = " "))
+  }
+  lines
+}
+
+apply_data_weighting <- function(lines) {
+  lf <- grep("-999 49 20", lines, fixed = TRUE)
+  wf <- grep("-999 50 20", lines, fixed = TRUE)
+  if (length(lf) != 1L || length(wf) != 1L) {
+    stop("Expected one global LF and WF divisor line", call. = FALSE)
+  }
+  lines[[lf]] <- sub("-999 49 20", "-999 49 40", lines[[lf]], fixed = TRUE)
+  lines[[wf]] <- sub("-999 50 20", "-999 50 40", lines[[wf]], fixed = TRUE)
+  lines[[lf]] <- sub("divide LF sample sizes by 20", "divide LF sample sizes by 40", lines[[lf]], fixed = TRUE)
+  lines[[wf]] <- sub("divide WF sample sizes by 20", "divide WF sample sizes by 40", lines[[wf]], fixed = TRUE)
+  lines
+}
+
+write_doitall <- function(from, to, mix_from_ini = FALSE,
+                          size_based_selectivity = FALSE,
+                          opr = FALSE,
+                          data_weighting = FALSE) {
+  lines <- readLines(from, warn = FALSE)
+  if (isTRUE(mix_from_ini)) {
+    target <- grep("-9999 1 2", lines, fixed = TRUE)
+    if (length(target)) {
+      lines[[target[[1]]]] <-
+        "# Mixing periods are read from bet.ini tag flags for this step."
+    }
+  }
+  if (isTRUE(size_based_selectivity)) {
+    lines <- apply_size_based_selectivity(lines)
+  }
+  if (isTRUE(opr)) {
+    lines <- apply_opr(lines)
+  }
+  if (isTRUE(data_weighting)) {
+    lines <- apply_data_weighting(lines)
+  }
+  writeLines(lines, to, useBytes = TRUE)
+  Sys.chmod(to, mode = "0755")
+}
+
+make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
+                      frq_chop_year = NA_integer_, mix_from_ini = FALSE,
+                      frq_transform = NULL, doitall_edits = list(),
+                      title, summary, bullets, input_notes, control_notes,
+                      outstanding = character(),
+                      status = "Ready for Kflow smoke runs; full MFCL fit not run here.") {
+  step_dir <- file.path(root, "steps", step_id)
+  model_dir <- file.path(step_dir, "model")
+  dir.create(model_dir, recursive = TRUE, showWarnings = FALSE)
+
+  frq_out <- file.path(model_dir, "bet.frq")
+  if (identical(frq_transform, "effort_creep")) {
+    if (!is.na(frq_chop_year)) {
+      stop("Effort-creep transform is only implemented for full-year frq files", call. = FALSE)
+    }
+    write_frq_with_effort_creep(frq_source, frq_out)
+    frq_note <- "copied with 1% per year effort-creep multiplier applied to index fisheries 29-33"
+  } else if (is.na(frq_chop_year)) {
+    copy_one(frq_source, frq_out)
+    frq_note <- "copied without year chopping"
+  } else {
+    chop_frq(frq_source, frq_out, max_year = frq_chop_year)
+    frq_note <- paste0("chopped to records with year <= ", frq_chop_year)
+  }
+  copy_one(ini_source, file.path(model_dir, "bet.ini"))
+  apply_fixm_m(file.path(model_dir, "bet.ini"))
+  copy_one(tag_source, file.path(model_dir, "bet.tag"))
+  copy_one(age_source, file.path(model_dir, "bet.age_length"))
+  copy_one(file.path(root, "steps", "03-RegFish", "model", "mfcl.cfg"), file.path(model_dir, "mfcl.cfg"))
+  copy_one(file.path(root, "steps", "03-RegFish", "model", "fishery_map.R"), file.path(model_dir, "fishery_map.R"))
+  write_generated_tag_rep_map(model_dir)
+  write_doitall(
+    file.path(root, "steps", "03-RegFish", "model", "doitall.sh"),
+    file.path(model_dir, "doitall.sh"),
+    mix_from_ini = mix_from_ini,
+    size_based_selectivity = isTRUE(doitall_edits$size_based_selectivity),
+    opr = isTRUE(doitall_edits$opr),
+    data_weighting = isTRUE(doitall_edits$data_weighting)
+  )
+
+  entries <- list(
+    list(role = "frq", file = "bet.frq", source = frq_source, note = frq_note),
+    list(role = "ini", file = "bet.ini", source = ini_source, note = "FixM M row applied"),
+    list(role = "tag", file = "bet.tag", source = tag_source, note = "tag reporting map regenerated from ini/tag; five MFCL reporting-rate matrices parsed"),
+    list(role = "age_length", file = "bet.age_length", source = age_source, note = "CAAL input"),
+    list(role = "doitall", file = "doitall.sh", source = "steps/03-RegFish/model/doitall.sh", note = paste(c(
+      ifelse(mix_from_ini, "mixing override removed", "03-RegFish 5-region controls retained"),
+      if (isTRUE(doitall_edits$size_based_selectivity)) "fish flag 26 set to 3",
+      if (isTRUE(doitall_edits$opr)) "OPR recruitment flags applied",
+      if (isTRUE(doitall_edits$data_weighting)) "global LF/WF divisors set to 40"
+    ), collapse = "; "))
+  )
+  write_manifest(step_dir, entries)
+  write_readme(
+    step_dir = step_dir,
+    title = title,
+    summary = summary,
+    bullets = bullets,
+    inputs = c(input_notes, "input_manifest.csv" = "machine-readable source/input notes"),
+    controls = control_notes,
+    outstanding = outstanding,
+    status = status
+  )
+}
+
+write_readme(
+  file.path(root, "steps", "01-Diag23"),
+  "01 Diag23",
+  "2023 diagnostic BET model structure, retained as the starting point for the 2026 stepwise transition.",
+  c(
+    "Uses the inherited 9-region, 41-fishery inputs ending in 2021.",
+    "Natural mortality setup is the pre-FixM diagnostic baseline.",
+    "Run mode is `doitall` so the model can be built from `bet.ini` with the bundled control script."
+  ),
+  c(
+    "bet.frq" = "2023 diagnostic frequency/catch/size input, 9 regions, 41 fisheries, terminal year 2021",
+    "bet.ini" = "2023 diagnostic ini before the FixM M-scale row change",
+    "bet.tag" = "2023 diagnostic tag input",
+    "bet.age_length" = "2023 diagnostic CAAL input"
+  ),
+  c(
+    "Inherited 9-region `doitall.sh` retained.",
+    "Survey index fishery sigma settings are the BET 2023 region-specific values."
+  ),
+  c(
+    "This is a baseline reference step; no 2026 input updates are intended here.",
+    "Run diagnostics should confirm the archived 2023 behavior before interpreting later deltas."
+  ),
+  "Ready for Kflow smoke runs; full MFCL fit not run here."
+)
+
+write_readme(
+  file.path(root, "steps", "02-FixM"),
+  "02 FixM",
+  "2023 diagnostic structure with the FixM M-scale row applied.",
+  c(
+    "Same 9-region, 41-fishery input structure as 01-Diag23.",
+    "The M-related age parameter row is set to `-2.54917483258212e+00 -1 ...`.",
+    "This is the M source used when preparing later 5-region inputs."
+  ),
+  c(
+    "bet.frq" = "same structural input as 01-Diag23, terminal year 2021",
+    "bet.ini" = "FixM version of the diagnostic ini",
+    "bet.tag" = "same tag structure as 01-Diag23",
+    "bet.age_length" = "same CAAL structure as 01-Diag23"
+  ),
+  c(
+    "Inherited 9-region `doitall.sh` retained.",
+    "This step is used as the reference for the M row copied into 03+."
+  ),
+  c(
+    "Confirm the FixM M row reproduces the intended fixed-M diagnostic before comparing against 03+.",
+    "No fishery, tag, CAAL, or CPUE update is intended in this step."
+  ),
+  "Ready for Kflow smoke runs; full MFCL fit not run here."
+)
+
+write_generated_tag_rep_map(file.path(root, "steps", "03-RegFish", "model"))
+
+write_readme(
+  file.path(root, "steps", "03-RegFish"),
+  "03 RegFish",
+  "First 5-region / 33-fishery BET input step, ending in 2021.",
+  c(
+    "Uses `bet.2023.new.structure.*` source inputs from the 2026 input build repos.",
+    "Represents 28 extraction fisheries plus 5 index fisheries.",
+    "Uses the old CAAL data re-assigned to the new fisheries.",
+    "Uses the old/restructured tag setup with 90 release groups and 91 tag-event rows including pooled tags.",
+    "Regenerates `tag_rep_map.R` from the five MFCL reporting-rate matrices in `bet.ini` plus release metadata in `bet.tag`.",
+    "Applies Arni's 19/06/2026 CPUE index sigma suggestions for index fisheries 29-33.",
+    "Applies FixM M row while retaining the 5-region `.ini` structure."
+  ),
+  c(
+    "bet.frq" = "5-region, 33-fishery structure, terminal year 2021",
+    "bet.ini" = "5-region ini with FixM M row",
+    "bet.tag" = "90 release-group tag input with low recap groups removed",
+    "bet.age_length" = "old CAAL / age_length re-assigned to new fisheries"
+  ),
+  c(
+    "5-region fishery/tag/selectivity controls are remapped in `doitall.sh`.",
+    "Index fisheries 29-33 use sigmas 0.28, 0.20, 0.22, 0.21, and 0.24.",
+    "The `-9999 1 2` all-release mixing-period setting is retained for this pre-mix step."
+  ),
+  c(
+    "After fitting, review the 5-region selectivity/tag grouping inherited from the workbook mapping.",
+    "The `.frq` region-location line has 28 extraction-fishery values by design; the five index fisheries are appended separately."
+  ),
+  "Ready for Kflow smoke runs; full MFCL fit not run here."
+)
+
+old_age <- file.path(age_root, "bet.2023.new-structure.age_length")
+new_age <- file.path(age_root, "bet.2026.age_length")
+new_ini <- file.path(ini_root, "bet.2026.ini")
+new_tag <- file.path(tag_root, "bet.2026.low.recaps.removed.tag")
+full_plus_frq <- file.path(frq_root, "bet.2026.wt.as.len.plus.len.frq")
+wt_as_len_frq <- file.path(frq_root, "bet.2026.wt.as.len.frq")
+
+make_step(
+  step_id = "04-WtAsLen21",
+  frq_source = wt_as_len_frq,
+  ini_source = new_ini,
+  tag_source = new_tag,
+  age_source = old_age,
+  frq_chop_year = 2021L,
+  title = "04 WtAsLen21",
+  summary = "Transition step using the 2026 weights-as-lengths frequency file, chopped back to the 2023 terminal year.",
+  bullets = c(
+    "Derived `bet.frq` from `bet.2026.wt.as.len.frq` by keeping records with year <= 2021 and updating the dataset count.",
+    "Uses 2026 91-release tag/ini structure because the source `.frq` declares 91 tag groups.",
+    "Keeps old CAAL (`bet.2023.new-structure.age_length`) as requested by the stepwise plan.",
+    "Applies the FixM M row to the 2026 ini."
+  ),
+  input_notes = c(
+    "bet.frq" = "`bet.2026.wt.as.len.frq`, chopped to 2021",
+    "bet.ini" = "`bet.2026.ini`, FixM M row applied",
+    "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
+    "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
+  ),
+  control_notes = c(
+    "03-RegFish 5-region `doitall.sh` controls retained.",
+    "The all-release-group mixing period remains fixed at 2 for this pre-mix step."
+  ),
+  outstanding = c(
+    "Confirm the 2021 chop of the 2026 weights-as-lengths `.frq` gives the intended transition-only comparison.",
+    "Review fit impacts before deciding whether any size-composition weighting needs adjustment at this stage."
+  )
+)
+
+make_step(
+  step_id = "05-WtAsLenPlusLen21",
+  frq_source = full_plus_frq,
+  ini_source = new_ini,
+  tag_source = new_tag,
+  age_source = old_age,
+  frq_chop_year = 2021L,
+  title = "05 WtAsLenPlusLen21",
+  summary = "Transition step using weights converted to lengths plus observed lengths, still chopped to 2021.",
+  bullets = c(
+    "Derived `bet.frq` from `bet.2026.wt.as.len.plus.len.frq` by keeping records with year <= 2021.",
+    "Maintains the old CAAL input while moving the size-composition frequency file to the plus-length variant.",
+    "Keeps the 2026 91-release tag/ini structure for consistency with the `.frq` header.",
+    "Applies the FixM M row to the 2026 ini."
+  ),
+  input_notes = c(
+    "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, chopped to 2021",
+    "bet.ini" = "`bet.2026.ini`, FixM M row applied",
+    "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
+    "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
+  ),
+  control_notes = c(
+    "03-RegFish 5-region `doitall.sh` controls retained.",
+    "The all-release-group mixing period remains fixed at 2 for this pre-mix step."
+  ),
+  outstanding = c(
+    "Confirm the 2021 chop of the plus-length `.frq` matches the stepwise plan's 2023-terminal comparison.",
+    "Compare against 04-WtAsLen21 to isolate the effect of adding observed lengths."
+  )
+)
+
+make_step(
+  step_id = "06-Full2024",
+  frq_source = full_plus_frq,
+  ini_source = new_ini,
+  tag_source = new_tag,
+  age_source = old_age,
+  title = "06 Full2024",
+  summary = "Full 2024 data step with weights-as-lengths plus lengths, new regional CPUE/index inputs, and 2026 tag reporting priors.",
+  bullets = c(
+    "Uses `bet.2026.wt.as.len.plus.len.frq` without year chopping.",
+    "Moves from the 2021-chopped transition steps to the full 2024 frequency/catch/size series.",
+    "Keeps old CAAL for this step, matching the plan's 'no change to CAAL file' instruction.",
+    "Uses the 2026 low-recapture-removed tag file and 2026 ini, with FixM M row applied."
+  ),
+  input_notes = c(
+    "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, full 2024",
+    "bet.ini" = "`bet.2026.ini`, FixM M row applied",
+    "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
+    "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
+  ),
+  control_notes = c(
+    "03-RegFish 5-region `doitall.sh` controls retained.",
+    "The all-release-group mixing period remains fixed at 2 for this pre-mix step."
+  ),
+  outstanding = c(
+    "Full 2024 input behavior still needs a real MFCL fit and residual/CPUE-sigma review.",
+    "This step intentionally keeps old CAAL so the CAAL update is isolated in 07-CAAL2026."
+  )
+)
+
+make_step(
+  step_id = "07-CAAL2026",
+  frq_source = full_plus_frq,
+  ini_source = new_ini,
+  tag_source = new_tag,
+  age_source = new_age,
+  title = "07 CAAL2026",
+  summary = "Full 2024 data step with the updated 2026 CAAL / age_length input.",
+  bullets = c(
+    "Uses the same full 2024 `.frq`, 2026 `.ini`, and 2026 `.tag` as 06-Full2024.",
+    "Switches CAAL from `bet.2023.new-structure.age_length` to `bet.2026.age_length`.",
+    "The 2026 age_length file has 181 records through 2024 and includes Japan/SPC new age data.",
+    "Applies the FixM M row to the 2026 ini."
+  ),
+  input_notes = c(
+    "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, full 2024",
+    "bet.ini" = "`bet.2026.ini`, FixM M row applied",
+    "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
+    "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
+  ),
+  control_notes = c(
+    "03-RegFish 5-region `doitall.sh` controls retained.",
+    "The all-release-group mixing period remains fixed at 2 for this pre-mix step."
+  ),
+  outstanding = c(
+    "After fitting, compare CAAL likelihood and age residuals against 06-Full2024.",
+    "Confirm the 2026 CAAL source remains the chosen final CAAL file before later sensitivity runs."
+  )
+)
+
+make_step(
+  step_id = "08-MixPeriod02",
+  frq_source = full_plus_frq,
+  ini_source = file.path(ini_root, "ini.mix-period", "bet.2026.mix-0.2.ini"),
+  tag_source = new_tag,
+  age_source = new_age,
+  mix_from_ini = TRUE,
+  title = "08 MixPeriod02",
+  summary = "Release-group-specific tag mixing periods using the 0.2 KS diagnostic cutoff.",
+  bullets = c(
+    "Uses `bet.2026.mix-0.2.ini` from the ini-build repo.",
+    "Keeps the full 2024 `.frq`, 2026 tag file, and updated 2026 CAAL.",
+    "Applies the FixM M row to the mix-period ini.",
+    "Removes the inherited `-9999 1 2` line from `doitall.sh` so the release-group-specific tag flags in the ini are not overwritten."
+  ),
+  input_notes = c(
+    "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, full 2024",
+    "bet.ini" = "`bet.2026.mix-0.2.ini`, FixM M row applied",
+    "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
+    "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
+  ),
+  control_notes = c(
+    "The all-release-group mixing-period override is removed.",
+    "All other 03-RegFish 5-region fishery, tag recapture, selectivity, and CPUE sigma controls are retained."
+  ),
+  outstanding = c(
+    "Confirm that the 0.2 KS mix-period ini is the main 12-step path; the 0.15 version remains a sensitivity candidate.",
+    "After fitting, inspect tag residuals and release-group behavior before tuning tag-reporting assumptions further."
+  )
+)
+
+make_step(
+  step_id = "09-SizeBasedSel",
+  frq_source = full_plus_frq,
+  ini_source = file.path(ini_root, "ini.mix-period", "bet.2026.mix-0.2.ini"),
+  tag_source = new_tag,
+  age_source = new_age,
+  mix_from_ini = TRUE,
+  doitall_edits = list(size_based_selectivity = TRUE),
+  title = "09 SizeBasedSel",
+  summary = "Size-based selectivity step after the main 0.2 KS tag mixing-period setup.",
+  bullets = c(
+    "Uses the same full 2024 `.frq`, `bet.2026.mix-0.2.ini`, 2026 tag file, and updated 2026 CAAL as 08-MixPeriod02.",
+    "Sets fish flag 26 from 2 to 3 in `doitall.sh`, following the YFT 2026 length-based selectivity note.",
+    "Keeps the 5-region selectivity grouping and fishery-specific constraints from 03-RegFish."
+  ),
+  input_notes = c(
+    "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, full 2024",
+    "bet.ini" = "`bet.2026.mix-0.2.ini`, FixM M row applied",
+    "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
+    "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
+  ),
+  control_notes = c(
+    "The all-release-group mixing-period override remains removed.",
+    "`-999 26 3` is applied for size-based selectivity."
+  ),
+  outstanding = c(
+    "Confirm with the modelling group that BET should use the same flag-26 setting as the YFT 2026 size-based selectivity experiment.",
+    "Not yet reviewed after fitting: upper-age selectivity constraints inherited from 03-RegFish, especially `24.PL.ALL.WEST.3`."
+  )
+)
+
+make_step(
+  step_id = "10-OPR",
+  frq_source = full_plus_frq,
+  ini_source = file.path(ini_root, "ini.mix-period", "bet.2026.mix-0.2.ini"),
+  tag_source = new_tag,
+  age_source = new_age,
+  mix_from_ini = TRUE,
+  doitall_edits = list(size_based_selectivity = TRUE, opr = TRUE),
+  title = "10 OPR",
+  summary = "Orthogonal polynomial recruitment step after size-based selectivity.",
+  bullets = c(
+    "Uses the same input files as 09-SizeBasedSel.",
+    "Applies OPR controls in PHASE 3 of `doitall.sh`, following John's suggestion to keep early phases on mean-plus-deviate recruitment.",
+    "Uses OPR year effect 70, region effect 4, season effect 3, and no region-season interaction."
+  ),
+  input_notes = c(
+    "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, full 2024",
+    "bet.ini" = "`bet.2026.mix-0.2.ini`, FixM M row applied",
+    "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
+    "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
+  ),
+  control_notes = c(
+    "`-999 26 3` is retained from 09-SizeBasedSel.",
+    "PHASE 1 and PHASE 2 retain the pre-OPR recruitment setup.",
+    "`1 149 0`, `1 398 0`, `2 177 0`, and `2 32 0` are applied at PHASE 3 for the OPR transfer.",
+    "`1 155 70`, `1 216 4`, `1 217 3`, and `1 218 0` activate OPR year, region, season, and no region-season interaction.",
+    "`2 70`, `2 71`, `2 178`, and `-100000 1:5` recruitment-distribution controls are turned off at the OPR phase."
+  ),
+  outstanding = c(
+    "OPR year-effect dimension 70 follows the YFT 2026 experiment and should be revisited if the BET team chooses 50 or 30 instead.",
+    "Not yet implemented: optional OPR region-season interaction (`1 218`) if diagnostics suggest it is needed."
+  )
+)
+
+make_step(
+  step_id = "11-EffortCreep",
+  frq_source = full_plus_frq,
+  ini_source = file.path(ini_root, "ini.mix-period", "bet.2026.mix-0.2.ini"),
+  tag_source = new_tag,
+  age_source = new_age,
+  frq_transform = "effort_creep",
+  mix_from_ini = TRUE,
+  doitall_edits = list(size_based_selectivity = TRUE, opr = TRUE),
+  title = "11 EffortCreep",
+  summary = "Minimum effort-creep scenario applied to the regional index fisheries.",
+  bullets = c(
+    "Uses 10-OPR controls and applies an effort-creep transform to index fisheries 29-33 in `bet.frq`.",
+    "The transform follows the available single-region eff-creep file pattern: effort is multiplied by `1 + 0.01 * (year - 1952)`.",
+    "Only positive index-fishery effort values are changed; extraction fisheries and size compositions are untouched."
+  ),
+  input_notes = c(
+    "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, full 2024, with index effort creep applied",
+    "bet.ini" = "`bet.2026.mix-0.2.ini`, FixM M row applied",
+    "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
+    "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
+  ),
+  control_notes = c(
+    "10-OPR `doitall.sh` controls are retained.",
+    "No extra MFCL flag is used for effort creep; the change is in the index-fishery effort values in `bet.frq`."
+  ),
+  outstanding = c(
+    "Confirm that this 1 percent per year linear creep is the intended BET spatial minimum-effort-creep scenario.",
+    "Not yet checked against a separately generated 5-region effort-creep `.frq` because the input repo currently exposes only the single-region eff-creep output."
+  )
+)
+
+make_step(
+  step_id = "12-DataWeight40",
+  frq_source = full_plus_frq,
+  ini_source = file.path(ini_root, "ini.mix-period", "bet.2026.mix-0.2.ini"),
+  tag_source = new_tag,
+  age_source = new_age,
+  frq_transform = "effort_creep",
+  mix_from_ini = TRUE,
+  doitall_edits = list(size_based_selectivity = TRUE, opr = TRUE, data_weighting = TRUE),
+  title = "12 DataWeight40",
+  summary = "Initial manual strategic data-weighting step with stronger global size-composition downweighting.",
+  bullets = c(
+    "Uses the same effort-creep `.frq`, mix-period `.ini`, tag, and CAAL as 11-EffortCreep.",
+    "Keeps size-based selectivity and OPR controls from 10-OPR.",
+    "Changes global LF and WF sample-size divisors from 20 to 40 in `doitall.sh`."
+  ),
+  input_notes = c(
+    "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, full 2024, with index effort creep applied",
+    "bet.ini" = "`bet.2026.mix-0.2.ini`, FixM M row applied",
+    "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
+    "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
+  ),
+  control_notes = c(
+    "`-999 49 40` and `-999 50 40` replace the global LF/WF divisor-20 settings.",
+    "Fishery-specific divisor-40 settings inherited from 03-RegFish are retained."
+  ),
+  outstanding = c(
+    "This is a first runnable manual weighting scenario, not a final tuned weighting scheme.",
+    "Not yet implemented: alternative divisor scenarios or targeted CAAL/size weighting after diagnostics."
+  )
+)

@@ -12,3 +12,7 @@
 /.quarto-cache/
 /*.html
 /*_files/
+*.docx
+INPUT_PREP_NOTES.md
+notes/
+steps_legacy/

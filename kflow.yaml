@@ -34,18 +34,18 @@ exclude_machines:
 
 env:
   # Default selected model folder. Override per job in the Kflow job config.
-  # Examples: 01-base-11par, 01-base-11par,03-review-11par, all
-  STEP_SELECT: 01-base-11par
+  # Examples: 03-RegFish, 04-WtAsLen21, 03-RegFish,07-CAAL2026, all
+  STEP_SELECT: all
 
   # Default Kflow display labels for the default model. `make kflow` computes
   # these from job-config.R. When launching directly from the Kflow UI and
   # changing STEP_SELECT, update these fields too if the job list should show
   # the selected model label before the run starts.
-  JOB_TITLE: "BET stepwise: Base 11.par"
+  JOB_TITLE: "BET stepwise: all 12 models"
   JOB_DESCRIPTION: "Run the selected BET model folder and save compact plot-ready payloads."
-  MODEL_LABEL: "Base 11.par"
-  JOB_KEY: 01-base-11par
-  FLOW_GROUP: bet-2026-base
+  MODEL_LABEL: "All 12 stepwise models"
+  JOB_KEY: all-12
+  FLOW_GROUP: bet-2026-stepwise-v2
   FLOW_SPECIES: BET
   FLOW_SPECIES_LABEL: bigeye tuna
   FLOW_ASSESSMENT_YEAR: "2026"
@@ -53,8 +53,8 @@ env:
   PLOT_MAX_FISHERIES: "18"
   REPORT_QMD: assessment-report.qmd
   REPORT_FILE_STEM: bet-2026-report
-  RUN_MODE: last_par
-  INPUT_PAR: 11.par
+  RUN_MODE: doitall
+  INPUT_PAR: ""
   FRQ: bet.frq
   OUTPUT_PAR: ""
   FEVALS: "1"
@@ -83,7 +83,7 @@ output_patterns:
 #   results succeeds  -> run the report task from downstream task config
 #
 # One-off command-line override:
-#   make kflow TRIGGER_NEXT=false STEP_SELECT=01-base-11par
+#   make kflow TRIGGER_NEXT=false STEP_SELECT=03-RegFish
 triggers:
   on_success:
     - key: results-from-stepwise

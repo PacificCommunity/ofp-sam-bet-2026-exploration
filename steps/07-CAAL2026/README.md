@@ -1,0 +1,33 @@
+# 07 CAAL2026
+
+Full 2024 data step with the updated 2026 CAAL / age_length input.
+
+## What Changed
+
+- Uses the same full 2024 `.frq`, 2026 `.ini`, and 2026 `.tag` as 06-Full2024.
+- Switches CAAL from `bet.2023.new-structure.age_length` to `bet.2026.age_length`.
+- The 2026 age_length file has 181 records through 2024 and includes Japan/SPC new age data.
+- Applies the FixM M row to the 2026 ini.
+
+## Inputs
+
+- `bet.frq`: `bet.2026.wt.as.len.plus.len.frq`, full 2024
+- `bet.ini`: `bet.2026.ini`, FixM M row applied
+- `bet.tag`: `bet.2026.low.recaps.removed.tag`
+- `bet.age_length`: `bet.2026.age_length` (updated CAAL)
+- `input_manifest.csv`: machine-readable source/input notes
+
+## Control Notes
+
+- 03-RegFish 5-region `doitall.sh` controls retained.
+- The all-release-group mixing period remains fixed at 2 for this pre-mix step.
+
+## Outstanding Checks
+
+- After fitting, compare CAAL likelihood and age residuals against 06-Full2024.
+- Confirm the 2026 CAAL source remains the chosen final CAAL file before later sensitivity runs.
+
+## Status
+
+Ready for Kflow smoke runs; full MFCL fit not run here.
+
