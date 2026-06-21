@@ -1,6 +1,8 @@
 # BET 2026 Stepwise
 
-[![Kflow ready task](kflow-ready.svg)](kflow.yaml)
+<p align="right">
+  <a href="kflow.yaml"><img src="kflow-ready.svg" alt="Kflow ready task"></a>
+</p>
 
 Kflow task repository for BET 2026 stepwise MFCL model runs.
 
