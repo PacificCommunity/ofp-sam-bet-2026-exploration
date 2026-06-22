@@ -5,8 +5,7 @@ indices and the global regional-scaling CPUE input. The first runnable 12-step
 candidate had the five regional index fisheries, but the first implementation
 turned the regional-scaling penalty on too early and with a placeholder weight.
 
-This note was updated after checking `reg_scaling_MVN_penalty (1).docx`,
-MFCL source, and the MFCL manual.
+Nick's suggestion.
 
 ## What Was Missing Or Wrong
 

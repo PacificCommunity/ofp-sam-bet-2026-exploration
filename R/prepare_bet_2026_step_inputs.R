@@ -676,7 +676,7 @@ apply_data_weighting <- function(lines) {
 apply_regional_scaling_phase5 <- function(lines, weight = 50L,
                                           use_mean = TRUE,
                                           use_mvn = TRUE) {
-  if (any(grepl("Nick Davies and Kyuhan Kim, 09/06/2026", lines, fixed = TRUE))) {
+  if (any(grepl("Nick's suggestion, 09/06/2026", lines, fixed = TRUE))) {
     return(lines)
   }
   if (any(grepl("^[[:space:]]*1[[:space:]]+77[[:space:]]+", lines))) {
@@ -691,7 +691,7 @@ apply_regional_scaling_phase5 <- function(lines, weight = 50L,
     stop("Expected one PHASE5 heredoc end before inserting regional scaling flags", call. = FALSE)
   }
   block <- c(
-    "# Regional-scaling MVN prior from Nick Davies and Kyuhan Kim, 09/06/2026.",
+    "# Regional-scaling MVN prior. Nick's suggestion, 09/06/2026.",
     "# PHASE 1-4 retain CPUE_scaling; PHASE 5 switches to Prior_reg_biomass.",
     "# Ungroup index CPUE likelihood and remove grouped-sigma override.",
     "  -29 99 29  -29 94 0  # Index R1",
@@ -845,8 +845,8 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
       control_notes,
       paste(
         "`bet.reg_scaling` is read by MFCL starting in PHASE 5 because",
-        "`parest_flags(77)=50`; flags 77-81 follow the 09/06/2026",
-        "regional-scaling MVN note."
+        "`parest_flags(77)=50`; flags 77-81 follow Nick's",
+        "09/06/2026 regional-scaling suggestion."
       ),
       paste(
         "PHASE 1-4 retain the current CPUE_scaling setup: index fisheries",

@@ -21,7 +21,7 @@ Initial manual strategic data-weighting step with stronger global size-compositi
 
 - `-999 49 40` and `-999 50 40` replace the global LF/WF divisor-20 settings.
 - Fishery-specific divisor-40 settings inherited from 03-RegFish are retained.
-- `bet.reg_scaling` is read by MFCL starting in PHASE 5 because `parest_flags(77)=50`; flags 77-81 follow the 09/06/2026 regional-scaling MVN note.
+- `bet.reg_scaling` is read by MFCL starting in PHASE 5 because `parest_flags(77)=50`; flags 77-81 follow Nick's 09/06/2026 regional-scaling suggestion.
 - PHASE 1-4 retain the current CPUE_scaling setup: index fisheries 29-33 share CPUE group 29, share selectivity group 25, and keep Arni's 19/06/2026 sigma settings.
 - PHASE 5 switches to Prior_reg_biomass: index CPUE groups become 29-33, fish flag 94 is set to 0, and index selectivity groups become 25-29.
 

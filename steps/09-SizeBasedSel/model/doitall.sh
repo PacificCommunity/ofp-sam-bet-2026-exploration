@@ -285,7 +285,7 @@ $program_path bet.frq 04.par 05.par -file - <<PHASE5
   -100000 3 1  # distribution
   -100000 4 1  # of
   -100000 5 1  # recruitment
-# Regional-scaling MVN prior from Nick Davies and Kyuhan Kim, 09/06/2026.
+# Regional-scaling MVN prior. Nick's suggestion, 09/06/2026.
 # PHASE 1-4 retain CPUE_scaling; PHASE 5 switches to Prior_reg_biomass.
 # Ungroup index CPUE likelihood and remove grouped-sigma override.
   -29 99 29  -29 94 0  # Index R1
