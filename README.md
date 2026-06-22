@@ -34,6 +34,7 @@ make local STEP_SELECT=all PROGRAM_PATH=/path/to/mfclo64
 make docker STEP_SELECT=all
 make kflow STEP_SELECT=all
 make kflow STEP_SELECT=all TRIGGER_NEXT=false
+make kflow-register-chain
 ```
 
 Run several folders:
@@ -41,6 +42,17 @@ Run several folders:
 ```bash
 make kflow STEP_SELECT=03-RegFish,07-CAAL2026,12-DataWeight40
 ```
+
+Refresh the Kflow task definitions after editing `kflow.yaml`:
+
+```bash
+export KFLOW_API_TOKEN=...
+make kflow-register-chain
+```
+
+That reads each `kflow.yaml` from `KFLOW_CHAIN_REPOS` and upserts the matching
+Kflow task registration. Override `KFLOW_CHAIN_REPOS` if the sibling repo paths
+are different on a machine.
 
 ## Add A Model
 
