@@ -20,6 +20,7 @@
 - Inherited 9-region `doitall.sh` retained.
 - This step is used as the reference for the M row copied into 03+.
 - `doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.
+- PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders.
 
 ## Outstanding Checks
 

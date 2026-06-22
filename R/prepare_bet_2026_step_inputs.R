@@ -767,6 +767,55 @@ apply_regional_index_selectivity_map <- function(path) {
   invisible(TRUE)
 }
 
+apply_phase10_11_convergence_switch <- function(lines) {
+  block <- c(
+    "",
+    "phase10_11_convergence=${BET_PHASE10_11_CONVERGENCE:--3}",
+    "case \"$phase10_11_convergence\" in",
+    "  -[0-9]|-[0-9][0-9]|[0-9]|[0-9][0-9]) ;;",
+    "  *)",
+    "    echo \"BET_PHASE10_11_CONVERGENCE must be numeric, e.g. -3 for quick runs or -5 for strict runs.\" >&2",
+    "    exit 1",
+    "    ;;",
+    "esac",
+    "echo \"PHASE 10/11 convergence criterion: $phase10_11_convergence\""
+  )
+  if (!any(grepl("^phase10_11_convergence=", lines))) {
+    guard_start <- grep("^if \\[ -z \"\\$program_path\" \\]; then$", lines)
+    if (length(guard_start) != 1L) {
+      stop("Expected one PROGRAM_PATH guard in doitall.sh", call. = FALSE)
+    }
+    guard_end <- which(seq_along(lines) > guard_start & trimws(lines) == "fi")
+    if (!length(guard_end)) {
+      stop("Expected PROGRAM_PATH guard terminator in doitall.sh", call. = FALSE)
+    }
+    lines <- append(lines, block, after = guard_end[[1]])
+  }
+
+  replace_phase <- function(lines, phase) {
+    start <- grep(paste0("<<PHASE", phase), lines, fixed = TRUE)
+    if (length(start) != 1L) {
+      stop("Expected one PHASE", phase, " heredoc start in doitall.sh", call. = FALSE)
+    }
+    end <- which(seq_along(lines) > start & trimws(lines) == paste0("PHASE", phase))
+    if (length(end) != 1L) {
+      stop("Expected one PHASE", phase, " heredoc end in doitall.sh", call. = FALSE)
+    }
+    block_i <- seq.int(start, end)
+    hit <- block_i[grepl("^[[:space:]]*1[[:space:]]+50[[:space:]]+", lines[block_i])]
+    if (length(hit) != 1L) {
+      stop("Expected one convergence line in PHASE", phase, " of doitall.sh", call. = FALSE)
+    }
+    lines[[hit]] <-
+      "  1 50 $phase10_11_convergence  # convergence criteria; default quick -3, set BET_PHASE10_11_CONVERGENCE=-5 for strict"
+    lines
+  }
+
+  lines <- replace_phase(lines, 10L)
+  lines <- replace_phase(lines, 11L)
+  lines
+}
+
 write_doitall <- function(from, to, mix_from_ini = FALSE,
                           size_based_selectivity = FALSE,
                           opr = FALSE,
@@ -778,6 +827,7 @@ write_doitall <- function(from, to, mix_from_ini = FALSE,
   if (!any(grepl("^set -eu$", lines))) {
     lines <- append(lines, "set -eu", after = 1L)
   }
+  lines <- apply_phase10_11_convergence_switch(lines)
   if (isTRUE(mix_from_ini)) {
     target <- grep("-9999 1 2", lines, fixed = TRUE)
     if (length(target)) {
@@ -901,7 +951,8 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
   }
   control_notes <- c(
     control_notes,
-    "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files."
+    "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.",
+    "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders."
   )
   copy_one(file.path(root, "steps", "03-RegFish", "model", "mfcl.cfg"), file.path(model_dir, "mfcl.cfg"))
   fishery_map_out <- file.path(model_dir, "fishery_map.R")
@@ -962,6 +1013,11 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
   )
 }
 
+for (base_step in c("01-Diag23", "02-FixM", "03-RegFish")) {
+  base_doitall <- file.path(root, "steps", base_step, "model", "doitall.sh")
+  write_doitall(base_doitall, base_doitall)
+}
+
 write_readme(
   file.path(root, "steps", "01-Diag23"),
   "01 Diag23",
@@ -980,7 +1036,8 @@ write_readme(
   c(
     "Inherited 9-region `doitall.sh` retained.",
     "Survey index fishery sigma settings are the BET 2023 region-specific values.",
-    "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files."
+    "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.",
+    "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders."
   ),
   c(
     "This is a baseline reference step; no 2026 input updates are intended here.",
@@ -1007,7 +1064,8 @@ write_readme(
   c(
     "Inherited 9-region `doitall.sh` retained.",
     "This step is used as the reference for the M row copied into 03+.",
-    "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files."
+    "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.",
+    "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders."
   ),
   c(
     "Confirm the FixM M row reproduces the intended fixed-M diagnostic before comparing against 03+.",
@@ -1050,7 +1108,8 @@ write_readme(
     "5-region fishery/tag/selectivity controls are remapped in `doitall.sh`.",
     "Index fisheries 29-33 use sigmas 0.28, 0.20, 0.22, 0.21, and 0.24.",
     "The `-9999 1 2` all-release mixing-period setting is retained for this pre-mix step.",
-    "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files."
+    "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.",
+    "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders."
   ),
   c(
     "After fitting, review the 5-region selectivity/tag grouping inherited from the workbook mapping.",

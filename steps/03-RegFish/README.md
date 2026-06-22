@@ -27,6 +27,7 @@ First 5-region / 33-fishery BET input step, ending in 2021.
 - Index fisheries 29-33 use sigmas 0.28, 0.20, 0.22, 0.21, and 0.24.
 - The `-9999 1 2` all-release mixing-period setting is retained for this pre-mix step.
 - `doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.
+- PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders.
 
 ## Outstanding Checks
 

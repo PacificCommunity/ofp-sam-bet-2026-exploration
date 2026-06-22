@@ -60,6 +60,10 @@ env:
   # true streams the full MFCL output to Kflow logs. false keeps logs quieter.
   MFCL_LIVE_LOG: "true"
 
+  # Quick-run default for the final convergence phases. Use "-5" for stricter
+  # production reruns without editing the model folders.
+  BET_PHASE10_11_CONVERGENCE: "-3"
+
   # mfclshiny is private, so runtime package updates need a forwarded GitHub
   # token from Kflow. Leave these true for cluster jobs.
   KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES: "true"
@@ -142,6 +146,7 @@ job_config:
     - PROGRAM_PATH
     - SMOKE_FEVALS
     - MFCL_LIVE_LOG
+    - BET_PHASE10_11_CONVERGENCE
     - PLOT_TITLE
     - PLOT_MAX_FISHERIES
     - FLOW_SPECIES

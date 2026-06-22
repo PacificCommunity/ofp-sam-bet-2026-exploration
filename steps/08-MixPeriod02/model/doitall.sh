@@ -8,6 +8,16 @@ if [ -z "$program_path" ]; then
   exit 1
 fi
 
+phase10_11_convergence=${BET_PHASE10_11_CONVERGENCE:--3}
+case "$phase10_11_convergence" in
+  -[0-9]|-[0-9][0-9]|[0-9]|[0-9][0-9]) ;;
+  *)
+    echo "BET_PHASE10_11_CONVERGENCE must be numeric, e.g. -3 for quick runs or -5 for strict runs." >&2
+    exit 1
+    ;;
+esac
+echo "PHASE 10/11 convergence criterion: $phase10_11_convergence"
+
 
 # -----------------------------------
 #  PHASE 0 - create initial par file
@@ -377,7 +387,7 @@ PHASE9
 
 $program_path bet.frq 09.par 10.par -file - <<PHASE10
   1 1 10000  # function evaluations
-  1 50 -5    # convergence criteria
+  1 50 $phase10_11_convergence  # convergence criteria; default quick -3, set BET_PHASE10_11_CONVERGENCE=-5 for strict
   1 121 0    # estimate scaling parameter for Lorenzen (age_pars(5,1)); off
 PHASE10
 
@@ -387,6 +397,6 @@ PHASE10
 
 $program_path bet.frq 10.par 11.par -file - <<PHASE11
   1 1 5000
-  1 50 -5   # convergence criteria
+  1 50 $phase10_11_convergence  # convergence criteria; default quick -3, set BET_PHASE10_11_CONVERGENCE=-5 for strict
   1 246 1   # indepvar.rpt
 PHASE11

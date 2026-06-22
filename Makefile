@@ -9,6 +9,7 @@ yml = $(shell Rscript -e 'y <- yaml::read_yaml("kflow.yaml"); v <- $(1); if (is.
 STEP_SELECT ?= $(call cfg,default_step_select,all)
 MFCL_FEVALS ?= $(call cfg,mfcl_fevals,)
 MFCL_LIVE_LOG ?= $(call yml,y$$env$$MFCL_LIVE_LOG,true)
+BET_PHASE10_11_CONVERGENCE ?= $(call yml,y$$env$$BET_PHASE10_11_CONVERGENCE,-3)
 OUTPUT_DIR ?= outputs
 PROGRAM_PATH ?= $(call yml,y$$env$$PROGRAM_PATH,/home/mfcl/mfclo64)
 DOCKER_IMAGE ?= $(call yml,y$$docker_image,ghcr.io/pacificcommunity/tuna-flow:v1.5)
@@ -65,6 +66,8 @@ help:
 	  'make kflow TRIGGER_NEXT=false' \
 	  '  Submit only the selected model folder, without launching plot/report afterward.' \
 	  '' \
+	  'BET_PHASE10_11_CONVERGENCE=-3 is the quick default for PHASE 10/11. Set -5 for strict runs.' \
+	  '' \
 	  'Note: MFCL_FEVALS is applied by the runner only for last_par/single; doitall.sh must read it explicitly.' \
 	  '' \
 	  'Common overrides: STEP_SELECT, MFCL_FEVALS, MFCL_LIVE_LOG, TRIGGER_NEXT, OUTPUT_DIR.'
@@ -103,6 +106,7 @@ local: readme
 	STEP_SELECT='$(STEP_SELECT)' \
 	MFCL_FEVALS='$(MFCL_FEVALS)' \
 	MFCL_LIVE_LOG='$(MFCL_LIVE_LOG)' \
+	BET_PHASE10_11_CONVERGENCE='$(BET_PHASE10_11_CONVERGENCE)' \
 	OUTPUT_DIR='$(OUTPUT_DIR)' \
 	PROGRAM_PATH='$(PROGRAM_PATH)' \
 	KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES='$(KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES)' \
@@ -133,6 +137,7 @@ docker: readme
 	  -e STEP_SELECT='$(STEP_SELECT)' \
 	  -e MFCL_FEVALS='$(MFCL_FEVALS)' \
 	  -e MFCL_LIVE_LOG='$(MFCL_LIVE_LOG)' \
+	  -e BET_PHASE10_11_CONVERGENCE='$(BET_PHASE10_11_CONVERGENCE)' \
 	  -e OUTPUT_DIR='$(OUTPUT_DIR)' \
 	  -e PROGRAM_PATH='$(PROGRAM_PATH)' \
 	  -e KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES='$(KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES)' \
@@ -147,7 +152,7 @@ docker: readme
 
 kflow: readme
 	@test -n "$${KFLOW_API_TOKEN:-}" || { echo 'Set KFLOW_API_TOKEN before running make kflow.' >&2; exit 2; }
-	@STEP_SELECT='$(STEP_SELECT)' MFCL_FEVALS='$(MFCL_FEVALS)' MFCL_LIVE_LOG='$(MFCL_LIVE_LOG)' FLOW_GROUP='$(FLOW_GROUP)' JOB_TITLE='$(JOB_TITLE)' MODEL_LABEL='$(MODEL_LABEL)' JOB_KEY='$(JOB_KEY)' RUN_MODE='$(RUN_MODE)' INPUT_PAR='$(INPUT_PAR)' FRQ='$(FRQ)' OUTPUT_PAR='$(OUTPUT_PAR)' FEVALS='$(FEVALS)' TRIGGER_NEXT='$(TRIGGER_NEXT)' KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES='$(KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES)' KFLOW_RUNTIME_UPDATE='$(KFLOW_RUNTIME_UPDATE)' KFLOW_RUNTIME_PACKAGES='$(KFLOW_RUNTIME_PACKAGES)' KFLOW_RUNTIME_GITHUB_AUTH='$(KFLOW_RUNTIME_GITHUB_AUTH)' KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME='$(KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME)' python3 -c 'import json, os; env={k:os.environ[k] for k in ("STEP_SELECT","MFCL_FEVALS","MFCL_LIVE_LOG","FLOW_GROUP","JOB_TITLE","MODEL_LABEL","JOB_KEY","RUN_MODE","INPUT_PAR","FRQ","OUTPUT_PAR","FEVALS","KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES","KFLOW_RUNTIME_UPDATE","KFLOW_RUNTIME_PACKAGES","KFLOW_RUNTIME_GITHUB_AUTH","KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME") if os.environ.get(k,"")}; payload={"env":env,"tags":{"stage":"stepwise","flow":os.environ["FLOW_GROUP"],"step":os.environ["STEP_SELECT"],"model_label":os.environ["MODEL_LABEL"],"job_key":os.environ["JOB_KEY"],"run_mode":os.environ["RUN_MODE"],"trigger_next":os.environ["TRIGGER_NEXT"]}}; flag=os.environ["TRIGGER_NEXT"].strip().lower(); payload.update({"triggers": {}} if flag in ("0","false","no","off","none","skip") else {}); print(json.dumps(payload))' | curl -sS -H "Authorization: Bearer $${KFLOW_API_TOKEN}" -H 'Content-Type: application/json' -X POST "$(KFLOW_URL)/api/job/$(KFLOW_TASK)" -d @-
+	@STEP_SELECT='$(STEP_SELECT)' MFCL_FEVALS='$(MFCL_FEVALS)' MFCL_LIVE_LOG='$(MFCL_LIVE_LOG)' BET_PHASE10_11_CONVERGENCE='$(BET_PHASE10_11_CONVERGENCE)' FLOW_GROUP='$(FLOW_GROUP)' JOB_TITLE='$(JOB_TITLE)' MODEL_LABEL='$(MODEL_LABEL)' JOB_KEY='$(JOB_KEY)' RUN_MODE='$(RUN_MODE)' INPUT_PAR='$(INPUT_PAR)' FRQ='$(FRQ)' OUTPUT_PAR='$(OUTPUT_PAR)' FEVALS='$(FEVALS)' TRIGGER_NEXT='$(TRIGGER_NEXT)' KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES='$(KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES)' KFLOW_RUNTIME_UPDATE='$(KFLOW_RUNTIME_UPDATE)' KFLOW_RUNTIME_PACKAGES='$(KFLOW_RUNTIME_PACKAGES)' KFLOW_RUNTIME_GITHUB_AUTH='$(KFLOW_RUNTIME_GITHUB_AUTH)' KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME='$(KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME)' python3 -c 'import json, os; env={k:os.environ[k] for k in ("STEP_SELECT","MFCL_FEVALS","MFCL_LIVE_LOG","BET_PHASE10_11_CONVERGENCE","FLOW_GROUP","JOB_TITLE","MODEL_LABEL","JOB_KEY","RUN_MODE","INPUT_PAR","FRQ","OUTPUT_PAR","FEVALS","KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES","KFLOW_RUNTIME_UPDATE","KFLOW_RUNTIME_PACKAGES","KFLOW_RUNTIME_GITHUB_AUTH","KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME") if os.environ.get(k,"")}; payload={"env":env,"tags":{"stage":"stepwise","flow":os.environ["FLOW_GROUP"],"step":os.environ["STEP_SELECT"],"model_label":os.environ["MODEL_LABEL"],"job_key":os.environ["JOB_KEY"],"run_mode":os.environ["RUN_MODE"],"trigger_next":os.environ["TRIGGER_NEXT"]}}; flag=os.environ["TRIGGER_NEXT"].strip().lower(); payload.update({"triggers": {}} if flag in ("0","false","no","off","none","skip") else {}); print(json.dumps(payload))' | curl -sS -H "Authorization: Bearer $${KFLOW_API_TOKEN}" -H 'Content-Type: application/json' -X POST "$(KFLOW_URL)/api/job/$(KFLOW_TASK)" -d @-
 	@printf '\n'
 
 kflow-register:
