@@ -6,7 +6,7 @@ Size-based selectivity step after the main 0.2 KS tag mixing-period setup.
 
 - Uses the same full 2024 `.frq`, `bet.2026.mix-0.2.ini`, 2026 tag file, and updated 2026 CAAL as 08-MixPeriod02.
 - Sets fish flag 26 from 2 to 3 in `doitall.sh`, following the YFT 2026 length-based selectivity note.
-- Keeps the extraction-fishery selectivity mapping and fishery-specific constraints from 03-RegFish, while index fisheries remain unshared under regional scaling.
+- Keeps the extraction-fishery selectivity mapping and fishery-specific constraints from 03-RegFish, while index fisheries unshare from PHASE 5 under regional scaling.
 
 ## Inputs
 
@@ -21,8 +21,9 @@ Size-based selectivity step after the main 0.2 KS tag mixing-period setup.
 
 - The all-release-group mixing-period override remains removed.
 - `-999 26 3` is applied for size-based selectivity.
-- `bet.reg_scaling` is read by MFCL because `parest_flags(77)>0`; flags 77-81 are set in `doitall.sh`.
-- Index fisheries 29-33 are assigned separate selectivity groups 25-29 in regional-scaling steps; 03-05 retain the old single index selectivity group.
+- `bet.reg_scaling` is read by MFCL starting in PHASE 5 because `parest_flags(77)=50`; flags 77-81 follow the 09/06/2026 regional-scaling MVN note.
+- PHASE 1-4 retain the current CPUE_scaling setup: index fisheries 29-33 share CPUE group 29, share selectivity group 25, and keep Arni's 19/06/2026 sigma settings.
+- PHASE 5 switches to Prior_reg_biomass: index CPUE groups become 29-33, fish flag 94 is set to 0, and index selectivity groups become 25-29.
 
 ## Outstanding Checks
 

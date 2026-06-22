@@ -122,9 +122,9 @@ selectivity_names <- c(
 )
 fishery_map$selectivity_name <- selectivity_names[fishery_map$selectivity_group]
 
-# Regional-scaling model variants unshare index selectivity groups.
-# The five CPUE index fisheries keep independent selectivity groups because
-# bet.reg_scaling provides the cross-region scaling penalty.
+# Regional-scaling Prior_reg_biomass variants unshare index selectivity groups.
+# In doitall this switch starts in PHASE 5; PHASE 1-4 retain the
+# current CPUE_scaling setup with one shared index selectivity group.
 fishery_map$selectivity_group[29:33] <- 25:29
 selectivity_names[25:29] <- paste0("Index R", 1:5)
 fishery_map$selectivity_name <- selectivity_names[fishery_map$selectivity_group]

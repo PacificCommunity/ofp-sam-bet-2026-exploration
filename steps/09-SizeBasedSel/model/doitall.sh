@@ -85,13 +85,6 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -31 99 29
   -32 99 29
   -33 99 29
-# Regional scaling penalty from the 2026 global CPUE regional-scaling input.
-# MFCL reads bet.reg_scaling when parest flag 77 is > 0.
-  1 77 1    # regional scaling penalty weight; initial plan-v2 value, revisit after diagnostics
-  1 78 1    # use mean regional scaling target
-  1 79 292  # use all 292 full-2024 quarterly periods in bet.reg_scaling
-  1 80 0    # end at terminal model period
-  1 81 1    # use multivariate-normal regional scaling penalty
 # Recruitment and initial population settings
   1 149 100        # recruitment deviation penalty
   1 400 6          # final six recruitment deviates set to zero
@@ -170,8 +163,7 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -999 57 3  # uses cubic spline selectivity
   -999 61 5  # with 5 nodes for cubic spline
 # Grouping of fisheries with common selectivity, mapped from BET_PHrev_FNL.xlsx.
-# Regional-scaling steps use 29 selectivity groups: 24 extraction groups + 5 index groups.
-# Index fisheries are not forced to share selectivity; bet.reg_scaling supplies the CPUE regional-scaling penalty.
+# The old 29 groups become 25 groups here: 24 extraction groups + 1 index group.
    -1 24 1   # LL.WEST.1, old1
    -2 24 2   # LL.EAST.1, old2
    -3 24 3   # LL.US.1, old3
@@ -200,11 +192,11 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -26 24 23  # PS.ASS.EAST.3, old15
   -27 24 18  # PS.UNA.WEST.3, old14 + old26
   -28 24 24  # PS.UNA.EAST.3, old16
-  -29 24 25  # Index R1; unshared for regional scaling
-  -30 24 26  # Index R2; unshared for regional scaling
-  -31 24 27  # Index R3; unshared for regional scaling
-  -32 24 28  # Index R4; unshared for regional scaling
-  -33 24 29  # Index R5; unshared for regional scaling
+  -29 24 25  # Index R1
+  -30 24 25  # Index R2
+  -31 24 25  # Index R3
+  -32 24 25  # Index R4
+  -33 24 25  # Index R5
 # Non-decreasing selectivity for the old6-derived longline fishery.
    -5 16 1
 # Selected old-derived longline fisheries set to zero for first two age classes.
@@ -293,6 +285,26 @@ $program_path bet.frq 04.par 05.par -file - <<PHASE5
   -100000 3 1  # distribution
   -100000 4 1  # of
   -100000 5 1  # recruitment
+# Regional-scaling MVN prior from Nick Davies and Kyuhan Kim, 09/06/2026.
+# PHASE 1-4 retain CPUE_scaling; PHASE 5 switches to Prior_reg_biomass.
+# Ungroup index CPUE likelihood and remove grouped-sigma override.
+  -29 99 29  -29 94 0  # Index R1
+  -30 99 30  -30 94 0  # Index R2
+  -31 99 31  -31 94 0  # Index R3
+  -32 99 32  -32 94 0  # Index R4
+  -33 99 33  -33 94 0  # Index R5
+# Ungroup index selectivity for the regional-scaling prior.
+  -29 24 25  # Index R1
+  -30 24 26  # Index R2
+  -31 24 27  # Index R3
+  -32 24 28  # Index R4
+  -33 24 29  # Index R5
+# MFCL reads bet.reg_scaling when parest flag 77 is > 0.
+  1 77 50   # MVN regional-scaling penalty weight; CV about 0.1 in the 09/06/2026 note
+  1 78 1    # use mean regional-scaling target
+  1 79 0    # default: use all model periods
+  1 80 0    # default: end at terminal model period
+  1 81 1    # use multivariate-normal regional-scaling penalty
 PHASE5
 
 # ---------

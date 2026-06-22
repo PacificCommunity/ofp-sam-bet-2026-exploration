@@ -21,8 +21,9 @@ Minimum effort-creep scenario applied to the regional index fisheries.
 
 - 10-OPR `doitall.sh` controls are retained.
 - No extra MFCL flag is used for effort creep; the change is in the index-fishery effort values in `bet.frq`.
-- `bet.reg_scaling` is read by MFCL because `parest_flags(77)>0`; flags 77-81 are set in `doitall.sh`.
-- Index fisheries 29-33 are assigned separate selectivity groups 25-29 in regional-scaling steps; 03-05 retain the old single index selectivity group.
+- `bet.reg_scaling` is read by MFCL starting in PHASE 5 because `parest_flags(77)=50`; flags 77-81 follow the 09/06/2026 regional-scaling MVN note.
+- PHASE 1-4 retain the current CPUE_scaling setup: index fisheries 29-33 share CPUE group 29, share selectivity group 25, and keep Arni's 19/06/2026 sigma settings.
+- PHASE 5 switches to Prior_reg_biomass: index CPUE groups become 29-33, fish flag 94 is set to 0, and index selectivity groups become 25-29.
 
 ## Outstanding Checks
 

@@ -673,65 +673,52 @@ apply_data_weighting <- function(lines) {
   lines
 }
 
-apply_regional_scaling <- function(lines, n_periods = 292L,
-                                   weight = 1L,
-                                   use_mean = TRUE,
-                                   use_mvn = TRUE) {
-  target <- grep("# Recruitment and initial population settings", lines, fixed = TRUE)
-  if (length(target) != 1L) {
-    stop("Expected one recruitment settings marker before inserting regional scaling flags", call. = FALSE)
-  }
-  if (any(grepl("^[[:space:]]*1[[:space:]]+77[[:space:]]+", lines))) {
+apply_regional_scaling_phase5 <- function(lines, weight = 50L,
+                                          use_mean = TRUE,
+                                          use_mvn = TRUE) {
+  if (any(grepl("Nick Davies and Kyuhan Kim, 09/06/2026", lines, fixed = TRUE))) {
     return(lines)
   }
+  if (any(grepl("^[[:space:]]*1[[:space:]]+77[[:space:]]+", lines))) {
+    stop("Regional-scaling flags already exist before the PHASE 5 insert", call. = FALSE)
+  }
+  start <- grep("<<PHASE5", lines, fixed = TRUE)
+  if (length(start) != 1L) {
+    stop("Expected one PHASE5 heredoc start before inserting regional scaling flags", call. = FALSE)
+  }
+  end <- which(seq_along(lines) > start & trimws(lines) == "PHASE5")
+  if (length(end) != 1L) {
+    stop("Expected one PHASE5 heredoc end before inserting regional scaling flags", call. = FALSE)
+  }
   block <- c(
-    "# Regional scaling penalty from the 2026 global CPUE regional-scaling input.",
+    "# Regional-scaling MVN prior from Nick Davies and Kyuhan Kim, 09/06/2026.",
+    "# PHASE 1-4 retain CPUE_scaling; PHASE 5 switches to Prior_reg_biomass.",
+    "# Ungroup index CPUE likelihood and remove grouped-sigma override.",
+    "  -29 99 29  -29 94 0  # Index R1",
+    "  -30 99 30  -30 94 0  # Index R2",
+    "  -31 99 31  -31 94 0  # Index R3",
+    "  -32 99 32  -32 94 0  # Index R4",
+    "  -33 99 33  -33 94 0  # Index R5",
+    "# Ungroup index selectivity for the regional-scaling prior.",
+    "  -29 24 25  # Index R1",
+    "  -30 24 26  # Index R2",
+    "  -31 24 27  # Index R3",
+    "  -32 24 28  # Index R4",
+    "  -33 24 29  # Index R5",
     "# MFCL reads bet.reg_scaling when parest flag 77 is > 0.",
-    "  1 77 1    # regional scaling penalty weight; initial plan-v2 value, revisit after diagnostics",
-    "  1 78 1    # use mean regional scaling target",
-    sprintf("  1 79 %d  # use all %d full-2024 quarterly periods in bet.reg_scaling", n_periods, n_periods),
-    "  1 80 0    # end at terminal model period",
-    "  1 81 1    # use multivariate-normal regional scaling penalty"
+    sprintf("  1 77 %d   # MVN regional-scaling penalty weight; CV about 0.1 in the 09/06/2026 note", as.integer(weight)),
+    sprintf("  1 78 %d    # use mean regional-scaling target", as.integer(isTRUE(use_mean))),
+    "  1 79 0    # default: use all model periods",
+    "  1 80 0    # default: end at terminal model period",
+    sprintf("  1 81 %d    # use multivariate-normal regional-scaling penalty", as.integer(isTRUE(use_mvn)))
   )
-  block[[3L]] <- sub("1 77 1", paste("1 77", as.integer(weight)), block[[3L]], fixed = TRUE)
-  block[[4L]] <- sub("1 78 1", paste("1 78", as.integer(isTRUE(use_mean))), block[[4L]], fixed = TRUE)
-  block[[7L]] <- sub("1 81 1", paste("1 81", as.integer(isTRUE(use_mvn))), block[[7L]], fixed = TRUE)
-  c(lines[seq_len(target - 1L)], block, lines[target:length(lines)])
-}
-
-apply_regional_index_selectivity <- function(lines) {
-  comment <- grep(
-    "# The old 29 groups become 25 groups here: 24 extraction groups \\+ 1 index group\\.",
-    lines
-  )
-  if (length(comment) == 1L) {
-    lines <- c(
-      lines[seq_len(comment - 1L)],
-      "# Regional-scaling steps use 29 selectivity groups: 24 extraction groups + 5 index groups.",
-      "# Index fisheries are not forced to share selectivity; bet.reg_scaling supplies the CPUE regional-scaling penalty.",
-      lines[(comment + 1L):length(lines)]
-    )
-  }
-
-  for (fishery in 29:33) {
-    idx <- grep(
-      sprintf("^[[:space:]]*-%d[[:space:]]+24[[:space:]]+[0-9]+", fishery),
-      lines
-    )
-    if (length(idx) != 1L) {
-      stop("Expected one selectivity-group line for index fishery ", fishery, call. = FALSE)
-    }
-    group <- fishery - 4L
-    region <- fishery - 28L
-    lines[[idx]] <- sprintf("  -%d 24 %d  # Index R%d; unshared for regional scaling", fishery, group, region)
-  }
-  lines
+  c(lines[seq_len(end - 1L)], block, lines[end:length(lines)])
 }
 
 apply_regional_index_selectivity_map <- function(path) {
   eol <- file_eol(path)
   lines <- readLines(path, warn = FALSE)
-  if (any(grepl("Regional-scaling model variants unshare index selectivity", lines, fixed = TRUE))) {
+  if (any(grepl("Regional-scaling Prior_reg_biomass variants unshare index selectivity", lines, fixed = TRUE))) {
     return(invisible(FALSE))
   }
   marker <- grep(
@@ -744,9 +731,9 @@ apply_regional_index_selectivity_map <- function(path) {
   }
   block <- c(
     "",
-    "# Regional-scaling model variants unshare index selectivity groups.",
-    "# The five CPUE index fisheries keep independent selectivity groups because",
-    "# bet.reg_scaling provides the cross-region scaling penalty.",
+    "# Regional-scaling Prior_reg_biomass variants unshare index selectivity groups.",
+    "# In doitall this switch starts in PHASE 5; PHASE 1-4 retain the",
+    "# current CPUE_scaling setup with one shared index selectivity group.",
     "fishery_map$selectivity_group[29:33] <- 25:29",
     "selectivity_names[25:29] <- paste0(\"Index R\", 1:5)",
     "fishery_map$selectivity_name <- selectivity_names[fishery_map$selectivity_group]"
@@ -780,8 +767,7 @@ write_doitall <- function(from, to, mix_from_ini = FALSE,
     lines <- apply_data_weighting(lines)
   }
   if (isTRUE(regional_scaling)) {
-    lines <- apply_regional_scaling(lines, n_periods = regional_scaling_periods)
-    lines <- apply_regional_index_selectivity(lines)
+    lines <- apply_regional_scaling_phase5(lines)
   }
   writeLines(lines, to, useBytes = TRUE)
   Sys.chmod(to, mode = "0755")
@@ -857,8 +843,21 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     }
     control_notes <- c(
       control_notes,
-      "`bet.reg_scaling` is read by MFCL because `parest_flags(77)>0`; flags 77-81 are set in `doitall.sh`.",
-      "Index fisheries 29-33 are assigned separate selectivity groups 25-29 in regional-scaling steps; 03-05 retain the old single index selectivity group."
+      paste(
+        "`bet.reg_scaling` is read by MFCL starting in PHASE 5 because",
+        "`parest_flags(77)=50`; flags 77-81 follow the 09/06/2026",
+        "regional-scaling MVN note."
+      ),
+      paste(
+        "PHASE 1-4 retain the current CPUE_scaling setup: index fisheries",
+        "29-33 share CPUE group 29, share selectivity group 25, and keep",
+        "Arni's 19/06/2026 sigma settings."
+      ),
+      paste(
+        "PHASE 5 switches to Prior_reg_biomass: index CPUE groups become",
+        "29-33, fish flag 94 is set to 0, and index selectivity groups",
+        "become 25-29."
+      )
     )
   }
   copy_one(file.path(root, "steps", "03-RegFish", "model", "mfcl.cfg"), file.path(model_dir, "mfcl.cfg"))
@@ -885,8 +884,8 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     list(role = "age_length", file = "bet.age_length", source = age_source, note = "CAAL input"),
     list(role = "doitall", file = "doitall.sh", source = "steps/03-RegFish/model/doitall.sh", note = paste(c(
       ifelse(mix_from_ini, "mixing override removed", "03-RegFish 5-region controls retained"),
-      if (has_reg_scaling) "regional scaling penalty flags 77-81 applied",
-      if (has_reg_scaling) "index fishery selectivity groups 25-29 unshared",
+      if (has_reg_scaling) "regional scaling Prior_reg_biomass switch applied in PHASE 5 with flags 77-81",
+      if (has_reg_scaling) "index CPUE/selectivity groups unshared from PHASE 5",
       if (isTRUE(doitall_edits$size_based_selectivity)) "fish flag 26 set to 3",
       if (isTRUE(doitall_edits$opr)) "OPR recruitment flags applied",
       if (isTRUE(doitall_edits$data_weighting)) "global LF/WF divisors set to 40"
@@ -1210,7 +1209,7 @@ make_step(
   bullets = c(
     "Uses the same full 2024 `.frq`, `bet.2026.mix-0.2.ini`, 2026 tag file, and updated 2026 CAAL as 08-MixPeriod02.",
     "Sets fish flag 26 from 2 to 3 in `doitall.sh`, following the YFT 2026 length-based selectivity note.",
-    "Keeps the extraction-fishery selectivity mapping and fishery-specific constraints from 03-RegFish, while index fisheries remain unshared under regional scaling."
+    "Keeps the extraction-fishery selectivity mapping and fishery-specific constraints from 03-RegFish, while index fisheries unshare from PHASE 5 under regional scaling."
   ),
   input_notes = c(
     "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, full 2024",
