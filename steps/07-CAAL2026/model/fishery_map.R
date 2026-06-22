@@ -122,6 +122,13 @@ selectivity_names <- c(
 )
 fishery_map$selectivity_name <- selectivity_names[fishery_map$selectivity_group]
 
+# Regional-scaling model variants unshare index selectivity groups.
+# The five CPUE index fisheries keep independent selectivity groups because
+# bet.reg_scaling provides the cross-region scaling penalty.
+fishery_map$selectivity_group[29:33] <- 25:29
+selectivity_names[25:29] <- paste0("Index R", 1:5)
+fishery_map$selectivity_name <- selectivity_names[fishery_map$selectivity_group]
+
 make_fishery_group_map <- function(group_col, name_col) {
   groups <- sort(unique(fishery_map[[group_col]]))
   data.frame(

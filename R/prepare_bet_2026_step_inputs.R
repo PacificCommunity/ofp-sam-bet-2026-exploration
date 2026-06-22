@@ -5,6 +5,7 @@ frq_root <- file.path(input_root, "ofp-sam-2026-BET-YFT-frq-build", "BET")
 ini_root <- file.path(input_root, "ofp-sam-2026-BET-YFT-build-ini", "BET")
 tag_root <- file.path(input_root, "ofp-sam-2026-BET-YFT-tag-prep", "BET")
 age_root <- file.path(input_root, "ofp-sam-2026-BET-YFT-age-length-build", "BET")
+reg_scaling_source <- file.path(frq_root, "bet.2026.reg_scaling")
 
 fixm_age_par_value <- "-2.54917483258212e+00"
 
@@ -672,10 +673,95 @@ apply_data_weighting <- function(lines) {
   lines
 }
 
+apply_regional_scaling <- function(lines, n_periods = 292L,
+                                   weight = 1L,
+                                   use_mean = TRUE,
+                                   use_mvn = TRUE) {
+  target <- grep("# Recruitment and initial population settings", lines, fixed = TRUE)
+  if (length(target) != 1L) {
+    stop("Expected one recruitment settings marker before inserting regional scaling flags", call. = FALSE)
+  }
+  if (any(grepl("^[[:space:]]*1[[:space:]]+77[[:space:]]+", lines))) {
+    return(lines)
+  }
+  block <- c(
+    "# Regional scaling penalty from the 2026 global CPUE regional-scaling input.",
+    "# MFCL reads bet.reg_scaling when parest flag 77 is > 0.",
+    "  1 77 1    # regional scaling penalty weight; initial plan-v2 value, revisit after diagnostics",
+    "  1 78 1    # use mean regional scaling target",
+    sprintf("  1 79 %d  # use all %d full-2024 quarterly periods in bet.reg_scaling", n_periods, n_periods),
+    "  1 80 0    # end at terminal model period",
+    "  1 81 1    # use multivariate-normal regional scaling penalty"
+  )
+  block[[3L]] <- sub("1 77 1", paste("1 77", as.integer(weight)), block[[3L]], fixed = TRUE)
+  block[[4L]] <- sub("1 78 1", paste("1 78", as.integer(isTRUE(use_mean))), block[[4L]], fixed = TRUE)
+  block[[7L]] <- sub("1 81 1", paste("1 81", as.integer(isTRUE(use_mvn))), block[[7L]], fixed = TRUE)
+  c(lines[seq_len(target - 1L)], block, lines[target:length(lines)])
+}
+
+apply_regional_index_selectivity <- function(lines) {
+  comment <- grep(
+    "# The old 29 groups become 25 groups here: 24 extraction groups \\+ 1 index group\\.",
+    lines
+  )
+  if (length(comment) == 1L) {
+    lines <- c(
+      lines[seq_len(comment - 1L)],
+      "# Regional-scaling steps use 29 selectivity groups: 24 extraction groups + 5 index groups.",
+      "# Index fisheries are not forced to share selectivity; bet.reg_scaling supplies the CPUE regional-scaling penalty.",
+      lines[(comment + 1L):length(lines)]
+    )
+  }
+
+  for (fishery in 29:33) {
+    idx <- grep(
+      sprintf("^[[:space:]]*-%d[[:space:]]+24[[:space:]]+[0-9]+", fishery),
+      lines
+    )
+    if (length(idx) != 1L) {
+      stop("Expected one selectivity-group line for index fishery ", fishery, call. = FALSE)
+    }
+    group <- fishery - 4L
+    region <- fishery - 28L
+    lines[[idx]] <- sprintf("  -%d 24 %d  # Index R%d; unshared for regional scaling", fishery, group, region)
+  }
+  lines
+}
+
+apply_regional_index_selectivity_map <- function(path) {
+  eol <- file_eol(path)
+  lines <- readLines(path, warn = FALSE)
+  if (any(grepl("Regional-scaling model variants unshare index selectivity", lines, fixed = TRUE))) {
+    return(invisible(FALSE))
+  }
+  marker <- grep(
+    "fishery_map$selectivity_name <- selectivity_names[fishery_map$selectivity_group]",
+    lines,
+    fixed = TRUE
+  )
+  if (length(marker) != 1L) {
+    stop("Expected one selectivity-name assignment in ", path, call. = FALSE)
+  }
+  block <- c(
+    "",
+    "# Regional-scaling model variants unshare index selectivity groups.",
+    "# The five CPUE index fisheries keep independent selectivity groups because",
+    "# bet.reg_scaling provides the cross-region scaling penalty.",
+    "fishery_map$selectivity_group[29:33] <- 25:29",
+    "selectivity_names[25:29] <- paste0(\"Index R\", 1:5)",
+    "fishery_map$selectivity_name <- selectivity_names[fishery_map$selectivity_group]"
+  )
+  lines <- c(lines[seq_len(marker)], block, lines[(marker + 1L):length(lines)])
+  writeLines(lines, path, sep = eol, useBytes = TRUE)
+  invisible(TRUE)
+}
+
 write_doitall <- function(from, to, mix_from_ini = FALSE,
                           size_based_selectivity = FALSE,
                           opr = FALSE,
-                          data_weighting = FALSE) {
+                          data_weighting = FALSE,
+                          regional_scaling = FALSE,
+                          regional_scaling_periods = 292L) {
   lines <- readLines(from, warn = FALSE)
   if (isTRUE(mix_from_ini)) {
     target <- grep("-9999 1 2", lines, fixed = TRUE)
@@ -693,6 +779,10 @@ write_doitall <- function(from, to, mix_from_ini = FALSE,
   if (isTRUE(data_weighting)) {
     lines <- apply_data_weighting(lines)
   }
+  if (isTRUE(regional_scaling)) {
+    lines <- apply_regional_scaling(lines, n_periods = regional_scaling_periods)
+    lines <- apply_regional_index_selectivity(lines)
+  }
   writeLines(lines, to, useBytes = TRUE)
   Sys.chmod(to, mode = "0755")
 }
@@ -701,6 +791,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
                       frq_chop_year = NA_integer_, mix_from_ini = FALSE,
                       frq_tag_groups = NA_integer_,
                       frq_transform = NULL, doitall_edits = list(),
+                      reg_scaling_source = "",
                       title, summary, bullets, input_notes, control_notes,
                       run_notes = character(),
                       outstanding = character(),
@@ -757,8 +848,25 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     input_notes[["bet.ini"]] <- paste(input_notes[["bet.ini"]], ini_tag_note, sep = "; ")
   }
   copy_one(age_source, file.path(model_dir, "bet.age_length"))
+  has_reg_scaling <- nzchar(reg_scaling_source)
+  if (has_reg_scaling) {
+    copy_one(reg_scaling_source, file.path(model_dir, "bet.reg_scaling"))
+    if (!"bet.reg_scaling" %in% names(input_notes)) {
+      input_notes[["bet.reg_scaling"]] <-
+        "`bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions"
+    }
+    control_notes <- c(
+      control_notes,
+      "`bet.reg_scaling` is read by MFCL because `parest_flags(77)>0`; flags 77-81 are set in `doitall.sh`.",
+      "Index fisheries 29-33 are assigned separate selectivity groups 25-29 in regional-scaling steps; 03-05 retain the old single index selectivity group."
+    )
+  }
   copy_one(file.path(root, "steps", "03-RegFish", "model", "mfcl.cfg"), file.path(model_dir, "mfcl.cfg"))
-  copy_one(file.path(root, "steps", "03-RegFish", "model", "fishery_map.R"), file.path(model_dir, "fishery_map.R"))
+  fishery_map_out <- file.path(model_dir, "fishery_map.R")
+  copy_one(file.path(root, "steps", "03-RegFish", "model", "fishery_map.R"), fishery_map_out)
+  if (has_reg_scaling) {
+    apply_regional_index_selectivity_map(fishery_map_out)
+  }
   write_generated_tag_rep_map(model_dir)
   write_doitall(
     file.path(root, "steps", "03-RegFish", "model", "doitall.sh"),
@@ -766,7 +874,8 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     mix_from_ini = mix_from_ini,
     size_based_selectivity = isTRUE(doitall_edits$size_based_selectivity),
     opr = isTRUE(doitall_edits$opr),
-    data_weighting = isTRUE(doitall_edits$data_weighting)
+    data_weighting = isTRUE(doitall_edits$data_weighting),
+    regional_scaling = has_reg_scaling
   )
 
   entries <- list(
@@ -776,11 +885,21 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     list(role = "age_length", file = "bet.age_length", source = age_source, note = "CAAL input"),
     list(role = "doitall", file = "doitall.sh", source = "steps/03-RegFish/model/doitall.sh", note = paste(c(
       ifelse(mix_from_ini, "mixing override removed", "03-RegFish 5-region controls retained"),
+      if (has_reg_scaling) "regional scaling penalty flags 77-81 applied",
+      if (has_reg_scaling) "index fishery selectivity groups 25-29 unshared",
       if (isTRUE(doitall_edits$size_based_selectivity)) "fish flag 26 set to 3",
       if (isTRUE(doitall_edits$opr)) "OPR recruitment flags applied",
       if (isTRUE(doitall_edits$data_weighting)) "global LF/WF divisors set to 40"
     ), collapse = "; "))
   )
+  if (has_reg_scaling) {
+    entries <- append(entries, list(list(
+      role = "reg_scaling",
+      file = "bet.reg_scaling",
+      source = reg_scaling_source,
+      note = "global CPUE regional-scaling matrix for MFCL parest flags 77-81"
+    )), after = 4L)
+  }
   write_manifest(step_dir, entries)
   outstanding <- c(
     outstanding,
@@ -989,6 +1108,7 @@ make_step(
   ini_source = new_ini,
   tag_source = new_tag,
   age_source = old_age,
+  reg_scaling_source = reg_scaling_source,
   title = "06 Full2024",
   summary = "Full 2024 data step with weights-as-lengths plus lengths, new regional CPUE/index inputs, and 2026 tag reporting priors.",
   bullets = c(
@@ -1019,6 +1139,7 @@ make_step(
   ini_source = new_ini,
   tag_source = new_tag,
   age_source = new_age,
+  reg_scaling_source = reg_scaling_source,
   title = "07 CAAL2026",
   summary = "Full 2024 data step with the updated 2026 CAAL / age_length input.",
   bullets = c(
@@ -1049,6 +1170,7 @@ make_step(
   ini_source = file.path(ini_root, "ini.mix-period", "bet.2026.mix-0.2.ini"),
   tag_source = new_tag,
   age_source = new_age,
+  reg_scaling_source = reg_scaling_source,
   mix_from_ini = TRUE,
   title = "08 MixPeriod02",
   summary = "Release-group-specific tag mixing periods using the 0.2 KS diagnostic cutoff.",
@@ -1080,6 +1202,7 @@ make_step(
   ini_source = file.path(ini_root, "ini.mix-period", "bet.2026.mix-0.2.ini"),
   tag_source = new_tag,
   age_source = new_age,
+  reg_scaling_source = reg_scaling_source,
   mix_from_ini = TRUE,
   doitall_edits = list(size_based_selectivity = TRUE),
   title = "09 SizeBasedSel",
@@ -1087,7 +1210,7 @@ make_step(
   bullets = c(
     "Uses the same full 2024 `.frq`, `bet.2026.mix-0.2.ini`, 2026 tag file, and updated 2026 CAAL as 08-MixPeriod02.",
     "Sets fish flag 26 from 2 to 3 in `doitall.sh`, following the YFT 2026 length-based selectivity note.",
-    "Keeps the 5-region selectivity grouping and fishery-specific constraints from 03-RegFish."
+    "Keeps the extraction-fishery selectivity mapping and fishery-specific constraints from 03-RegFish, while index fisheries remain unshared under regional scaling."
   ),
   input_notes = c(
     "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, full 2024",
@@ -1111,6 +1234,7 @@ make_step(
   ini_source = file.path(ini_root, "ini.mix-period", "bet.2026.mix-0.2.ini"),
   tag_source = new_tag,
   age_source = new_age,
+  reg_scaling_source = reg_scaling_source,
   mix_from_ini = TRUE,
   doitall_edits = list(size_based_selectivity = TRUE, opr = TRUE),
   title = "10 OPR",
@@ -1145,6 +1269,7 @@ make_step(
   ini_source = file.path(ini_root, "ini.mix-period", "bet.2026.mix-0.2.ini"),
   tag_source = new_tag,
   age_source = new_age,
+  reg_scaling_source = reg_scaling_source,
   frq_transform = "effort_creep",
   mix_from_ini = TRUE,
   doitall_edits = list(size_based_selectivity = TRUE, opr = TRUE),
@@ -1177,6 +1302,7 @@ make_step(
   ini_source = file.path(ini_root, "ini.mix-period", "bet.2026.mix-0.2.ini"),
   tag_source = new_tag,
   age_source = new_age,
+  reg_scaling_source = reg_scaling_source,
   frq_transform = "effort_creep",
   mix_from_ini = TRUE,
   doitall_edits = list(size_based_selectivity = TRUE, opr = TRUE, data_weighting = TRUE),

@@ -14,12 +14,15 @@ Initial manual strategic data-weighting step with stronger global size-compositi
 - `bet.ini`: `bet.2026.mix-0.2.ini`, FixM M row applied; raised 36 zero tag mixing periods to 1 because MFCL >=2.2.7.5 disallows 0
 - `bet.tag`: `bet.2026.low.recaps.removed.tag`
 - `bet.age_length`: `bet.2026.age_length` (updated CAAL)
+- `bet.reg_scaling`: `bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions
 - `input_manifest.csv`: machine-readable source/input notes
 
 ## Control Notes
 
 - `-999 49 40` and `-999 50 40` replace the global LF/WF divisor-20 settings.
 - Fishery-specific divisor-40 settings inherited from 03-RegFish are retained.
+- `bet.reg_scaling` is read by MFCL because `parest_flags(77)>0`; flags 77-81 are set in `doitall.sh`.
+- Index fisheries 29-33 are assigned separate selectivity groups 25-29 in regional-scaling steps; 03-05 retain the old single index selectivity group.
 
 ## Outstanding Checks
 

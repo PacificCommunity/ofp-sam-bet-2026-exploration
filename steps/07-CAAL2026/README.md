@@ -15,12 +15,15 @@ Full 2024 data step with the updated 2026 CAAL / age_length input.
 - `bet.ini`: `bet.2026.ini`, FixM M row applied; inserted MFCL 1007 tag flags for 91 release groups with 2 mixing periods and reporting rates excluded during mixing
 - `bet.tag`: `bet.2026.low.recaps.removed.tag`
 - `bet.age_length`: `bet.2026.age_length` (updated CAAL)
+- `bet.reg_scaling`: `bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions
 - `input_manifest.csv`: machine-readable source/input notes
 
 ## Control Notes
 
 - 03-RegFish 5-region `doitall.sh` controls retained.
 - The all-release-group mixing period remains fixed at 2 for this pre-mix step.
+- `bet.reg_scaling` is read by MFCL because `parest_flags(77)>0`; flags 77-81 are set in `doitall.sh`.
+- Index fisheries 29-33 are assigned separate selectivity groups 25-29 in regional-scaling steps; 03-05 retain the old single index selectivity group.
 
 ## Outstanding Checks
 
