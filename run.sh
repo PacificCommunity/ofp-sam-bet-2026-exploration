@@ -149,9 +149,5 @@ echo "BET stepwise task"
 echo "Model folders: steps/<step-id>/model"
 echo "MFCL program: ${PROGRAM_PATH}"
 
-if [[ -d "${ROOT}/metadata" ]]; then
-  cp -a "${ROOT}/metadata" "${WORK_DIR}/inputs/"
-fi
-
 prepare_runtime_packages
 Rscript R/run_stepwise.R

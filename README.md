@@ -22,7 +22,6 @@ comma-separated set, or all enabled rows.
   evaluation counts.
 - `steps/<step_id>/model/`: MFCL input files for one model.
 - `steps/<step_id>/patch.R`: optional scripted edit before MFCL runs.
-- `metadata/`: optional labels used by downstream plots and reports.
 
 Run `make list` after editing `job-config.R`; it refreshes the generated README
 tables and checks model folders.
