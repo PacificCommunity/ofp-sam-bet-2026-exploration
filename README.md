@@ -137,8 +137,14 @@ Saved artifacts are intentionally compact:
 outputs/model-index.csv
 outputs/selected-steps.csv
 outputs/models/<step_id>/model_payload.rds
+outputs/models/<step_id>/model_payload_manifest.json
 outputs/models/<step_id>/<final-par-file>
 ```
 
 Bulky raw inputs and intermediate files such as `.frq`, `.tag`, and
 `temporary_tag_report` are not kept in the Kflow artifact.
+
+Kflow also exposes an `MFCL Shiny` local app on stepwise jobs. Open it from a
+completed model job to inspect the selected model payload directly, without
+waiting for the downstream results/report tasks. The app runs in local Docker
+on your computer and reads the compact payload from the submitter over SSH.

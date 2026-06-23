@@ -404,6 +404,8 @@ for (i in seq_len(nrow(step_table))) {
   keep <- unique(c(
     final_output_par,
     "model_payload.rds",
+    "model_payload_manifest.json",
+    "model_payload_manifest.csv",
     "fishery_map.R",
     "tag_rep_map.R"
   ))

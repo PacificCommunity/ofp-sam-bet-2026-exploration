@@ -68,7 +68,8 @@ env:
   # token from Kflow. Leave these true for cluster jobs.
   KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES: "true"
   KFLOW_RUNTIME_UPDATE: auto
-  KFLOW_RUNTIME_PACKAGES: mfclshiny=PacificCommunity/mfclshiny@9bd29ff
+  KFLOW_RUNTIME_PACKAGES: mfclshiny=PacificCommunity/mfclshiny@8369bd6
+  MFCLSHINY_GITHUB_REF: 8369bd6
   KFLOW_RUNTIME_GITHUB_AUTH: "true"
   KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME: "true"
   KFLOW_REPORT_COMMIT_GENERATED: "true"
@@ -79,6 +80,92 @@ env:
 # and small index CSVs under outputs/.
 output_patterns:
   - outputs/**
+
+local_apps:
+  - key: mfclshiny
+    label: MFCL Shiny
+    icon: chart-no-axes-combined
+    runner: local-docker-ssh
+    memory: 8g
+    archive_sources:
+      - outputs
+    container_port: 3838
+    env:
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      VECLIB_MAXIMUM_THREADS: "1"
+      NUMEXPR_NUM_THREADS: "1"
+      R_REMOTES_NO_ERRORS_FROM_WARNINGS: "true"
+      MFCLSHINY_GITHUB_REF: 8369bd6
+      MFCLSHINY_REPORT_DPI: "96"
+      MFCLSHINY_OPTIMIZE_FIGURES: "true"
+    command: |
+      Rscript - <<'RS'
+      Sys.setenv(
+        OMP_NUM_THREADS = "1",
+        OPENBLAS_NUM_THREADS = "1",
+        MKL_NUM_THREADS = "1",
+        VECLIB_MAXIMUM_THREADS = "1",
+        NUMEXPR_NUM_THREADS = "1",
+        MFCLSHINY_MODEL_DIR = Sys.getenv("KFLOW_LOCAL_APP_INPUT_DIR", "/kflow/inputs"),
+        MFCLSHINY_EXPORT_DIR = "/kflow/work/export",
+        R_REMOTES_NO_ERRORS_FROM_WARNINGS = "true"
+      )
+      options(
+        bitmapType = "cairo",
+        Ncpus = max(1L, parallel::detectCores() - 2L)
+      )
+
+      lib <- Sys.getenv("KFLOW_LOCAL_APP_R_LIBS", "/kflow/package-cache/R-library")
+      dir.create(lib, recursive = TRUE, showWarnings = FALSE)
+      .libPaths(unique(c(lib, .libPaths())))
+
+      mfclshiny_ref <- Sys.getenv("MFCLSHINY_GITHUB_REF", "8369bd6")
+      desc_field <- function(desc, name) {
+        value <- tryCatch(desc[[name]], error = function(e) "")
+        if (is.null(value) || !length(value) || is.na(value[[1L]])) "" else as.character(value[[1L]])
+      }
+      installed_desc <- tryCatch(utils::packageDescription("mfclshiny", lib.loc = lib), error = function(e) NULL)
+      installed_sha <- desc_field(installed_desc, "RemoteSha")
+      installed_ref <- desc_field(installed_desc, "RemoteRef")
+      ref_is_sha <- grepl("^[0-9a-f]{7,40}$", mfclshiny_ref, ignore.case = TRUE)
+      ref_matches <- if (isTRUE(ref_is_sha)) {
+        nzchar(installed_sha) && startsWith(tolower(installed_sha), tolower(mfclshiny_ref))
+      } else {
+        identical(installed_ref, mfclshiny_ref)
+      }
+      if (is.null(installed_desc) || !isTRUE(ref_matches)) {
+        options(repos = c(CRAN = "https://cloud.r-project.org"))
+        if (!requireNamespace("remotes", quietly = TRUE)) {
+          utils::install.packages("remotes", lib = lib, quiet = TRUE)
+        }
+        if (!is.null(installed_desc)) {
+          try(utils::remove.packages("mfclshiny", lib = lib), silent = TRUE)
+        }
+        remotes::install_github(
+          "PacificCommunity/mfclshiny",
+          ref = mfclshiny_ref,
+          lib = lib,
+          upgrade = "never",
+          quiet = TRUE
+        )
+      }
+
+      dir.create("/kflow/work/export", recursive = TRUE, showWarnings = FALSE)
+      payload_root <- Sys.getenv("KFLOW_LOCAL_APP_INPUT_DIR", "/kflow/inputs")
+      if (!length(list.files(payload_root, pattern = "^model_payload[.]rds$", recursive = TRUE, full.names = TRUE))) {
+        payload_root <- Sys.getenv("KFLOW_LOCAL_APP_OUTPUT_DIR", "/kflow/outputs")
+      }
+      mfclshiny::run_mfclshiny(
+        model_dir = payload_root,
+        export_dir = "/kflow/work/export",
+        report_ready_export = FALSE,
+        host = "0.0.0.0",
+        port = as.integer(Sys.getenv("PORT", "3838")),
+        launch.browser = FALSE
+      )
+      RS
 
 # Automatic dependency chain:
 #   stepwise succeeds -> run ofp-sam-bet-2026-results with this job as input
@@ -109,7 +196,8 @@ triggers:
         KFLOW_REPORT_PUBLISH_REQUIRED: "{{ job.config.KFLOW_REPORT_PUBLISH_REQUIRED }}"
         KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES: "true"
         KFLOW_RUNTIME_UPDATE: auto
-        KFLOW_RUNTIME_PACKAGES: mfclshiny=PacificCommunity/mfclshiny@9bd29ff
+        KFLOW_RUNTIME_PACKAGES: mfclshiny=PacificCommunity/mfclshiny@8369bd6
+        MFCLSHINY_GITHUB_REF: 8369bd6
         MFCLSHINY_REPORT_DPI: "180"
         MFCLSHINY_OPTIMIZE_FIGURES: "false"
         PLOT_OPTIMIZE_FIGURES: "true"
@@ -160,6 +248,7 @@ job_config:
     - KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES
     - KFLOW_RUNTIME_UPDATE
     - KFLOW_RUNTIME_PACKAGES
+    - MFCLSHINY_GITHUB_REF
     - KFLOW_RUNTIME_GITHUB_AUTH
     - KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME
     - MFCLSHINY_REPORT_DPI
