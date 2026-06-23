@@ -105,6 +105,8 @@ def build_payload(
     metadata = dict(config.get("metadata") or {})
     if config.get("job_config") is not None:
         metadata["job_config"] = config["job_config"]
+    if config.get("local_apps") is not None:
+        metadata["local_apps"] = config["local_apps"]
 
     branch = first_present(args.branch, config.get("branch"), run_git(repo_root, "branch", "--show-current"), "main")
     full_name = first_present(args.repo_full_name, config.get("repo_full_name"), repo_full_name(repo_root))
