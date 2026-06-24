@@ -251,6 +251,18 @@ build_payload <- function(model_dir, step_id) {
     if (is.null(tryCatch(payload$data$RepOut, error = function(e) NULL))) {
       stop("model_payload.rds for ", step_id, " does not contain data$RepOut.", call. = FALSE)
     }
+    likelihood_components <- tryCatch(payload$data$LikelihoodComponents, error = function(e) NULL)
+    if (is.null(likelihood_components)) {
+      likelihood_components <- tryCatch(payload$LikelihoodComponents, error = function(e) NULL)
+    }
+    if (is.null(likelihood_components) || !NROW(likelihood_components)) {
+      warning(
+        "model_payload.rds for ", step_id,
+        " does not contain likelihood components; objective component tables ",
+        "will show only values available from the final par file.",
+        call. = FALSE
+      )
+    }
     method
   }
 
