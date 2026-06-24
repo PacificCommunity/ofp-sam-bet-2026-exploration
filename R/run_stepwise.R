@@ -419,7 +419,9 @@ for (i in seq_len(nrow(step_table))) {
     "model_payload_manifest.json",
     "model_payload_manifest.csv",
     "fishery_map.R",
-    "tag_rep_map.R"
+    "tag_rep_map.R",
+    "doitall.sh",
+    "bet.reg_scaling"
   ))
   for (file in keep) {
     src <- file.path(model_dir, file)
