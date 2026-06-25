@@ -139,10 +139,19 @@ outputs/selected-steps.csv
 outputs/models/<step_id>/model_payload.rds
 outputs/models/<step_id>/model_payload_manifest.json
 outputs/models/<step_id>/<final-par-file>
+outputs/region-map/bet-2026-five-region-vertices.csv
+outputs/region-map/bet-2026-five-region.geojson
+outputs/region-map/bet-2026-five-region-map.png
 ```
 
 Bulky raw inputs and intermediate files such as `.frq`, `.tag`, and
 `temporary_tag_report` are not kept in the Kflow artifact.
+
+For 5-region model rows, the runner also writes lightweight map assets inside
+the model output folder as `bet.region_map-vertices.csv`,
+`bet.region_map.geojson`, and `bet.region_map-map.png`. The coordinates apply
+the 2026 BET label convention where old Region 4 is labelled Region 5 and old
+Region 5 is labelled Region 4.
 
 Kflow also exposes an `MFCL Shiny` local app on stepwise jobs. Open it from a
 completed model job to inspect the selected model payload directly, without

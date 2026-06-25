@@ -325,12 +325,21 @@ if (length(step_select) && !any(tolower(step_select) %in% c("all", "*"))) {
   step_table <- step_table[step_table$step_id %in% step_select, , drop = FALSE]
 }
 if (!nrow(step_table)) stop("No step folders selected.", call. = FALSE)
+
+region_map_helper <- file.path(root, "R", "write_bet_region_map_assets.R")
+if (file.exists(region_map_helper)) {
+  source(region_map_helper, local = TRUE)
+}
+
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 write.csv(
   step_table,
   file.path(out_dir, "selected-steps.csv"),
   row.names = FALSE
 )
+if (exists("write_bet_region_map_assets", mode = "function")) {
+  write_bet_region_map_assets(file.path(out_dir, "region-map"), stem = "bet-2026-five-region")
+}
 
 model_rows <- list()
 for (i in seq_len(nrow(step_table))) {
@@ -427,6 +436,16 @@ for (i in seq_len(nrow(step_table))) {
     src <- file.path(model_dir, file)
     if (file.exists(src)) file.copy(src, file.path(step_out, basename(file)), overwrite = TRUE)
   }
+  region_count <- if (exists("detect_frq_region_count", mode = "function")) {
+    detect_frq_region_count(file.path(model_dir, frq))
+  } else {
+    NA_integer_
+  }
+  region_map_assets <- FALSE
+  if (identical(region_count, 5L) && exists("write_bet_region_map_assets", mode = "function")) {
+    write_bet_region_map_assets(step_out, stem = "bet.region_map")
+    region_map_assets <- TRUE
+  }
   summary <- data.frame(
     step_id = step_id,
     model_label = label,
@@ -440,6 +459,8 @@ for (i in seq_len(nrow(step_table))) {
     max_gradient = footer[["max_gradient"]],
     payload = file.exists(file.path(step_out, "model_payload.rds")),
     raw_mfcl_inputs_saved = FALSE,
+    region_count = region_count,
+    region_map_assets = region_map_assets,
     payload_status = payload_status,
     stringsAsFactors = FALSE
   )

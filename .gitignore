@@ -1,6 +1,7 @@
 /outputs/
 /inputs/
 /work/
+/data/
 /.R-library/
 /.kflow-runtime-cache/
 .Rhistory
