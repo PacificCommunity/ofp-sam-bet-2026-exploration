@@ -288,7 +288,7 @@ triggers:
     - key: results-from-stepwise
       report: ofp-sam-bet-2026-results
       input_jobs:
-        - "{{ job.id }}"
+        - "{{ job.job_number }}"
       env:
         FLOW_GROUP: "{{ job.config.FLOW_GROUP }}"
         JOB_TITLE: BET results
