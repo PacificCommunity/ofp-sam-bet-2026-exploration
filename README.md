@@ -1,6 +1,8 @@
 # BET 2026 Stepwise
 
-[![Kflow ready task](kflow-ready.svg)](kflow.yaml)
+<p align="right">
+  <a href="kflow.yaml"><img src="kflow-ready.svg" alt="Kflow ready task"></a>
+</p>
 
 This repository stores the BET 2026 MFCL stepwise model inputs. Each numbered
 folder under `steps/` is one model in the stepwise path, with its model folder
