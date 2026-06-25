@@ -1664,7 +1664,7 @@ make_step(
   ),
   run_notes = c(
     "The first implementation chopped the 2026 `.frq` directly, which also carried the 2026 CPUE/index records. The corrected transition keeps the 2023 new-structure CPUE/index records for fisheries 29-33.",
-    "Kflow failed when this 2021-chopped `.frq` was paired with the 2026 91-release `.ini/.tag`; MFCL stopped at tag release group 18 because its mixing period reached the terminal model period.",
+    "Kflow failed when this 2021-chopped `.frq` was paired with the full 2026 tag/ini family; MFCL stopped at tag release group 18 because its mixing period reached the terminal model period.",
     paste0(
       "To make the step runnable as a 2021-terminal transition, `bet.ini` and `bet.tag` now come from 03-RegFish's ",
       frq_counts_03$n_tag_groups,
@@ -1719,7 +1719,7 @@ make_step(
   ),
   run_notes = c(
     "The first implementation chopped the 2026 `.frq` directly, which also carried the 2026 CPUE/index records. The corrected transition keeps the 2023 new-structure CPUE/index records for fisheries 29-33.",
-    "Kflow failed when this 2021-chopped `.frq` was paired with the 2026 91-release `.ini/.tag`; MFCL stopped at tag release group 18 because its mixing period reached the terminal model period.",
+    "Kflow failed when this 2021-chopped `.frq` was paired with the full 2026 tag/ini family; MFCL stopped at tag release group 18 because its mixing period reached the terminal model period.",
     paste0(
       "To make the step runnable as a 2021-terminal transition, `bet.ini` and `bet.tag` now come from 03-RegFish's ",
       frq_counts_03$n_tag_groups,

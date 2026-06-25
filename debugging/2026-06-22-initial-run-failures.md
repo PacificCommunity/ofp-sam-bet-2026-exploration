@@ -19,7 +19,7 @@ files were present, but several files did not describe the same model structure.
 | 1007 `.ini` files had no `# tag flags` block | Inserted explicit tag flag rows for 03-07 | One `# tag flags` row per tag release group |
 | Mix-period `.ini` files had zero mixing periods | Changed zero mixing periods to 1 for 08-12 | First value in affected rows: `0 -> 1` |
 | Some old `.frq` records had `-1` plus leftover LF bins | Normalized 84 absent-LF records | After `-1`, MFCL no longer reads stray LF bins as data |
-| 04/05 used 2021-chopped `.frq` with 2026 91-release `.ini/.tag` | Reverted 04/05 to 03-RegFish 90-release `.ini/.tag` and reset `.frq` tag count | 04/05 tag groups: `91 -> 90` |
+| 04/05 used 2021-chopped `.frq` with the full 2026 `.ini/.tag` family | Re-paired 04/05 to the 03-RegFish 96-release `.ini/.tag` family and reset the chopped `.frq` tag count | 04/05 tag groups now match 03-RegFish: `96` |
 
 ## Core Rule
 

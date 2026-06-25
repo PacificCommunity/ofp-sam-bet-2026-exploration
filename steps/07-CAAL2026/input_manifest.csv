@@ -4,4 +4,4 @@
 "tag","bet.tag","input-repos/ofp-sam-2026-BET-YFT-tag-prep/BET/bet.2026.low.recaps.removed.tag","f6a9e4a","tag reporting map regenerated from ini/tag; five MFCL reporting-rate matrices parsed"
 "age_length","bet.age_length","input-repos/ofp-sam-2026-BET-YFT-age-length-build/BET/bet.2026.age_length","a26b694","CAAL input"
 "reg_scaling","bet.reg_scaling","input-repos/ofp-sam-2026-BET-YFT-frq-build/BET/bet.2026.reg_scaling","7d636e8","global CPUE regional-scaling matrix for MFCL parest flags 77-81"
-"doitall","doitall.sh","steps/03-RegFish/model/doitall.sh","80e3297","03-RegFish 5-region controls retained; regional scaling Prior_reg_biomass switch applied in PHASE 5 with flags 77-81 and prior start period 3; index CPUE/selectivity groups unshared from PHASE 5; doitall exits immediately on MFCL command failure"
+"doitall","doitall.sh","steps/03-RegFish/model/doitall.sh","eaefb1d","03-RegFish 5-region controls retained; regional scaling Prior_reg_biomass switch applied in PHASE 5 with flags 77-81 and prior start period 3; index CPUE/selectivity groups unshared from PHASE 5; doitall exits immediately on MFCL command failure"
