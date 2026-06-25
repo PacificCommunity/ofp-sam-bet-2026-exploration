@@ -152,9 +152,7 @@ outputs/saved-pars.csv
 outputs/models/<step_id>/model_payload.rds
 outputs/models/<step_id>/model_payload_manifest.json
 outputs/models/<step_id>/final.par
-outputs/models/<step_id>/region-map/<region-map>.geojson
-outputs/region-map/bet-2023-nine-region.geojson
-outputs/region-map/bet-2026-five-region.geojson
+outputs/models/<step_id>/bet.region_map.geojson
 ```
 
 Final `.par` files are archived in the Kflow output as
@@ -165,11 +163,10 @@ job with `KFLOW_INPUT_JOBS`.
 Bulky raw inputs and intermediate files such as `.frq`, `.tag`, and
 `temporary_tag_report` are not kept in the Kflow artifact.
 
-Map assets are stored once per spatial structure at the output root, and copied
-into each model output so MFCL Shiny can find the right map whether it is opened
-from a single stepwise job or from downstream results. Source assets live under
-`assets/maps/`, and the runner copies only the structures needed by the selected
-run:
+Map assets are stored beside each model payload as `bet.region_map.geojson` so
+MFCL Shiny can find the map whether it opens the whole output root or an
+individual model folder. Source assets live under `assets/maps/`, and the runner
+copies only the structure needed by the selected model:
 
 - `bet-2023-nine-region.geojson` for the legacy 01/02 diagnostic/FixM models.
 - `bet-2026-five-region.geojson` for the 03+ 5-region models. This file uses

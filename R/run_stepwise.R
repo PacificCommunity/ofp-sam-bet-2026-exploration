@@ -434,44 +434,20 @@ write.csv(
   row.names = FALSE
 )
 
-copy_shared_region_map_asset <- function(region_map_dir, source_name, fallback_writer = NULL) {
+copy_region_map_asset <- function(output_dir, source_name, target_name = source_name, fallback_writer = NULL) {
   shared_geojson <- file.path(root, "assets", "maps", source_name)
-  target_geojson <- file.path(region_map_dir, source_name)
+  target_geojson <- file.path(output_dir, target_name)
+  dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
   if (file.exists(shared_geojson)) {
     ok <- file.copy(shared_geojson, target_geojson, overwrite = TRUE, copy.date = TRUE)
     if (!ok) stop("Failed to copy shared region map asset: ", source_name, call. = FALSE)
     return(invisible(TRUE))
   }
   if (is.function(fallback_writer)) {
-    fallback_writer(region_map_dir, stem = tools::file_path_sans_ext(source_name))
+    fallback_writer(output_dir, stem = tools::file_path_sans_ext(target_name))
     return(invisible(TRUE))
   }
   invisible(FALSE)
-}
-
-copy_shared_region_map_assets <- function(region_counts) {
-  region_counts <- suppressWarnings(as.integer(region_counts))
-  needed_counts <- intersect(sort(unique(region_counts[is.finite(region_counts)])), c(5L, 9L))
-  if (!length(needed_counts)) {
-    return(invisible(FALSE))
-  }
-  region_map_dir <- file.path(out_dir, "region-map")
-  dir.create(region_map_dir, recursive = TRUE, showWarnings = FALSE)
-  if (5L %in% needed_counts) {
-    copy_shared_region_map_asset(
-      region_map_dir,
-      "bet-2026-five-region.geojson",
-      if (exists("write_bet_region_map_assets", mode = "function")) write_bet_region_map_assets else NULL
-    )
-  }
-  if (9L %in% needed_counts) {
-    copy_shared_region_map_asset(
-      region_map_dir,
-      "bet-2023-nine-region.geojson",
-      if (exists("write_bet_nine_region_map_assets", mode = "function")) write_bet_nine_region_map_assets else NULL
-    )
-  }
-  invisible(TRUE)
 }
 
 region_map_asset_name_for_count <- function(region_count) {
@@ -498,10 +474,13 @@ copy_model_region_map_assets <- function(step_out, region_count) {
   if (!nzchar(asset_name)) {
     return("")
   }
-  region_map_dir <- file.path(step_out, "region-map")
-  dir.create(region_map_dir, recursive = TRUE, showWarnings = FALSE)
-  ok <- copy_shared_region_map_asset(region_map_dir, asset_name, region_map_writer_for_count(region_count))
-  target <- file.path(region_map_dir, asset_name)
+  ok <- copy_region_map_asset(
+    step_out,
+    asset_name,
+    target_name = "bet.region_map.geojson",
+    fallback_writer = region_map_writer_for_count(region_count)
+  )
+  target <- file.path(step_out, "bet.region_map.geojson")
   if (isTRUE(ok) && file.exists(target)) {
     return(target)
   }
@@ -562,7 +541,7 @@ for (i in seq_len(nrow(step_table))) {
     input_par <- staged$input_par
     par_source_par <- staged$source_par
     run_mode <- "single_par"
-    if (!nzchar(output_par)) output_par <- "rerun.par"
+    if (!nzchar(output_par)) output_par <- "final.par"
     message(
       "  previous job par: ",
       relative_display_path(par_source_par, root),
@@ -651,7 +630,6 @@ for (i in seq_len(nrow(step_table))) {
   step_out <- file.path(out_dir, "models", step_id)
   dir.create(step_out, recursive = TRUE, showWarnings = FALSE)
   keep <- unique(c(
-    final_output_par,
     "model_payload.rds",
     "model_payload_manifest.json",
     "model_payload_manifest.csv",
@@ -703,7 +681,6 @@ for (i in seq_len(nrow(step_table))) {
 }
 
 model_index <- bind_rows_fill(model_rows)
-copy_shared_region_map_assets(model_index$region_count)
 write.csv(model_index, file.path(out_dir, "model-index.csv"), row.names = FALSE)
 saved_par_index <- bind_rows_fill(saved_par_rows)
 if (!nrow(saved_par_index)) {
