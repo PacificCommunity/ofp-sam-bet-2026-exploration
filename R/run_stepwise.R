@@ -1,3 +1,8 @@
+## Run selected BET stepwise model folders locally or under Kflow.
+##
+## The runner stages one model folder at a time, runs either `doitall.sh` or a
+## single par advance, then writes compact artifacts under `outputs/`.
+
 `%||%` <- function(x, y) if (is.null(x) || length(x) == 0 || !nzchar(as.character(x[[1]]))) y else x
 
 env <- function(name, default = "") {
@@ -19,6 +24,7 @@ apply_env_overrides <- function(cfg, keys) {
 }
 
 read_config <- function(path) {
+  # Minimal KEY=value reader for optional per-step config.env overrides.
   out <- list()
   if (!file.exists(path)) return(out)
   lines <- readLines(path, warn = FALSE)
@@ -54,6 +60,7 @@ is_absolute_path <- function(path) {
 }
 
 copy_model_source <- function(from, to, step_dir = "") {
+  # Copy model files without carrying step-level docs/control files.
   if (!dir.exists(from)) stop("Input directory not found: ", from, call. = FALSE)
   if (dir.exists(to)) unlink(to, recursive = TRUE, force = TRUE)
   dir.create(to, recursive = TRUE, showWarnings = FALSE)
@@ -273,6 +280,7 @@ job_ref_tokens <- function(job_ref = "") {
 }
 
 find_previous_job_par <- function(step_id, job_ref = "", root, work_dir) {
+  # RUN_MODE=job_par: prefer the attached/input job's final.par when possible.
   roots <- par_source_roots(root, work_dir)
   if (!length(roots)) return("")
   candidates <- unlist(lapply(roots, function(path) {
@@ -319,6 +327,7 @@ stage_previous_job_par <- function(model_dir, step_id, job_ref, root, work_dir) 
 }
 
 build_payload <- function(model_dir, step_id) {
+  # Try current payload builders first; fail clearly if no payload is produced.
   attempts <- character()
   payload_file <- file.path(model_dir, "model_payload.rds")
 

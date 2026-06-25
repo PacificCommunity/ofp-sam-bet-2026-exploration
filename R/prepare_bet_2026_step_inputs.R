@@ -1,3 +1,9 @@
+## Rebuild BET 2026 stepwise input folders.
+##
+## This script copies source `.frq`, `.ini`, `.tag`, and age-length files from
+## `input-repos/`, applies the documented stepwise changes, writes manifests
+## and READMEs, and removes generated `.par` run products from model folders.
+
 root <- normalizePath(getwd(), winslash = "/", mustWork = TRUE)
 input_repo_names <- c(
   "ofp-sam-2026-BET-YFT-frq-build",
@@ -93,6 +99,8 @@ if (file.exists(region_map_helper)) {
   source(region_map_helper, local = TRUE)
 }
 
+## Shared file, provenance, and regional-scaling helpers ---------------------
+
 write_shared_region_map_assets <- function() {
   if (!exists("write_bet_region_map_assets", mode = "function")) return(invisible(FALSE))
   write_bet_region_map_assets(
@@ -137,6 +145,7 @@ copy_if_exists <- function(from, to) {
 }
 
 remove_model_par_files <- function(model_dir) {
+  # `.par` files are run products; keep model folders input-only in git.
   if (!dir.exists(model_dir)) return(invisible(character()))
   paths <- list.files(
     model_dir,
@@ -195,6 +204,7 @@ regional_scaling_period_window <- function(flags, n_periods) {
 }
 
 regional_scaling_control_notes <- function(doitall_path, n_periods, active_years) {
+  # Parse generated doitall flags back into README notes to avoid drift.
   flags <- parse_doitall_parest_flags(doitall_path, 77:81)
   window <- regional_scaling_period_window(flags, n_periods)
   weight <- format_flag_value(flags[["77"]])
@@ -280,6 +290,8 @@ apply_fixm_m <- function(path) {
   writeLines(lines, path, useBytes = TRUE)
   invisible(TRUE)
 }
+
+## FRQ/INI/tag compatibility and audit helpers -------------------------------
 
 frq_record_start <- function(lines) {
   age_i <- grep("age_nage", lines, fixed = TRUE)
@@ -420,6 +432,7 @@ ini_matrix_row_indices <- function(lines, marker) {
 repair_tag_reporting_matrices <- function(path, tag_path,
                                           reference_ini = "",
                                           reference_tag = "") {
+  # Keep tag-reporting matrices synchronized with the release groups in bet.tag.
   markers <- c(
     "# tag fish rep",
     "# tag fish rep group flags",
@@ -759,6 +772,7 @@ tag_group_count_from_tag <- function(path) {
 
 ensure_ini_1007_compatibility <- function(path, tag_path, total_population_scalar = 25L,
                                           default_mixing_period = 2L) {
+  # Bring inherited 1003-format inputs up to the fields expected by MFCL 1007.
   eol <- file_eol(path)
   lines <- readLines(path, warn = FALSE)
   notes <- character()
@@ -958,6 +972,7 @@ write_frq_with_effort_creep <- function(from, to, index_fisheries = 29:33,
                                         transition_year = 1976L,
                                         early_rate = 0.01,
                                         late_rate = 0.005) {
+  # Apply the documented index-fishery effort multiplier while preserving rows.
   lines <- readLines(from, warn = FALSE)
   for (i in seq_along(lines)) {
     if (!is_frq_record(lines[[i]])) next
@@ -1037,6 +1052,7 @@ format_unique_values <- function(x) {
 }
 
 write_generated_tag_rep_map <- function(model_dir) {
+  # Write an audit table from the actual `.ini` reporting-rate matrices.
   ini <- file.path(model_dir, "bet.ini")
   tag <- file.path(model_dir, "bet.tag")
   flags <- extract_ini_matrix(ini, "# tag fish rep group flags")
@@ -1172,12 +1188,16 @@ write_manifest <- function(step_dir, entries) {
   write.csv(manifest, file.path(step_dir, "input_manifest.csv"), row.names = FALSE)
 }
 
+readme_input_label <- function(file) {
+  sub("^bet[.]", ".", file)
+}
+
 write_readme <- function(step_dir, title, summary, bullets, inputs, controls,
                          outstanding = character(), status,
                          run_notes = character(),
                          source_revisions = NULL) {
   bullet_lines <- paste0("- ", bullets)
-  input_lines <- paste0("- `", names(inputs), "`: ", unname(inputs))
+  input_lines <- paste0("- `", readme_input_label(names(inputs)), "`: ", unname(inputs))
   source_revision_lines <- if (is.data.frame(source_revisions) && nrow(source_revisions)) {
     c(
       "",
@@ -1469,6 +1489,7 @@ write_doitall <- function(from, to, mix_from_ini = FALSE,
                           regional_scaling_periods = 292L,
                           regional_scaling_start_period = reg_scaling_active_start_period,
                           regional_scaling_end_period = reg_scaling_active_end_period) {
+  # Start from the prior doitall and patch only the current step's controls.
   lines <- readLines(from, warn = FALSE)
   if (!any(grepl("^set -eu$", lines))) {
     lines <- append(lines, "set -eu", after = 1L)
@@ -1513,6 +1534,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
                       run_notes = character(),
                       outstanding = character(),
                       status = "Ready for Kflow smoke runs; full MFCL fit not run here.") {
+  # Main constructor for generated 2026 step folders.
   step_dir <- file.path(root, "steps", step_id)
   model_dir <- file.path(step_dir, "model")
   dir.create(model_dir, recursive = TRUE, showWarnings = FALSE)
@@ -1702,6 +1724,8 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     source_revisions = input_repo_revision_table()
   )
 }
+
+## Step definitions ----------------------------------------------------------
 
 for (base_step in c("01-Diag23", "02-FixM", "03-RegFish")) {
   base_doitall <- file.path(root, "steps", base_step, "model", "doitall.sh")

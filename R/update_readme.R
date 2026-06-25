@@ -1,3 +1,8 @@
+## Regenerate the operational run-configuration note.
+##
+## The script replaces only generated sections in docs/run-configuration.md,
+## using `job-config.R` for model rows and `kflow.yaml` for runtime defaults.
+
 config_path <- Sys.getenv("CONFIG_R", "job-config.R")
 readme_path <- Sys.getenv("README_MD", "docs/run-configuration.md")
 
@@ -68,6 +73,7 @@ generated_note <- paste0(
 )
 
 readme_section <- function(lines, heading, body) {
+  # Preserve hand-written text outside the requested generated section.
   start <- which(lines == heading)
   if (length(start) != 1L) {
     stop("Expected exactly one README heading: ", heading, call. = FALSE)

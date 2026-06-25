@@ -11,11 +11,11 @@ Full 2024 data step with the updated 2026 CAAL / age_length input.
 
 ## Inputs
 
-- `bet.frq`: `bet.2026.wt.as.len.plus.len.frq`, full 2024
-- `bet.ini`: `bet.2026.ini`, FixM M row applied; filled 7 missing tag reporting-rate matrix rows before the pooled row for release groups 92-98 by matching tag program/region/year/month rows from bet.2023.new.structure.ini; normalized tag flags marker; padded existing MFCL 1007 tag flags from 91 to 98 release groups with 2 mixing periods and reporting rates excluded during mixing; padded tag shed-rate vector from 91 to 98 release groups with zero shed rates
-- `bet.tag`: `bet.2026.low.recaps.removed.tag`
-- `bet.age_length`: `bet.2026.age_length` (updated CAAL)
-- `bet.reg_scaling`: `bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions
+- `.frq`: `bet.2026.wt.as.len.plus.len.frq`, full 2024
+- `.ini`: `bet.2026.ini`, FixM M row applied; filled 7 missing tag reporting-rate matrix rows before the pooled row for release groups 92-98 by matching tag program/region/year/month rows from bet.2023.new.structure.ini; normalized tag flags marker; padded existing MFCL 1007 tag flags from 91 to 98 release groups with 2 mixing periods and reporting rates excluded during mixing; padded tag shed-rate vector from 91 to 98 release groups with zero shed rates
+- `.tag`: `bet.2026.low.recaps.removed.tag`
+- `.age_length`: `bet.2026.age_length` (updated CAAL)
+- `.reg_scaling`: `bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions
 - `input_manifest.csv`: machine-readable source/input notes
 
 ## Source Revisions

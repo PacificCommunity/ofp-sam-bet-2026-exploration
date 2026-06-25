@@ -10,11 +10,11 @@ Initial manual strategic data-weighting step with stronger global size-compositi
 
 ## Inputs
 
-- `bet.frq`: `bet.2026.wt.as.len.plus.len.frq`, full 2024, with index effort creep applied
-- `bet.ini`: `bet.2026.mix-0.2.ini`, FixM M row applied; raised 41 zero tag mixing periods to 1 because MFCL >=2.2.7.5 disallows 0
-- `bet.tag`: `bet.2026.low.recaps.removed.tag`
-- `bet.age_length`: `bet.2026.age_length` (updated CAAL)
-- `bet.reg_scaling`: `bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions
+- `.frq`: `bet.2026.wt.as.len.plus.len.frq`, full 2024, with index effort creep applied
+- `.ini`: `bet.2026.mix-0.2.ini`, FixM M row applied; raised 41 zero tag mixing periods to 1 because MFCL >=2.2.7.5 disallows 0
+- `.tag`: `bet.2026.low.recaps.removed.tag`
+- `.age_length`: `bet.2026.age_length` (updated CAAL)
+- `.reg_scaling`: `bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions
 - `input_manifest.csv`: machine-readable source/input notes
 
 ## Source Revisions

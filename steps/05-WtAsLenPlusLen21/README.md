@@ -13,10 +13,10 @@ Transition step using 2026 weights-as-lengths plus observed lengths chopped to 2
 
 ## Inputs
 
-- `bet.frq`: hybrid of `bet.2026.wt.as.len.plus.len.frq` chopped to 2021 for non-index size/catch records, plus index fisheries 29-33 copied from `bet.2023.new.structure.frq`; tag-group header reset to 96
-- `bet.ini`: `steps/03-RegFish/model/bet.ini`, FixM M row applied
-- `bet.tag`: `steps/03-RegFish/model/bet.tag`
-- `bet.age_length`: `bet.2023.new-structure.age_length` (old CAAL)
+- `.frq`: hybrid of `bet.2026.wt.as.len.plus.len.frq` chopped to 2021 for non-index size/catch records, plus index fisheries 29-33 copied from `bet.2023.new.structure.frq`; tag-group header reset to 96
+- `.ini`: `steps/03-RegFish/model/bet.ini`, FixM M row applied
+- `.tag`: `steps/03-RegFish/model/bet.tag`
+- `.age_length`: `bet.2023.new-structure.age_length` (old CAAL)
 - `input_manifest.csv`: machine-readable source/input notes
 
 ## Source Revisions

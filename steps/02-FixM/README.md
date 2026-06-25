@@ -11,10 +11,10 @@
 
 ## Inputs
 
-- `bet.frq`: same structural input as 01-Diag23, terminal year 2021
-- `bet.ini`: FixM version of the diagnostic ini; promoted from 1003 to 1007 by adding explicit tag flags, zero tag shed rates, total-population scalar default 25, and Richards default 0
-- `bet.tag`: same tag structure as 01-Diag23
-- `bet.age_length`: same CAAL structure as 01-Diag23
+- `.frq`: same structural input as 01-Diag23, terminal year 2021
+- `.ini`: FixM version of the diagnostic ini; promoted from 1003 to 1007 by adding explicit tag flags, zero tag shed rates, total-population scalar default 25, and Richards default 0
+- `.tag`: same tag structure as 01-Diag23
+- `.age_length`: same CAAL structure as 01-Diag23
 
 ## Control Notes
 

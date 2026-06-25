@@ -17,10 +17,10 @@ First 5-region / 33-fishery BET input step, ending in 2021.
 
 ## Inputs
 
-- `bet.frq`: `bet.2023.new.structure.frq`; 5-region, 33-fishery structure, terminal year 2021, old CPUE/global index approach retained
-- `bet.ini`: `bet.2023.new.structure.ini`; FixM M row applied and explicit default tag flags inserted if needed
-- `bet.tag`: `bet.2023.new.structure-low.recaps.removed.tag`; 96 release-group tag input with low recap groups removed
-- `bet.age_length`: `bet.2023.new-structure.age_length`; old CAAL / age_length re-assigned to new fisheries
+- `.frq`: `bet.2023.new.structure.frq`; 5-region, 33-fishery structure, terminal year 2021, old CPUE/global index approach retained
+- `.ini`: `bet.2023.new.structure.ini`; FixM M row applied and explicit default tag flags inserted if needed
+- `.tag`: `bet.2023.new.structure-low.recaps.removed.tag`; 96 release-group tag input with low recap groups removed
+- `.age_length`: `bet.2023.new-structure.age_length`; old CAAL / age_length re-assigned to new fisheries
 - `input_manifest.csv`: machine-readable source/input notes with source commits
 
 ## Source Revisions

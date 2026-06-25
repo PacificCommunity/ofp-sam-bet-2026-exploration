@@ -11,10 +11,10 @@
 
 ## Inputs
 
-- `bet.frq`: 2023 diagnostic frequency/catch/size input, 9 regions, 41 fisheries, terminal year 2021
-- `bet.ini`: 2023 diagnostic ini before the FixM M-scale row change; promoted from 1003 to 1007 by adding explicit tag flags, zero tag shed rates, total-population scalar default 25, and Richards default 0
-- `bet.tag`: 2023 diagnostic tag input
-- `bet.age_length`: 2023 diagnostic CAAL input
+- `.frq`: 2023 diagnostic frequency/catch/size input, 9 regions, 41 fisheries, terminal year 2021
+- `.ini`: 2023 diagnostic ini before the FixM M-scale row change; promoted from 1003 to 1007 by adding explicit tag flags, zero tag shed rates, total-population scalar default 25, and Richards default 0
+- `.tag`: 2023 diagnostic tag input
+- `.age_length`: 2023 diagnostic CAAL input
 
 ## Control Notes
 

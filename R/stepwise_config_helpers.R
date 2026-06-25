@@ -1,3 +1,7 @@
+## Small dependency-free helpers for Makefile/Kflow labels.
+## They read `job-config.R` and turn STEP_SELECT values into display labels,
+## stable job keys, and per-step config values.
+
 source_stepwise_config <- function(path = "job-config.R") {
   source(path, local = .GlobalEnv)
   invisible(TRUE)
@@ -15,6 +19,7 @@ stepwise_value <- function(name, default = "") {
 }
 
 stepwise_selected_models <- function(step_select = stepwise_value("default_step_select")) {
+  # Accept "all", "*" or comma-separated step IDs.
   selected <- trimws(strsplit(as.character(step_select), ",", fixed = TRUE)[[1]])
   selected <- selected[nzchar(selected)]
   if (!length(selected)) {
@@ -88,6 +93,7 @@ stepwise_model_label <- function(step_select = stepwise_value("default_step_sele
 }
 
 stepwise_job_key <- function(step_select = stepwise_value("default_step_select")) {
+  # Keep job keys URL/log friendly; use titles only for display text.
   rows <- stepwise_selected_models(step_select)
   selected <- trimws(strsplit(as.character(step_select), ",", fixed = TRUE)[[1]])
   if (!nrow(rows)) {

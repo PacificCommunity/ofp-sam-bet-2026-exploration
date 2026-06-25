@@ -1,3 +1,8 @@
+## Lightweight region-map asset writer.
+##
+## The GeoJSONs are display assets for mfclshiny/report export. They are not
+## MFCL inputs and should stay small enough to ship with Kflow artifacts.
+
 bet_region_map_default_vertices <- function() {
   data.frame(
     region = c(rep(1L, 8), rep(2L, 5), rep(3L, 5), rep(4L, 5), rep(5L, 5)),
@@ -85,6 +90,7 @@ bet_region_map_close_polygons <- function(vertices) {
 }
 
 bet_region_map_to_geojson <- function(vertices = bet_region_map_default_vertices()) {
+  # Hand-build this small FeatureCollection so `sf` is optional.
   vertices <- bet_region_map_normalize_vertices(vertices)
   features <- lapply(split(vertices, vertices$region), function(x) {
     closed <- bet_region_map_close_polygons(x)
@@ -181,6 +187,7 @@ bet_region_map_world_data <- function() {
 }
 
 bet_region_map_plot <- function(vertices = bet_region_map_default_vertices()) {
+  # Preview plots are useful for auditing boundaries, but optional.
   if (!requireNamespace("ggplot2", quietly = TRUE)) return(NULL)
   vertices <- bet_region_map_normalize_vertices(vertices)
   closed <- bet_region_map_close_polygons(vertices)
