@@ -972,8 +972,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     write_bet_region_map_assets(model_dir, stem = "bet.region_map")
     input_notes <- c(
       input_notes,
-      "bet.region_map.geojson" = "default BET 2026 5-region shape for mfclshiny/report maps",
-      "bet.region_map-vertices.csv" = "same map as a lightweight coordinate table"
+      "bet.region_map.geojson" = "single-file default BET 2026 5-region shape for mfclshiny/report maps"
     )
   }
   write_doitall(
@@ -1014,9 +1013,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     entries <- c(
       entries,
       list(
-        list(role = "region_map", file = "bet.region_map.geojson", source = "R/write_bet_region_map_assets.R", note = "default BET 2026 5-region polygon shape; used automatically by mfclshiny when present"),
-        list(role = "region_map", file = "bet.region_map-vertices.csv", source = "R/write_bet_region_map_assets.R", note = "portable vertex table for the same 5-region shape"),
-        list(role = "region_map", file = "bet.region_map-map.png", source = "R/write_bet_region_map_assets.R", note = "lightweight preview map")
+        list(role = "region_map", file = "bet.region_map.geojson", source = "R/write_bet_region_map_assets.R", note = "single-file default BET 2026 5-region polygon shape; used automatically by mfclshiny when present")
       )
     )
   }
@@ -1131,8 +1128,7 @@ write_readme(
     "bet.ini" = "5-region ini with FixM M row and explicit default tag flags",
     "bet.tag" = "90 release-group tag input with low recap groups removed",
     "bet.age_length" = "old CAAL / age_length re-assigned to new fisheries",
-    "bet.region_map.geojson" = "default BET 2026 5-region shape for mfclshiny/report maps",
-    "bet.region_map-vertices.csv" = "same map as a lightweight coordinate table"
+    "bet.region_map.geojson" = "single-file default BET 2026 5-region shape for mfclshiny/report maps"
   ),
   c(
     "5-region fishery/tag/selectivity controls are remapped in `doitall.sh`.",

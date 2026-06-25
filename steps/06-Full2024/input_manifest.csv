@@ -5,6 +5,4 @@
 "age_length","bet.age_length","input-repos/ofp-sam-2026-BET-YFT-age-length-build/BET/bet.2023.new-structure.age_length","CAAL input"
 "reg_scaling","bet.reg_scaling","input-repos/ofp-sam-2026-BET-YFT-frq-build/BET/bet.2026.reg_scaling","global CPUE regional-scaling matrix for MFCL parest flags 77-81"
 "doitall","doitall.sh","steps/03-RegFish/model/doitall.sh","03-RegFish 5-region controls retained; regional scaling Prior_reg_biomass switch applied in PHASE 5 with flags 77-81 and prior start period 3; index CPUE/selectivity groups unshared from PHASE 5; doitall exits immediately on MFCL command failure"
-"region_map","bet.region_map.geojson","R/write_bet_region_map_assets.R","default BET 2026 5-region polygon shape; used automatically by mfclshiny when present"
-"region_map","bet.region_map-vertices.csv","R/write_bet_region_map_assets.R","portable vertex table for the same 5-region shape"
-"region_map","bet.region_map-map.png","R/write_bet_region_map_assets.R","lightweight preview map"
+"region_map","bet.region_map.geojson","R/write_bet_region_map_assets.R","single-file default BET 2026 5-region polygon shape; used automatically by mfclshiny when present"

@@ -16,8 +16,7 @@ Transition step using the 2026 weights-as-lengths frequency file, chopped back t
 - `bet.ini`: `steps/03-RegFish/model/bet.ini`, FixM M row applied
 - `bet.tag`: `steps/03-RegFish/model/bet.tag`
 - `bet.age_length`: `bet.2023.new-structure.age_length` (old CAAL)
-- `bet.region_map.geojson`: default BET 2026 5-region shape for mfclshiny/report maps
-- `bet.region_map-vertices.csv`: same map as a lightweight coordinate table
+- `bet.region_map.geojson`: single-file default BET 2026 5-region shape for mfclshiny/report maps
 - `input_manifest.csv`: machine-readable source/input notes
 
 ## Control Notes

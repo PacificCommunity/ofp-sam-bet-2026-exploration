@@ -76,6 +76,24 @@ bet_region_map_to_geojson <- function(vertices = bet_region_map_default_vertices
   )
 }
 
+bet_region_map_to_sf <- function(vertices = bet_region_map_default_vertices()) {
+  if (!requireNamespace("sf", quietly = TRUE)) {
+    stop("The sf package is required to build an sf region map object.", call. = FALSE)
+  }
+  vertices <- bet_region_map_normalize_vertices(vertices)
+  attrs <- unique(vertices[, c("region", "region_label"), drop = FALSE])
+  attrs <- attrs[order(attrs$region), , drop = FALSE]
+  geometries <- lapply(split(vertices, vertices$region, drop = TRUE), function(x) {
+    closed <- bet_region_map_close_polygons(x)
+    sf::st_polygon(list(as.matrix(closed[, c("lon", "lat"), drop = FALSE])))
+  })
+  sf::st_sf(
+    region = attrs$region,
+    region_lab = attrs$region_label,
+    geometry = sf::st_sfc(geometries, crs = 4326)
+  )
+}
+
 bet_region_map_lon_label <- function(x) {
   x <- ifelse(x > 180, x - 360, x)
   ifelse(x < 0, paste0(abs(x), "W"), paste0(x, "E"))
@@ -92,8 +110,11 @@ bet_region_map_vertex_label <- function(lon, lat) {
 bet_region_map_coordinate_labels <- function(vertices) {
   labels <- unique(vertices[, c("lon", "lat"), drop = FALSE])
   labels$label <- bet_region_map_vertex_label(labels$lon, labels$lat)
-  labels$hjust <- ifelse(labels$lon <= 112, -0.08, ifelse(labels$lon >= 208, 1.08, 0.5))
-  labels$vjust <- ifelse(labels$lat >= 45, 1.18, ifelse(labels$lat <= -35, -0.2, ifelse(labels$lat >= 0, -0.35, 1.18)))
+  labels$hjust <- ifelse(
+    labels$lon <= 112, 1.12,
+    ifelse(labels$lon == 120 & labels$lat == 20, -0.12, ifelse(labels$lon >= 208, 1.08, 0.5))
+  )
+  labels$vjust <- ifelse(labels$lat >= 45, 1.18, ifelse(labels$lat <= -35, -0.2, ifelse(labels$lat >= 0, -0.42, 1.18)))
   labels
 }
 
@@ -167,7 +188,7 @@ bet_region_map_plot <- function(vertices = bet_region_map_default_vertices()) {
     ggplot2::geom_label(
       data = coord_labels,
       ggplot2::aes(.data$lon, .data$lat, label = .data$label, hjust = .data$hjust, vjust = .data$vjust),
-      size = 3.05,
+      size = 3.8,
       fontface = "bold",
       linewidth = 0.18,
       label.padding = grid::unit(1.6, "pt"),
@@ -183,7 +204,7 @@ bet_region_map_plot <- function(vertices = bet_region_map_default_vertices()) {
       fontface = "bold",
       colour = "#0e1720"
     ) +
-    ggplot2::coord_quickmap(xlim = c(105, 215), ylim = c(-45, 55), expand = FALSE) +
+    ggplot2::coord_quickmap(xlim = c(100, 215), ylim = c(-45, 55), expand = FALSE) +
     ggplot2::scale_x_continuous(
       breaks = c(110, 120, 140, 160, 180, 200, 210),
       labels = bet_region_map_lon_label
@@ -217,32 +238,18 @@ write_bet_region_map_assets <- function(output_dir,
                                         make_plot = TRUE) {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
   vertices <- bet_region_map_normalize_vertices(vertices)
-  files <- c(
-    csv = file.path(output_dir, paste0(stem, "-vertices.csv")),
-    geojson = file.path(output_dir, paste0(stem, ".geojson")),
-    png = file.path(output_dir, paste0(stem, "-map.png")),
-    manifest = file.path(output_dir, paste0(stem, "-manifest.csv"))
-  )
-  utils::write.csv(vertices, files[["csv"]], row.names = FALSE, na = "")
-  writeLines(as.character(bet_region_map_to_geojson(vertices)), files[["geojson"]])
-  if (isTRUE(make_plot) && requireNamespace("ggplot2", quietly = TRUE)) {
-    plot <- bet_region_map_plot(vertices)
-    if (!is.null(plot)) {
-      ggplot2::ggsave(files[["png"]], plot = plot, width = 10.5, height = 7.3, dpi = 180)
-    }
+  files <- c(geojson = file.path(output_dir, paste0(stem, ".geojson")))
+  if (requireNamespace("sf", quietly = TRUE)) {
+    sf::st_write(
+      bet_region_map_to_sf(vertices),
+      dsn = files[["geojson"]],
+      driver = "GeoJSON",
+      quiet = TRUE,
+      delete_dsn = TRUE
+    )
+  } else {
+    writeLines(as.character(bet_region_map_to_geojson(vertices)), files[["geojson"]])
   }
-  manifest <- data.frame(
-    asset = names(files)[names(files) != "manifest"],
-    file = basename(files[names(files) != "manifest"]),
-    written = file.exists(files[names(files) != "manifest"]),
-    note = c(
-      "Portable region vertex table; app-readable.",
-      "Portable polygon geometry; app-readable.",
-      "Report preview map; skipped only if ggplot2 is unavailable."
-    ),
-    stringsAsFactors = FALSE
-  )
-  utils::write.csv(manifest, files[["manifest"]], row.names = FALSE, na = "")
   invisible(files)
 }
 

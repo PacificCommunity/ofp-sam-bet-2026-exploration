@@ -1,4 +1,0 @@
-"asset","file","written","note"
-"csv","bet.region_map-vertices.csv",TRUE,"Portable region vertex table; app-readable."
-"geojson","bet.region_map.geojson",TRUE,"Portable polygon geometry; app-readable."
-"png","bet.region_map-map.png",TRUE,"Report preview map; skipped only if ggplot2 is unavailable."

@@ -15,8 +15,7 @@ Minimum effort-creep scenario applied to the regional index fisheries.
 - `bet.tag`: `bet.2026.low.recaps.removed.tag`
 - `bet.age_length`: `bet.2026.age_length` (updated CAAL)
 - `bet.reg_scaling`: `bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions
-- `bet.region_map.geojson`: default BET 2026 5-region shape for mfclshiny/report maps
-- `bet.region_map-vertices.csv`: same map as a lightweight coordinate table
+- `bet.region_map.geojson`: single-file default BET 2026 5-region shape for mfclshiny/report maps
 - `input_manifest.csv`: machine-readable source/input notes
 
 ## Control Notes

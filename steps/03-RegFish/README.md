@@ -20,8 +20,7 @@ First 5-region / 33-fishery BET input step, ending in 2021.
 - `bet.ini`: 5-region ini with FixM M row and explicit default tag flags
 - `bet.tag`: 90 release-group tag input with low recap groups removed
 - `bet.age_length`: old CAAL / age_length re-assigned to new fisheries
-- `bet.region_map.geojson`: default BET 2026 5-region shape for mfclshiny/report maps
-- `bet.region_map-vertices.csv`: same map as a lightweight coordinate table
+- `bet.region_map.geojson`: single-file default BET 2026 5-region shape for mfclshiny/report maps
 
 ## Control Notes
 
