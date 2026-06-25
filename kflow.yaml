@@ -39,7 +39,7 @@ env:
   # these from job-config.R. When launching directly from the Kflow UI and
   # changing STEP_SELECT, update these fields too if the job list should show
   # the selected model label before the run starts.
-  JOB_TITLE: "BET stepwise: all 12 models"
+  JOB_TITLE: "All 12 models"
   JOB_DESCRIPTION: "Run the selected BET model folder and save compact plot-ready payloads."
   MODEL_LABEL: "All 12 stepwise models"
   JOB_KEY: all-12

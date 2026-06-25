@@ -53,18 +53,18 @@ stepwise_models <- data.frame(
 
   # Title shown in the Kflow job list.
   job_title = c(
-    "BET stepwise: 2023 diagnostic",
-    "BET stepwise: FixM",
-    "BET stepwise: New regions/fisheries",
-    "BET stepwise: Weights as lengths to 2021",
-    "BET stepwise: Weights as lengths plus lengths to 2021",
-    "BET stepwise: Full 2024 data",
-    "BET stepwise: Updated CAAL",
-    "BET stepwise: Mixing periods 0.2",
-    "BET stepwise: Size-based selectivity",
-    "BET stepwise: OPR",
-    "BET stepwise: Effort creep",
-    "BET stepwise: Data weighting 40"
+    "2023 diagnostic",
+    "FixM",
+    "New regions/fisheries",
+    "Weights as lengths to 2021",
+    "Weights as lengths plus lengths to 2021",
+    "Full 2024 data",
+    "Updated CAAL",
+    "Mixing periods 0.2",
+    "Size-based selectivity",
+    "OPR",
+    "Effort creep",
+    "Data weighting 40"
   ),
 
   # Stable key used by Kflow dependency links and selectors.

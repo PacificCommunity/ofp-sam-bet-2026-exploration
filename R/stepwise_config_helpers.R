@@ -107,7 +107,7 @@ stepwise_job_title <- function(step_select = stepwise_value("default_step_select
   rows <- stepwise_selected_models(step_select)
   selected <- trimws(strsplit(as.character(step_select), ",", fixed = TRUE)[[1]])
   if (any(tolower(selected) %in% c("all", "*")) && nrow(rows) > 1L) {
-    return(paste0("BET stepwise: all ", nrow(rows), " models"))
+    return(paste0("All ", nrow(rows), " models"))
   }
   if (nrow(rows) == 1L) {
     title <- stepwise_first_value(rows, "job_title", "")
@@ -115,5 +115,5 @@ stepwise_job_title <- function(step_select = stepwise_value("default_step_select
       return(title)
     }
   }
-  paste("BET stepwise:", stepwise_model_label(step_select))
+  stepwise_model_label(step_select)
 }

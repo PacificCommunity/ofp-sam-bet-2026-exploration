@@ -89,18 +89,18 @@ are different on a machine.
 
 | `step_id` | `enabled` | `model_label` | `job_title` | `job_key` | `run_mode` | `input_par` | `frq` | `output_par` | `fevals` |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `01-Diag23` | `TRUE` | 2023 diagnostic | BET stepwise: 2023 diagnostic | `01-diag23` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
-| `02-FixM` | `TRUE` | FixM | BET stepwise: FixM | `02-fixm` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
-| `03-RegFish` | `TRUE` | New regions/fisheries | BET stepwise: New regions/fisheries | `03-regfish` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
-| `04-WtAsLen21` | `TRUE` | Weights as lengths, 2021 | BET stepwise: Weights as lengths to 2021 | `04-wtaslen21` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
-| `05-WtAsLenPlusLen21` | `TRUE` | Weights as lengths plus lengths, 2021 | BET stepwise: Weights as lengths plus lengths to 2021 | `05-wtaslenpluslen21` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
-| `06-Full2024` | `TRUE` | Full 2024 data | BET stepwise: Full 2024 data | `06-full2024` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
-| `07-CAAL2026` | `TRUE` | Updated CAAL | BET stepwise: Updated CAAL | `07-caal2026` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
-| `08-MixPeriod02` | `TRUE` | Mixing periods 0.2 | BET stepwise: Mixing periods 0.2 | `08-mixperiod02` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
-| `09-SizeBasedSel` | `TRUE` | Size-based selectivity | BET stepwise: Size-based selectivity | `09-sizebasedsel` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
-| `10-OPR` | `TRUE` | OPR | BET stepwise: OPR | `10-opr` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
-| `11-EffortCreep` | `TRUE` | Effort creep | BET stepwise: Effort creep | `11-effortcreep` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
-| `12-DataWeight40` | `TRUE` | Data weighting 40 | BET stepwise: Data weighting 40 | `12-dataweight40` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
+| `01-Diag23` | `TRUE` | 2023 diagnostic | 2023 diagnostic | `01-diag23` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
+| `02-FixM` | `TRUE` | FixM | FixM | `02-fixm` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
+| `03-RegFish` | `TRUE` | New regions/fisheries | New regions/fisheries | `03-regfish` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
+| `04-WtAsLen21` | `TRUE` | Weights as lengths, 2021 | Weights as lengths to 2021 | `04-wtaslen21` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
+| `05-WtAsLenPlusLen21` | `TRUE` | Weights as lengths plus lengths, 2021 | Weights as lengths plus lengths to 2021 | `05-wtaslenpluslen21` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
+| `06-Full2024` | `TRUE` | Full 2024 data | Full 2024 data | `06-full2024` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
+| `07-CAAL2026` | `TRUE` | Updated CAAL | Updated CAAL | `07-caal2026` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
+| `08-MixPeriod02` | `TRUE` | Mixing periods 0.2 | Mixing periods 0.2 | `08-mixperiod02` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
+| `09-SizeBasedSel` | `TRUE` | Size-based selectivity | Size-based selectivity | `09-sizebasedsel` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
+| `10-OPR` | `TRUE` | OPR | OPR | `10-opr` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
+| `11-EffortCreep` | `TRUE` | Effort creep | Effort creep | `11-effortcreep` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
+| `12-DataWeight40` | `TRUE` | Data weighting 40 | Data weighting 40 | `12-dataweight40` | `doitall` | `blank` | `bet.frq` | `blank` | `1` |
 
 
 ## Folder Checks
