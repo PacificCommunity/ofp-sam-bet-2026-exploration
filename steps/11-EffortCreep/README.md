@@ -6,7 +6,7 @@ Minimum effort-creep scenario applied to the regional index fisheries.
 
 - Uses 10-OPR controls and applies an effort-creep transform to index fisheries 29-33 in `bet.frq`.
 - Retains the `69-01-50-50` OPR setting selected from John Hampton's BET 4R OPR screening.
-- The transform follows the available single-region eff-creep file pattern: effort is multiplied by `1 + 0.01 * (year - 1952)`.
+- The transform follows John Hampton's 19/06/2026 effort-creep note: effort is multiplied by a piecewise linear multiplier, 1%/yr for 1952-1976 and 0.5%/yr for 1977-2024.
 - Only positive index-fishery effort values are changed; extraction fisheries and size compositions are untouched.
 
 ## Inputs
@@ -48,12 +48,11 @@ Minimum effort-creep scenario applied to the regional index fisheries.
 - Zero mixing-period values in the source mix-period ini are raised to 1 because the current MFCL reader disallows 0; this is an ini-control normalization, not a deletion of tag data.
 - Local `mfclo64 bet.frq bet.ini 00.par -makepar` smoke tests now exit 0 and create `00.par` for 08-MixPeriod02 through 12-DataWeight40 in the `tuna-flow:v1.10` image.
 - The effort-creep `.frq` is generated from the full 2024 plus-length source by changing only positive effort values for index fisheries 29-33; extraction fisheries and size-composition records are left as in the source file.
-- Because the available upstream effort-creep reference was not a finalized 5-region BET `.frq`, this step documents the implemented transform and leaves confirmation as an outstanding check.
+- The implemented multiplier is 1.00 in 1952, 1.24 in 1976, and 1.48 in 2024; this applies John Hampton's 19/06/2026 email description rather than extending the 1%/yr rate through the full time series.
 
 ## Outstanding Checks
 
-- Confirm that this 1 percent per year linear creep is the intended BET spatial minimum-effort-creep scenario.
-- Not yet checked against a separately generated 5-region effort-creep `.frq` because the input repo currently exposes only the single-region eff-creep output.
+- After fitting, review the index residuals and implied CPUE scaling against 10-OPR to confirm this agreed effort-creep scenario behaves as expected.
 - Local MFCL `-makepar` smoke can still report nonzero tag recapture timing or fishery-realization warnings; review upstream tag prep before final production runs.
 
 ## Status

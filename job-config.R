@@ -10,10 +10,7 @@ stepwise_run <- list(
   flow_group = "bet-2026-stepwise-v2",
 
   # TRUE runs downstream plot/report after stepwise succeeds.
-  trigger_next = TRUE,
-
-  # Blank uses each model row's fevals value.
-  mfcl_fevals = ""
+  trigger_next = TRUE
 )
 
 # One row is one independent model folder under steps/<step_id>/model/.
@@ -88,6 +85,5 @@ stepwise_models <- data.frame(
   input_par = rep("", 12),
   frq = rep("bet.frq", 12),
   output_par = rep("", 12),
-  fevals = rep(1L, 12),
   stringsAsFactors = FALSE
 )

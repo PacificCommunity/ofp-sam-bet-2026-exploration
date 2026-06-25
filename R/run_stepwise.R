@@ -137,16 +137,9 @@ run_mfcl <- function(program, args, log_file, live_log = TRUE) {
   system2("bash", c("-c", command), wait = TRUE)
 }
 
-run_script <- function(script, program, log_file, live_log = TRUE, fevals = "") {
+run_script <- function(script, program, log_file, live_log = TRUE) {
   if (!file.exists(script)) stop("Run script not found: ", basename(script), call. = FALSE)
   script_env <- c(sprintf("PROGRAM_PATH=%s", shQuote(program)))
-  if (nzchar(as.character(fevals))) {
-    script_env <- c(
-      script_env,
-      sprintf("MFCL_FEVALS=%s", shQuote(as.character(fevals))),
-      sprintf("SMOKE_FEVALS=%s", shQuote(as.character(fevals)))
-    )
-  }
   command <- sprintf("set -o pipefail; %s bash %s", paste(script_env, collapse = " "), shQuote(script))
   if (isTRUE(live_log)) {
     command <- sprintf("%s 2>&1 | tee %s >&2", command, shQuote(log_file))
@@ -167,9 +160,9 @@ bind_rows_fill <- function(rows) {
   do.call(rbind, rows)
 }
 
-smoke_switch_args <- function(fevals = 1L) {
+smoke_switch_args <- function(iterations = 1L) {
   switches <- c(
-    1, 1, as.integer(fevals),
+    1, 1, as.integer(iterations),
     1, 189, 1,
     1, 190, 1,
     1, 188, 1,
@@ -487,6 +480,31 @@ copy_model_region_map_assets <- function(step_out, region_count) {
   ""
 }
 
+copy_root_region_map_assets <- function(output_dir, region_counts) {
+  region_counts <- suppressWarnings(as.integer(region_counts))
+  region_counts <- sort(unique(region_counts[is.finite(region_counts)]))
+  asset_names <- vapply(region_counts, region_map_asset_name_for_count, character(1))
+  asset_names <- asset_names[nzchar(asset_names)]
+  if (!length(asset_names)) {
+    return(character())
+  }
+  region_map_dir <- file.path(output_dir, "region-map")
+  copied <- character()
+  for (i in seq_along(asset_names)) {
+    ok <- copy_region_map_asset(
+      region_map_dir,
+      asset_names[[i]],
+      target_name = asset_names[[i]],
+      fallback_writer = region_map_writer_for_count(region_counts[[i]])
+    )
+    target <- file.path(region_map_dir, asset_names[[i]])
+    if (isTRUE(ok) && file.exists(target)) {
+      copied <- c(copied, target)
+    }
+  }
+  copied
+}
+
 model_rows <- list()
 saved_par_rows <- list()
 for (i in seq_len(nrow(step_table))) {
@@ -495,7 +513,7 @@ for (i in seq_len(nrow(step_table))) {
   if (!dir.exists(step_dir)) stop("Step folder not found: steps/", step_id, call. = FALSE)
   cfg <- read_config(file.path(step_dir, "config.env"))
   cfg <- modifyList(cfg, row_to_config(step_table, i))
-  cfg <- apply_env_overrides(cfg, c("RUN_MODE", "INPUT_PAR", "FRQ", "OUTPUT_PAR", "FEVALS", "PAR_SOURCE_JOB"))
+  cfg <- apply_env_overrides(cfg, c("RUN_MODE", "INPUT_PAR", "FRQ", "OUTPUT_PAR", "PAR_SOURCE_JOB"))
   step_id <- basename(step_dir)
   if (!truthy(cfg$ENABLED %||% "true", default = TRUE)) {
     message("Skipping disabled step ", step_id)
@@ -514,9 +532,6 @@ for (i in seq_len(nrow(step_table))) {
   par_fallback <- FALSE
   par_fallback_reason <- ""
   run_script_name <- cfg$RUN_SCRIPT %||% "doitall.sh"
-  fevals <- suppressWarnings(as.integer(env("MFCL_FEVALS", env("SMOKE_FEVALS", env("FEVALS", cfg$FEVALS %||% cfg$SMOKE_FEVALS %||% "1")))))
-  if (!is.finite(fevals) || fevals < 1L) fevals <- 1L
-
   model_dir <- file.path(work_dir, "models", step_id)
   model_source <- resolve_source_dir(source_dir, input_subdir, step_dir, root, input_root, input_par)
   copy_model_source(model_source, model_dir, step_dir = step_dir)
@@ -578,14 +593,12 @@ for (i in seq_len(nrow(step_table))) {
   status <- tryCatch({
     if (is_doitall_mode(run_mode)) {
       message("  script: ", run_script_name)
-      message("  fevals: ", fevals, " (available to script as MFCL_FEVALS; not applied by the runner)")
-      run_script(file.path(model_dir, run_script_name), program = program, log_file = log_file, live_log = mfcl_live_log, fevals = fevals)
+      run_script(file.path(model_dir, run_script_name), program = program, log_file = log_file, live_log = mfcl_live_log)
     } else {
       if (!nzchar(output_par)) output_par <- next_par_name(input_par)
       message("  input:  ", frq, " + ", input_par)
       message("  output: ", output_par)
-      message("  fevals: ", fevals, " (applied through runner -switch arguments)")
-      args <- c(frq, input_par, output_par, smoke_switch_args(fevals))
+      args <- c(frq, input_par, output_par, smoke_switch_args())
       run_mfcl(program, args, log_file = log_file, live_log = mfcl_live_log)
     }
   }, finally = setwd(old))
@@ -666,7 +679,6 @@ for (i in seq_len(nrow(step_table))) {
     saved_par = if (nzchar(saved_final_par)) relative_display_path(saved_final_par, root) else "",
     par_fallback = par_fallback,
     par_fallback_reason = par_fallback_reason,
-    fevals = fevals,
     objective = footer[["objective"]],
     max_gradient = footer[["max_gradient"]],
     payload = file.exists(file.path(step_out, "model_payload.rds")),
@@ -682,6 +694,10 @@ for (i in seq_len(nrow(step_table))) {
 
 model_index <- bind_rows_fill(model_rows)
 write.csv(model_index, file.path(out_dir, "model-index.csv"), row.names = FALSE)
+root_region_map_assets <- copy_root_region_map_assets(out_dir, model_index$region_count)
+if (length(root_region_map_assets)) {
+  message("Wrote root region-map assets: ", paste(basename(root_region_map_assets), collapse = ", "))
+}
 saved_par_index <- bind_rows_fill(saved_par_rows)
 if (!nrow(saved_par_index)) {
   saved_par_index <- data.frame(

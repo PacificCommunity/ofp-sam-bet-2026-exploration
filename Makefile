@@ -2,12 +2,12 @@ SHELL := /usr/bin/env bash
 
 CONFIG_R ?= job-config.R
 CONFIG_HELPERS_R ?= R/stepwise_config_helpers.R
-README_SOURCES := $(CONFIG_R) $(CONFIG_HELPERS_R) R/update_readme.R kflow.yaml
+RUN_CONFIG_MD ?= docs/run-configuration.md
+RUN_CONFIG_SOURCES := $(CONFIG_R) $(CONFIG_HELPERS_R) R/update_readme.R kflow.yaml
 cfg = $(shell Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_value("$(1)", "$(2)"))')
 yml = $(shell Rscript -e 'y <- yaml::read_yaml("kflow.yaml"); v <- $(1); if (is.null(v) || length(v) == 0 || is.na(v[[1]])) v <- "$(2)"; if (is.logical(v)) v <- tolower(as.character(v)); cat(as.character(v[[1]]))')
 
 STEP_SELECT ?= $(call cfg,default_step_select,all)
-MFCL_FEVALS ?= $(call cfg,mfcl_fevals,)
 MFCL_LIVE_LOG ?= $(call yml,y$$env$$MFCL_LIVE_LOG,true)
 BET_PHASE10_11_CONVERGENCE ?= $(call yml,y$$env$$BET_PHASE10_11_CONVERGENCE,-3)
 OUTPUT_DIR ?= outputs
@@ -29,7 +29,6 @@ RUN_MODE ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HE
 INPUT_PAR ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_row_value(Sys.getenv("STEP_SELECT"), "input_par"))')
 FRQ ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_row_value(Sys.getenv("STEP_SELECT"), "frq"))')
 OUTPUT_PAR ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_row_value(Sys.getenv("STEP_SELECT"), "output_par"))')
-FEVALS ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_row_value(Sys.getenv("STEP_SELECT"), "fevals"))')
 
 KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES ?= $(call yml,y$$env$$KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES,true)
 KFLOW_RUNTIME_UPDATE ?= $(call yml,y$$env$$KFLOW_RUNTIME_UPDATE,auto)
@@ -54,7 +53,7 @@ help:
 	  'Models live in job-config.R; Kflow/runtime defaults live in kflow.yaml.' \
 	  '' \
 	  'make list' \
-	  '  Refresh README.md, enable the commit hook, then show configured model rows from job-config.R.' \
+	  '  Refresh docs/run-configuration.md, enable the commit hook, then show configured model rows from job-config.R.' \
 	  '' \
 	  'make local STEP_SELECT=all PROGRAM_PATH=/path/to/mfclo64' \
 	  '  Run directly on this machine.' \
@@ -75,12 +74,11 @@ help:
 	  '  Submit only the selected model folder, without launching plot/report afterward.' \
 	  '' \
 	  'BET_PHASE10_11_CONVERGENCE=-3 is the quick default for PHASE 10/11. Set -5 for strict runs.' \
-		  '' \
-		  'Note: MFCL_FEVALS is applied by the runner only for last_par/single; doitall.sh must read it explicitly.' \
-		  'After a successful run, final .par files are archived under outputs/models/<step>/final.par.' \
-		  'Use RUN_MODE=job_par with PAR_SOURCE_JOB and KFLOW_INPUT_JOBS set to the previous same-step job number.' \
-		  '' \
-		  'Common overrides: STEP_SELECT, RUN_MODE, INPUT_PAR, MFCL_FEVALS, MFCL_LIVE_LOG, TRIGGER_NEXT, OUTPUT_DIR.'
+	  '' \
+	  'After a successful run, final .par files are archived under outputs/models/<step>/final.par.' \
+	  'Use RUN_MODE=job_par with PAR_SOURCE_JOB and KFLOW_INPUT_JOBS set to the previous same-step job number.' \
+	  '' \
+	  'Common overrides: STEP_SELECT, RUN_MODE, INPUT_PAR, MFCL_LIVE_LOG, TRIGGER_NEXT, OUTPUT_DIR.'
 
 setup: hooks
 
@@ -92,11 +90,11 @@ hooks:
 	  fi; \
 	fi
 
-README.md: $(README_SOURCES)
-	@CONFIG_R='$(CONFIG_R)' README_MD='README.md' Rscript R/update_readme.R
+$(RUN_CONFIG_MD): $(RUN_CONFIG_SOURCES)
+	@CONFIG_R='$(CONFIG_R)' README_MD='$(RUN_CONFIG_MD)' Rscript R/update_readme.R
 
 readme: hooks
-	@CONFIG_R='$(CONFIG_R)' README_MD='README.md' Rscript R/update_readme.R
+	@CONFIG_R='$(CONFIG_R)' README_MD='$(RUN_CONFIG_MD)' Rscript R/update_readme.R
 
 list: readme
 	@Rscript -e "source('$(CONFIG_R)'); print(stepwise_models, row.names = FALSE)"
@@ -118,8 +116,6 @@ local: readme
 	INPUT_PAR='$(INPUT_PAR)' \
 	FRQ='$(FRQ)' \
 	OUTPUT_PAR='$(OUTPUT_PAR)' \
-	FEVALS='$(FEVALS)' \
-	MFCL_FEVALS='$(MFCL_FEVALS)' \
 	MFCL_LIVE_LOG='$(MFCL_LIVE_LOG)' \
 	BET_PHASE10_11_CONVERGENCE='$(BET_PHASE10_11_CONVERGENCE)' \
 	OUTPUT_DIR='$(OUTPUT_DIR)' \
@@ -162,8 +158,6 @@ docker: readme
 	  -e INPUT_PAR='$(INPUT_PAR)' \
 	  -e FRQ='$(FRQ)' \
 	  -e OUTPUT_PAR='$(OUTPUT_PAR)' \
-	  -e FEVALS='$(FEVALS)' \
-	  -e MFCL_FEVALS='$(MFCL_FEVALS)' \
 	  -e MFCL_LIVE_LOG='$(MFCL_LIVE_LOG)' \
 	  -e BET_PHASE10_11_CONVERGENCE='$(BET_PHASE10_11_CONVERGENCE)' \
 	  -e OUTPUT_DIR='$(OUTPUT_DIR)' \
@@ -188,7 +182,7 @@ docker: readme
 
 kflow: readme
 	@test -n "$${KFLOW_API_TOKEN:-}" || { echo 'Set KFLOW_API_TOKEN before running make kflow.' >&2; exit 2; }
-		@STEP_SELECT='$(STEP_SELECT)' MFCL_FEVALS='$(MFCL_FEVALS)' MFCL_LIVE_LOG='$(MFCL_LIVE_LOG)' BET_PHASE10_11_CONVERGENCE='$(BET_PHASE10_11_CONVERGENCE)' FLOW_GROUP='$(FLOW_GROUP)' JOB_TITLE='$(JOB_TITLE)' MODEL_LABEL='$(MODEL_LABEL)' JOB_KEY='$(JOB_KEY)' RUN_MODE='$(RUN_MODE)' INPUT_PAR='$(INPUT_PAR)' PAR_SOURCE_JOB='$(PAR_SOURCE_JOB)' STEPWISE_PAR_SOURCE_DIR='$(STEPWISE_PAR_SOURCE_DIR)' KFLOW_INPUT_JOBS='$(KFLOW_INPUT_JOBS)' FRQ='$(FRQ)' OUTPUT_PAR='$(OUTPUT_PAR)' FEVALS='$(FEVALS)' TRIGGER_NEXT='$(TRIGGER_NEXT)' STEPWISE_SAVE_FINAL_PAR='$(STEPWISE_SAVE_FINAL_PAR)' STEPWISE_COMMIT_FINAL_PARS='$(STEPWISE_COMMIT_FINAL_PARS)' STEPWISE_PUSH_FINAL_PARS='$(STEPWISE_PUSH_FINAL_PARS)' STEPWISE_PUBLISH_REQUIRED='$(STEPWISE_PUBLISH_REQUIRED)' KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES='$(KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES)' KFLOW_RUNTIME_UPDATE='$(KFLOW_RUNTIME_UPDATE)' KFLOW_RUNTIME_PACKAGES='$(KFLOW_RUNTIME_PACKAGES)' MFCLSHINY_GITHUB_REF='$(MFCLSHINY_GITHUB_REF)' KFLOW_RUNTIME_GITHUB_AUTH='$(KFLOW_RUNTIME_GITHUB_AUTH)' KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME='$(KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME)' python3 -c 'import json, os, re; keys=("STEP_SELECT","MFCL_FEVALS","MFCL_LIVE_LOG","BET_PHASE10_11_CONVERGENCE","FLOW_GROUP","JOB_TITLE","MODEL_LABEL","JOB_KEY","RUN_MODE","INPUT_PAR","PAR_SOURCE_JOB","STEPWISE_PAR_SOURCE_DIR","KFLOW_INPUT_JOBS","FRQ","OUTPUT_PAR","FEVALS","STEPWISE_SAVE_FINAL_PAR","STEPWISE_COMMIT_FINAL_PARS","STEPWISE_PUSH_FINAL_PARS","STEPWISE_PUBLISH_REQUIRED","KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES","KFLOW_RUNTIME_UPDATE","KFLOW_RUNTIME_PACKAGES","MFCLSHINY_GITHUB_REF","KFLOW_RUNTIME_GITHUB_AUTH","KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME"); env={k:os.environ[k] for k in keys if os.environ.get(k,"")}; payload={"env":env,"tags":{"stage":"stepwise","flow":os.environ["FLOW_GROUP"],"step":os.environ["STEP_SELECT"],"model_label":os.environ["MODEL_LABEL"],"job_key":os.environ["JOB_KEY"],"run_mode":os.environ["RUN_MODE"],"trigger_next":os.environ["TRIGGER_NEXT"]}}; raw=os.environ.get("KFLOW_INPUT_JOBS","").strip(); vals=[v.lstrip("#") for v in re.split(r"[\\s,]+", raw) if v.strip()] if raw.lower() not in ("","0","false","no","off","none","skip") else []; payload.update({"input_jobs":vals,"metadata":{"input_jobs_override":True}}) if vals else None; flag=os.environ["TRIGGER_NEXT"].strip().lower(); payload.update({"triggers": {}} if flag in ("0","false","no","off","none","skip") else {}); print(json.dumps(payload))' | curl -sS -H "Authorization: Bearer $${KFLOW_API_TOKEN}" -H 'Content-Type: application/json' -X POST "$(KFLOW_URL)/api/job/$(KFLOW_TASK)" -d @-
+		@STEP_SELECT='$(STEP_SELECT)' MFCL_LIVE_LOG='$(MFCL_LIVE_LOG)' BET_PHASE10_11_CONVERGENCE='$(BET_PHASE10_11_CONVERGENCE)' FLOW_GROUP='$(FLOW_GROUP)' JOB_TITLE='$(JOB_TITLE)' MODEL_LABEL='$(MODEL_LABEL)' JOB_KEY='$(JOB_KEY)' RUN_MODE='$(RUN_MODE)' INPUT_PAR='$(INPUT_PAR)' PAR_SOURCE_JOB='$(PAR_SOURCE_JOB)' STEPWISE_PAR_SOURCE_DIR='$(STEPWISE_PAR_SOURCE_DIR)' KFLOW_INPUT_JOBS='$(KFLOW_INPUT_JOBS)' FRQ='$(FRQ)' OUTPUT_PAR='$(OUTPUT_PAR)' TRIGGER_NEXT='$(TRIGGER_NEXT)' STEPWISE_SAVE_FINAL_PAR='$(STEPWISE_SAVE_FINAL_PAR)' STEPWISE_COMMIT_FINAL_PARS='$(STEPWISE_COMMIT_FINAL_PARS)' STEPWISE_PUSH_FINAL_PARS='$(STEPWISE_PUSH_FINAL_PARS)' STEPWISE_PUBLISH_REQUIRED='$(STEPWISE_PUBLISH_REQUIRED)' KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES='$(KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES)' KFLOW_RUNTIME_UPDATE='$(KFLOW_RUNTIME_UPDATE)' KFLOW_RUNTIME_PACKAGES='$(KFLOW_RUNTIME_PACKAGES)' MFCLSHINY_GITHUB_REF='$(MFCLSHINY_GITHUB_REF)' KFLOW_RUNTIME_GITHUB_AUTH='$(KFLOW_RUNTIME_GITHUB_AUTH)' KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME='$(KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME)' python3 -c 'import json, os, re; keys=("STEP_SELECT","MFCL_LIVE_LOG","BET_PHASE10_11_CONVERGENCE","FLOW_GROUP","JOB_TITLE","MODEL_LABEL","JOB_KEY","RUN_MODE","INPUT_PAR","PAR_SOURCE_JOB","STEPWISE_PAR_SOURCE_DIR","KFLOW_INPUT_JOBS","FRQ","OUTPUT_PAR","STEPWISE_SAVE_FINAL_PAR","STEPWISE_COMMIT_FINAL_PARS","STEPWISE_PUSH_FINAL_PARS","STEPWISE_PUBLISH_REQUIRED","KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES","KFLOW_RUNTIME_UPDATE","KFLOW_RUNTIME_PACKAGES","MFCLSHINY_GITHUB_REF","KFLOW_RUNTIME_GITHUB_AUTH","KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME"); env={k:os.environ[k] for k in keys if os.environ.get(k,"")}; payload={"env":env,"tags":{"stage":"stepwise","flow":os.environ["FLOW_GROUP"],"step":os.environ["STEP_SELECT"],"model_label":os.environ["MODEL_LABEL"],"job_key":os.environ["JOB_KEY"],"run_mode":os.environ["RUN_MODE"],"trigger_next":os.environ["TRIGGER_NEXT"]}}; raw=os.environ.get("KFLOW_INPUT_JOBS","").strip(); vals=[v.lstrip("#") for v in re.split(r"[\\s,]+", raw) if v.strip()] if raw.lower() not in ("","0","false","no","off","none","skip") else []; payload.update({"input_jobs":vals,"metadata":{"input_jobs_override":True}}) if vals else None; flag=os.environ["TRIGGER_NEXT"].strip().lower(); payload.update({"triggers": {}} if flag in ("0","false","no","off","none","skip") else {}); print(json.dumps(payload))' | curl -sS -H "Authorization: Bearer $${KFLOW_API_TOKEN}" -H 'Content-Type: application/json' -X POST "$(KFLOW_URL)/api/job/$(KFLOW_TASK)" -d @-
 	@printf '\n'
 
 kflow-register:

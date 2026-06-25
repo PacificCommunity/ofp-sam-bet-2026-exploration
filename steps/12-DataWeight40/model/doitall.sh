@@ -270,25 +270,31 @@ PHASE2
 # ---------
 
 $program_path bet.frq 02.par 03.par -file - <<PHASE3
-# OPR settings. John Hampton's OPR.pptx BET AIC rank-1 model: 69-01-50-50.
+# OPR settings. John Hampton's BET OPR screening rank-1 model: 69-01-50-50.
   1 149 0   # turn off recruitment-deviation penalty for OPR
-  1 398 0   # terminal recruitment arithmetic mean under OPR setup
+  1 398 0   # turn off arithmetic-mean terminal fixed-recruitment option for OPR
+  1 400 0   # clear fixed terminal recruitment-deviate block for OPR
   2 177 0   # turn off old total-pop scaling for OPR
   2 32 0    # turn off overall population scaling parameter for OPR
+  2 113 0   # keep scaling init pop off during OPR transfer
   1 155 69  # orthogonal polynomial recruitment - year effect
-  1 221 69  # orthogonal polynomial recruitment - second year-effect control
   1 217 1   # orthogonal polynomial recruitment - season effect
   1 216 50  # orthogonal polynomial recruitment - region effect
   1 218 50  # orthogonal polynomial recruitment - region-season interaction effect
-  1 202 2   # constraint on terminal year effect for last year
-  1 210 0   # terminal constraint for region effect
-  1 212 0   # terminal constraint for season effect
-  1 214 0   # terminal constraint for region-season interaction effect
+  1 202 2   # OPR end window: last 2 real years use lower-degree/constant-end basis
+  1 210 0   # OPR region end window: 0 inherits parest_flag(202)
+  1 212 0   # OPR season end window: 0 inherits parest_flag(202)
+  1 214 0   # OPR region-season end window: 0 inherits parest_flag(202)
   2 30 1    # keep age_flag(30) on; John/Nick found OPR coefficients are otherwise not activated
   2 70 0    # turn off mean+deviate regional recruitment time series
   2 71 0    # turn off regional recruitment distribution deviations
   2 178 0   # turn off regional recruitment sum-product constraint
-  1 1 200
+  -100000 1 0  # turn off time-invariant recruitment distribution, region 1
+  -100000 2 0  # turn off time-invariant recruitment distribution, region 2
+  -100000 3 0  # turn off time-invariant recruitment distribution, region 3
+  -100000 4 0  # turn off time-invariant recruitment distribution, region 4
+  -100000 5 0  # turn off time-invariant recruitment distribution, region 5
+  1 1 500  # function evaluations, matching John Hampton's OPR doitall example
 PHASE3
 
 # ---------

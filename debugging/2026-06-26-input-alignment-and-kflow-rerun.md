@@ -98,7 +98,7 @@ John Hampton's June 2026 input checks are applied in the generator:
   fishery, including index fisheries;
 - MFCL 1007 `.ini` files carry explicit tag flags immediately after
   `# number of age classes`;
-- OPR step 10 applies the BIGEYE AIC rank-1 OPR setting from `OPR.pptx`,
+- OPR step 10 applies the BIGEYE AIC rank-1 OPR setting from John Hampton's BET OPR screening,
   `69-01-50-50`, transferring the 4R screening result to the 5-region path.
 
 Nick Davies's MFCL-version note is also applied:

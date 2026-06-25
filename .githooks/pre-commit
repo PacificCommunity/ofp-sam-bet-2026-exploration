@@ -2,7 +2,7 @@
 set -euo pipefail
 
 CONFIG_R="${CONFIG_R:-job-config.R}"
-README_MD="${README_MD:-README.md}"
+README_MD="${README_MD:-docs/run-configuration.md}"
 
 if [[ ! -f "$CONFIG_R" ]]; then
   echo "Skipping README refresh because $CONFIG_R was not found." >&2
@@ -10,7 +10,7 @@ if [[ ! -f "$CONFIG_R" ]]; then
 fi
 
 if ! command -v Rscript >/dev/null 2>&1; then
-  echo "Rscript is required to refresh README.md from $CONFIG_R." >&2
+  echo "Rscript is required to refresh $README_MD from $CONFIG_R." >&2
   exit 1
 fi
 

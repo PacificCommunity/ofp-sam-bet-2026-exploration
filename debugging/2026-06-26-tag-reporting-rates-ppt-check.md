@@ -1,7 +1,7 @@
 # Tag Reporting Rates PPT Check
 
 Date: 2026-06-26  
-Reference: `tag_rep_rates.pptx` slide deck provided during input preparation
+Reference: SAM 12 June 2026 tag reporting-rate presentation
 
 ## PPT Points Used
 
@@ -52,6 +52,12 @@ The correction made here was documentation cleanup. Older notes still described
 03 as having 90 release groups and 91 reporting rows from an earlier input-prep
 state. Current generated 03 has 96 release groups and 97 reporting rows, so the
 notes and validation snippets were updated.
+
+The detailed group/program/event/fishery tables are kept in
+[`../docs/tag-reporting-groups.md`](../docs/tag-reporting-groups.md). The 01/02
+legacy table was checked against the presentation's BET2023 41-group example
+and the current `steps/01-Diag23/model/bet.ini`; the event rows and fishery
+columns matched exactly.
 
 ## Verification Command
 

@@ -1,5 +1,5 @@
 config_path <- Sys.getenv("CONFIG_R", "job-config.R")
-readme_path <- Sys.getenv("README_MD", "README.md")
+readme_path <- Sys.getenv("README_MD", "docs/run-configuration.md")
 
 source("R/stepwise_config_helpers.R")
 source_stepwise_config(config_path)
@@ -31,7 +31,7 @@ code_value <- function(x) {
 format_column <- function(values, column) {
   code_columns <- c(
     "setting", "value", "step_id", "enabled", "job_key", "run_mode",
-    "input_par", "frq", "output_par", "fevals", "expected_source_folder",
+    "input_par", "frq", "output_par", "expected_source_folder",
     "status"
   )
   values <- empty_to_blank(values)
@@ -99,7 +99,6 @@ defaults <- data.frame(
     "default_step_select",
     "flow_group",
     "trigger_next",
-    "mfcl_fevals",
     "docker_image",
     "program_path",
     "stepwise_save_final_par",
@@ -113,7 +112,6 @@ defaults <- data.frame(
     stepwise_value("default_step_select", "01-base-11par"),
     stepwise_value("flow_group", "bet-2026-e2e"),
     stepwise_value("trigger_next", "true"),
-    stepwise_value("mfcl_fevals", ""),
     docker_image,
     program_path,
     tryCatch(kflow$env$STEPWISE_SAVE_FINAL_PAR, error = function(e) "false"),
@@ -127,7 +125,6 @@ defaults <- data.frame(
     "Model selection used when `STEP_SELECT` is not supplied.",
     "Kflow group label used to connect stepwise, results, and report jobs.",
     "Whether command-line Kflow submissions keep the downstream results/report chain.",
-    "Blank uses the row-level `fevals` value; a number overrides selected rows.",
     "Docker image used by Kflow and local Docker runs.",
     "MFCL executable path inside the Docker image.",
     "Optional: copy the final `.par` back into `steps/<step_id>/model/`. Off by default; Kflow outputs always include `outputs/models/<step_id>/final.par`.",
@@ -142,7 +139,7 @@ defaults <- data.frame(
 
 model_columns <- c(
   "step_id", "enabled", "model_label", "job_title", "job_key",
-  "run_mode", "input_par", "frq", "output_par", "fevals"
+  "run_mode", "input_par", "frq", "output_par"
 )
 model_rows <- stepwise_models[, intersect(model_columns, names(stepwise_models)), drop = FALSE]
 

@@ -28,7 +28,9 @@ bet_region_map_default_vertices <- function() {
 }
 
 bet_nine_region_map_default_vertices <- function() {
-  # Display-only approximation of the 2023 BET 9-region diagnostic map.
+  # Display-only 2023 BET 9-region diagnostic map used by 01/02.
+  # Vertices are the exterior boundaries of the rectangles in
+  # regions_BET_2023_9R.csv from the size-comps input repository.
   make_region <- function(region, label, lon, lat) {
     data.frame(
       region = as.integer(region),
@@ -40,15 +42,15 @@ bet_nine_region_map_default_vertices <- function() {
     )
   }
   do.call(rbind, list(
-    make_region(1L, "Region 1", c(120, 120, 170, 170, 120), c(10, 50, 50, 10, 10)),
-    make_region(2L, "Region 2", c(170, 170, 210, 210, 170), c(10, 50, 50, 10, 10)),
-    make_region(3L, "Region 3", c(140, 140, 170, 170, 150, 150, 140), c(0, 10, 10, -10, -10, 0, 0)),
-    make_region(4L, "Region 4", c(170, 170, 210, 210, 170), c(-10, 10, 10, -10, -10)),
-    make_region(5L, "Region 5", c(150, 170, 170, 140, 140, 150, 150), c(-10, -10, -40, -40, -20, -20, -10)),
-    make_region(6L, "Region 6", c(170, 170, 210, 210, 170), c(-40, -10, -10, -40, -40)),
-    make_region(7L, "Region 7", c(110, 110, 140, 140, 110), c(-10, 20, 20, -10, -10)),
-    make_region(8L, "Region 8", c(140, 140, 150, 150, 140), c(-10, 0, 0, -10, -10)),
-    make_region(9L, "Region 9", c(140, 140, 150, 150, 140), c(-20, -10, -10, -20, -20))
+    make_region(1L, "Region 1", c(170, 170, 120, 120, 140, 140), c(10, 50, 50, 20, 20, 10)),
+    make_region(2L, "Region 2", c(210, 170, 170, 210), c(50, 50, 10, 10)),
+    make_region(3L, "Region 3", c(170, 170, 140, 140, 155, 155, 160, 160), c(-10, 10, 10, 0, 0, -5, -5, -10)),
+    make_region(4L, "Region 4", c(210, 170, 170, 210), c(10, 10, -10, -10)),
+    make_region(5L, "Region 5", c(170, 140, 140, 150, 150, 140, 140, 170), c(-10, -10, -15, -15, -20, -20, -40, -40)),
+    make_region(6L, "Region 6", c(210, 170, 170, 210), c(-10, -10, -40, -40)),
+    make_region(7L, "Region 7", c(110, 110, 140, 140), c(20, -10, -10, 20)),
+    make_region(8L, "Region 8", c(160, 155, 155, 140, 140, 160), c(-5, -5, 0, 0, -10, -10)),
+    make_region(9L, "Region 9", c(150, 140, 140, 150), c(-15, -15, -20, -20))
   ))
 }
 

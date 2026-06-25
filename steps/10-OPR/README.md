@@ -1,11 +1,11 @@
 # 10 OPR
 
-Orthogonal polynomial recruitment step using the best BET OPR setting from John Hampton's OPR.pptx exploration.
+Orthogonal polynomial recruitment step using the best BET OPR setting from John Hampton's screening.
 
 ## What Changed
 
 - Uses the same input files as 09-SizeBasedSel.
-- Applies the BIGEYE AIC rank-1 OPR model from `OPR.pptx`: `69-01-50-50`.
+- Applies the BIGEYE AIC rank-1 OPR model from John Hampton's BET OPR screening: `69-01-50-50`.
 - The OPR comparison was run on the BET 4R model, but this step carries the best-ranked setting into the current 5-region stepwise path.
 - OPR controls are applied in PHASE 3 of `doitall.sh`, so early phases still use the pre-OPR recruitment setup before the transfer.
 
@@ -29,12 +29,15 @@ Orthogonal polynomial recruitment step using the best BET OPR setting from John 
 
 - `-999 26 3` is retained from 09-SizeBasedSel.
 - PHASE 1 and PHASE 2 retain the pre-OPR recruitment setup.
-- `1 149 0`, `1 398 0`, `2 177 0`, and `2 32 0` are applied at PHASE 3 for the OPR transfer.
-- `1 155 69` and `1 221 69` set the OPR year effect from the `69-01-50-50` setting.
+- `1 149 0`, `1 398 0`, `1 400 0`, `2 177 0`, `2 32 0`, and `2 113 0` are applied at PHASE 3 for the OPR transfer, matching John Hampton's OPR `doitall` example except for obsolete `parest_flag(221)`.
+- `1 155 69` sets the OPR year effect from the `69-01-50-50` setting.
+- `parest_flag(221)` is deliberately not set. The current MFCL source treats it as an obsolete/commented-out legacy year-effect override; the active source reads the year degree from `parest_flag(155)`.
 - `1 217 1`, `1 216 50`, and `1 218 50` set season, region, and region-season interaction effects.
-- `1 202 2`, `1 210 0`, `1 212 0`, and `1 214 0` apply the terminal constraints shown in John's example `do-OPR` file.
+- `1 202 2` sets the OPR end window to the last 2 real years, where the orthogonal-polynomial basis uses the lower-degree/constant-end form.
+- `1 210 0`, `1 212 0`, and `1 214 0` do not turn that off; in current MFCL, zero means the region, season, and region-season effects inherit `parest_flag(202)`. Use `-1` to turn an end window off.
 - `2 30 1` is deliberately retained at the OPR phase because John Hampton's 25/05/2026 note says `age_flag(30)=1` is currently needed for MFCL to activate the OPR polynomial coefficients.
 - `2 70`, `2 71`, `2 178`, and `-100000 1:5` recruitment-distribution controls are turned off at the OPR phase.
+- PHASE 3 uses 500 function evaluations, matching John Hampton's OPR `doitall` example.
 - `bet.reg_scaling` is read by MFCL starting in PHASE 5 because `parest_flags(77)=50`; flags 77-81 follow Nick's 09/06/2026 regional-scaling suggestion.
 - The active `bet.reg_scaling` window is periods 53-72 (1965-1969) because Thom's global CPUE covariance matrices were estimated from data fitted over 1965 through the end of 1969, the period with the highest spatial-temporal coverage.
 - For the 292-period full-2024 models, `parest_flags(79)=240` means `292 - 240 + 1 = 53` and `parest_flags(80)=220` means `292 - 220 = 72`, so the regional-scaling prior is limited to that covariance-estimation window.
@@ -53,13 +56,14 @@ Orthogonal polynomial recruitment step using the best BET OPR setting from John 
 - Generation still validates the same release-group alignment checks as 06/07: tag flags, tag shed rate, and the five tag reporting-rate matrices must match the 98 selected release groups plus the pooled reporting row where appropriate.
 - Zero mixing-period values in the source mix-period ini are raised to 1 because the current MFCL reader disallows 0; this is an ini-control normalization, not a deletion of tag data.
 - Local `mfclo64 bet.frq bet.ini 00.par -makepar` smoke tests now exit 0 and create `00.par` for 08-MixPeriod02 through 12-DataWeight40 in the `tuna-flow:v1.10` image.
-- The step-specific OPR change follows John Hampton's `OPR.pptx` screening: the BET 4R rank-1 AIC setting `69-01-50-50` is carried into this 5-region path. The README records that this is an applied transfer from the 4R screening, not a separate 5-region OPR search.
+- The step-specific OPR change follows John Hampton's BET OPR screening: the BET 4R rank-1 AIC setting `69-01-50-50` is carried into this 5-region path. The README records that this is an applied transfer from the 4R screening, not a separate 5-region OPR search.
+- John's OPR `doitall` example was checked against this step. The current 5-region step keeps the same OPR transfer controls, adds the fifth region to the `-100000` recruitment-distribution shutoff, and omits `parest_flag(221)` because current MFCL marks it obsolete.
 - John's 25/05/2026 email notes that Nick and John expected DEVS-related flags to be off for OPR, but found `age_flag(30)=1` must remain on or MFCL does not activate the OPR recruitment-polynomial coefficients; the step therefore keeps `2 30 1` while turning off `2 70`, `2 71`, `2 178`, and the `-100000 1:5` regional recruitment-distribution flags.
 
 ## Outstanding Checks
 
 - After fitting, confirm the 5-region model behaves consistently with the 4R BET OPR screening result.
-- If diagnostics disagree with the 4R screening, revisit the other BET-ranked options from `OPR.pptx`.
+- If diagnostics disagree with the 4R screening, revisit the other BET-ranked OPR options.
 - Local MFCL `-makepar` smoke can still report nonzero tag recapture timing or fishery-realization warnings; review upstream tag prep before final production runs.
 
 ## Status

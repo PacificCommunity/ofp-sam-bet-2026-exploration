@@ -15,10 +15,12 @@
 - `bet.ini`: 2023 diagnostic ini before the FixM M-scale row change; promoted from 1003 to 1007 by adding explicit tag flags, zero tag shed rates, total-population scalar default 25, and Richards default 0
 - `bet.tag`: 2023 diagnostic tag input
 - `bet.age_length`: 2023 diagnostic CAAL input
+- Region map output asset: `bet-2023-nine-region.geojson`, generated from the `regions_BET_2023_9R.csv` `MufArea` rectangles and copied into Kflow outputs for MFCL Shiny.
 
 ## Control Notes
 
 - Inherited 9-region `doitall.sh` retained.
+- The 9-region map is an output-only GeoJSON asset; it does not change MFCL inputs. Its exterior polygons are generated from the 2023 9R `MufArea` rectangles documented in `docs/region-map-assets.md`.
 - `bet.ini` now carries 118 explicit MFCL 1007 tag-flag rows matching `bet.tag`; the inherited `-9999 1 2` control remains consistent with those rows.
 - Survey index fishery sigma settings are the BET 2023 region-specific values.
 - `doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.
