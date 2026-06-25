@@ -27,10 +27,11 @@ Minimum effort-creep scenario applied to the regional index fisheries.
 
 ## Control Notes
 
-- 10-OPR `doitall.sh` controls are retained.
+- 10-OPR `doitall.sh` controls are retained, including the explicit `2 30 1` OPR safeguard from John/Nick's note.
 - No extra MFCL flag is used for effort creep; the change is in the index-fishery effort values in `bet.frq`.
-- `bet.reg_scaling` is read by MFCL starting in PHASE 5 because `parest_flags(77)=50`; `parest_flags(79)` starts the prior at the first period covered by all index fisheries; flags 77-81 follow Nick's 09/06/2026 regional-scaling suggestion.
-- For the 292-period full-2024 models, `parest_flags(79)=290` means `292 - 290 + 1 = 3`, so the regional-scaling prior starts at period 3 instead of the invalid period-1 default.
+- `bet.reg_scaling` is read by MFCL starting in PHASE 5 because `parest_flags(77)=50`; flags 77-81 follow Nick's 09/06/2026 regional-scaling suggestion.
+- The active `bet.reg_scaling` window is periods 53-72 (1965-1969) because Thom's global CPUE covariance matrices were estimated from data fitted over 1965 through the end of 1969, the period with the highest spatial-temporal coverage.
+- For the 292-period full-2024 models, `parest_flags(79)=240` means `292 - 240 + 1 = 53` and `parest_flags(80)=220` means `292 - 220 = 72`, so the regional-scaling prior is limited to that covariance-estimation window.
 - PHASE 1-4 retain the current CPUE_scaling setup: index fisheries 29-33 share CPUE group 29, share selectivity group 25, and keep Arni's 19/06/2026 sigma settings.
 - PHASE 5 switches to Prior_reg_biomass: index CPUE groups become 29-33, fish flag 94 is set to 0, and index selectivity groups become 25-29.
 - Following John Hampton's June 2026 MFCL input checks, generated `.frq` files must include region locations for every fishery, including index fisheries, and MFCL 1007 `.ini` files must carry explicit tag flags immediately after `# number of age classes`.
@@ -58,4 +59,3 @@ Minimum effort-creep scenario applied to the regional index fisheries.
 ## Status
 
 Ready for Kflow smoke runs; full MFCL fit not run here.
-

@@ -284,6 +284,7 @@ $program_path bet.frq 02.par 03.par -file - <<PHASE3
   1 210 0   # terminal constraint for region effect
   1 212 0   # terminal constraint for season effect
   1 214 0   # terminal constraint for region-season interaction effect
+  2 30 1    # keep age_flag(30) on; John/Nick found OPR coefficients are otherwise not activated
   2 70 0    # turn off mean+deviate regional recruitment time series
   2 71 0    # turn off regional recruitment distribution deviations
   2 178 0   # turn off regional recruitment sum-product constraint
@@ -327,8 +328,8 @@ $program_path bet.frq 04.par 05.par -file - <<PHASE5
 # MFCL reads bet.reg_scaling when parest flag 77 is > 0.
   1 77 50   # MVN regional-scaling penalty weight; CV about 0.1 in the 09/06/2026 note
   1 78 1    # use mean regional-scaling target
-  1 79 290  # start regional-scaling prior at period 3; index fishery coverage starts there
-  1 80 0    # default: end at terminal model period
+  1 79 240  # start regional-scaling prior at period 53; 1965-1969 CPUE covariance window
+  1 80 220  # end regional-scaling prior at period 72; 1965-1969 CPUE covariance window
   1 81 1    # use multivariate-normal regional-scaling penalty
 PHASE5
 

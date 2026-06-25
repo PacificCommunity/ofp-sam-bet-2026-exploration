@@ -33,6 +33,9 @@ ini_root <- file.path(input_root, "ofp-sam-2026-BET-YFT-build-ini", "BET")
 tag_root <- file.path(input_root, "ofp-sam-2026-BET-YFT-tag-prep", "BET")
 age_root <- file.path(input_root, "ofp-sam-2026-BET-YFT-age-length-build", "BET")
 reg_scaling_source <- file.path(frq_root, "bet.2026.reg_scaling")
+reg_scaling_active_start_period <- 53L
+reg_scaling_active_end_period <- 72L
+reg_scaling_active_years <- "1965-1969"
 
 fixm_age_par_value <- "-2.54917483258212e+00"
 
@@ -634,6 +637,112 @@ file_eol <- function(path) {
   if (any(bytes[-length(bytes)] == 13L & bytes[-1L] == 10L)) "\r\n" else "\n"
 }
 
+tag_group_count_from_tag <- function(path) {
+  lines <- readLines(path, warn = FALSE)
+  header <- grep("^[[:space:]]*[0-9]+[[:space:]]+[0-9]+[[:space:]]+[0-9]+", lines)
+  if (!length(header)) {
+    stop("Could not find tag release-group header in ", path, call. = FALSE)
+  }
+  count <- suppressWarnings(as.integer(read_words(lines[[header[[1L]]]])[[1L]]))
+  if (!is.finite(count) || count < 1L) {
+    stop("Malformed tag release-group count in ", path, call. = FALSE)
+  }
+  count
+}
+
+ensure_ini_1007_compatibility <- function(path, tag_path, total_population_scalar = 25L,
+                                          default_mixing_period = 2L) {
+  eol <- file_eol(path)
+  lines <- readLines(path, warn = FALSE)
+  notes <- character()
+
+  version_marker <- grep("^# ini version number$", trimws(lines))
+  if (length(version_marker) != 1L) {
+    stop("Expected one # ini version number marker in ", path, call. = FALSE)
+  }
+  version_i <- first_data_line_after(lines, version_marker)
+  if (!identical(trimws(lines[[version_i]]), "1007")) {
+    lines[[version_i]] <- "1007"
+    notes <- c(notes, "set ini version to 1007")
+  }
+
+  n_tag_groups <- tag_group_count_from_tag(tag_path)
+  tag_marker <- which(vapply(lines, is_tag_flags_marker, logical(1)))
+  if (!length(tag_marker)) {
+    age_marker <- grep("^# number of age classes$", trimws(lines))
+    if (length(age_marker) != 1L) {
+      stop("Expected one # number of age classes marker in ", path, call. = FALSE)
+    }
+    age_value_i <- first_data_line_after(lines, age_marker)
+    flag_row <- paste(c(default_mixing_period, 1L, rep(0L, 8L)), collapse = " ")
+    lines <- c(
+      lines[seq_len(age_value_i)],
+      "# tag flags",
+      rep(flag_row, n_tag_groups),
+      lines[(age_value_i + 1L):length(lines)]
+    )
+    notes <- c(notes, paste0(
+      "inserted MFCL 1007 tag flags for ", n_tag_groups,
+      " release groups with ", default_mixing_period,
+      " mixing periods and reporting rates excluded during mixing"
+    ))
+  }
+
+  shed_marker <- grep("^#[[:space:]]*tag[[:space:]]+shed[[:space:]]+rate[[:space:]]*$", trimws(lines))
+  if (!length(shed_marker)) {
+    rep_marker <- grep("^# tag fish rep$", trimws(lines))
+    if (length(rep_marker) != 1L) {
+      stop("Expected one # tag fish rep marker in ", path, call. = FALSE)
+    }
+    lines <- c(
+      lines[seq_len(rep_marker - 1L)],
+      "# tag shed rate",
+      paste(rep("0", n_tag_groups), collapse = " "),
+      lines[rep_marker:length(lines)]
+    )
+    notes <- c(notes, paste0("inserted zero tag shed-rate vector for ", n_tag_groups, " release groups"))
+  }
+
+  total_marker <- grep("^#[[:space:]]*Total population scaling factor [(]LN[(]R0[)][)]$", trimws(lines))
+  if (!length(total_marker)) {
+    mort_marker <- grep("^# natural mortality [(]per year[)]$", trimws(lines))
+    if (length(mort_marker) != 1L) {
+      stop("Expected one # natural mortality (per year) marker in ", path, call. = FALSE)
+    }
+    lines <- c(
+      lines[seq_len(mort_marker - 1L)],
+      "# Total population scaling factor (LN(R0))",
+      as.character(as.integer(total_population_scalar)),
+      lines[mort_marker:length(lines)]
+    )
+    notes <- c(notes, paste0(
+      "inserted MFCL 1007 total-population scalar default ",
+      as.integer(total_population_scalar)
+    ))
+  }
+
+  richards_marker <- grep("^#[[:space:]]*Richards$", trimws(lines))
+  if (!length(richards_marker)) {
+    k_marker <- grep("^# K [(]per year[)]$", trimws(lines))
+    if (length(k_marker) != 1L) {
+      stop("Expected one # K (per year) marker in ", path, call. = FALSE)
+    }
+    k_value_i <- first_data_line_after(lines, k_marker)
+    lines <- c(
+      lines[seq_len(k_value_i)],
+      "# Richards",
+      "0",
+      lines[(k_value_i + 1L):length(lines)]
+    )
+    notes <- c(notes, "inserted MFCL 1007 Richards growth parameter default 0")
+  }
+
+  if (length(notes)) {
+    writeLines(lines, path, sep = eol, useBytes = TRUE)
+  }
+  paste(notes, collapse = "; ")
+}
+
 ensure_frq_fishery_region_locations <- function(path, index_regions = 1:5) {
   eol <- file_eol(path)
   lines <- readLines(path, warn = FALSE)
@@ -1044,6 +1153,7 @@ apply_opr <- function(lines, year_effect = 69L, season_effect = 1L,
     "  1 210 0   # terminal constraint for region effect",
     "  1 212 0   # terminal constraint for season effect",
     "  1 214 0   # terminal constraint for region-season interaction effect",
+    "  2 30 1    # keep age_flag(30) on; John/Nick found OPR coefficients are otherwise not activated",
     "  2 70 0    # turn off mean+deviate regional recruitment time series",
     "  2 71 0    # turn off regional recruitment distribution deviations",
     "  2 178 0   # turn off regional recruitment sum-product constraint"
@@ -1078,8 +1188,10 @@ apply_data_weighting <- function(lines) {
 apply_regional_scaling_phase5 <- function(lines, weight = 50L,
                                           use_mean = TRUE,
                                           use_mvn = TRUE,
-                                          periods_from_end = 290L,
-                                          start_period = 3L) {
+                                          periods_from_end = 240L,
+                                          end_periods_from_end = 220L,
+                                          start_period = 53L,
+                                          end_period = 72L) {
   if (any(grepl("Nick's suggestion, 09/06/2026", lines, fixed = TRUE))) {
     return(lines)
   }
@@ -1113,11 +1225,15 @@ apply_regional_scaling_phase5 <- function(lines, weight = 50L,
     sprintf("  1 77 %d   # MVN regional-scaling penalty weight; CV about 0.1 in the 09/06/2026 note", as.integer(weight)),
     sprintf("  1 78 %d    # use mean regional-scaling target", as.integer(isTRUE(use_mean))),
     sprintf(
-      "  1 79 %d  # start regional-scaling prior at period %d; index fishery coverage starts there",
+      "  1 79 %d  # start regional-scaling prior at period %d; 1965-1969 CPUE covariance window",
       as.integer(periods_from_end),
       as.integer(start_period)
     ),
-    "  1 80 0    # default: end at terminal model period",
+    sprintf(
+      "  1 80 %d  # end regional-scaling prior at period %d; 1965-1969 CPUE covariance window",
+      as.integer(end_periods_from_end),
+      as.integer(end_period)
+    ),
     sprintf("  1 81 %d    # use multivariate-normal regional-scaling penalty", as.integer(isTRUE(use_mvn)))
   )
   c(lines[seq_len(end - 1L)], block, lines[end:length(lines)])
@@ -1206,7 +1322,8 @@ write_doitall <- function(from, to, mix_from_ini = FALSE,
                           data_weighting = FALSE,
                           regional_scaling = FALSE,
                           regional_scaling_periods = 292L,
-                          regional_scaling_start_period = 3L) {
+                          regional_scaling_start_period = reg_scaling_active_start_period,
+                          regional_scaling_end_period = reg_scaling_active_end_period) {
   lines <- readLines(from, warn = FALSE)
   if (!any(grepl("^set -eu$", lines))) {
     lines <- append(lines, "set -eu", after = 1L)
@@ -1232,7 +1349,9 @@ write_doitall <- function(from, to, mix_from_ini = FALSE,
     lines <- apply_regional_scaling_phase5(
       lines,
       periods_from_end = regional_scaling_periods - regional_scaling_start_period + 1L,
-      start_period = regional_scaling_start_period
+      end_periods_from_end = regional_scaling_periods - regional_scaling_end_period,
+      start_period = regional_scaling_start_period,
+      end_period = regional_scaling_end_period
     )
   }
   writeLines(lines, to, useBytes = TRUE)
@@ -1345,14 +1464,18 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
       control_notes,
       paste(
         "`bet.reg_scaling` is read by MFCL starting in PHASE 5 because",
-        "`parest_flags(77)=50`; `parest_flags(79)` starts the prior",
-        "at the first period covered by all index fisheries; flags 77-81 follow Nick's",
+        "`parest_flags(77)=50`; flags 77-81 follow Nick's",
         "09/06/2026 regional-scaling suggestion."
       ),
       paste(
-        "For the 292-period full-2024 models, `parest_flags(79)=290`",
-        "means `292 - 290 + 1 = 3`, so the regional-scaling prior starts",
-        "at period 3 instead of the invalid period-1 default."
+        "The active `bet.reg_scaling` window is periods 53-72",
+        paste0("(", reg_scaling_active_years, ") because Thom's global CPUE"),
+        "covariance matrices were estimated from data fitted over 1965 through the end of 1969, the period with the highest spatial-temporal coverage."
+      ),
+      paste(
+        "For the 292-period full-2024 models, `parest_flags(79)=240`",
+        "means `292 - 240 + 1 = 53` and `parest_flags(80)=220`",
+        "means `292 - 220 = 72`, so the regional-scaling prior is limited to that covariance-estimation window."
       ),
       paste(
         "PHASE 1-4 retain the current CPUE_scaling setup: index fisheries",
@@ -1399,7 +1522,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     list(role = "age_length", file = "bet.age_length", source = age_source, note = "CAAL input"),
     list(role = "doitall", file = "doitall.sh", source = "steps/03-RegFish/model/doitall.sh", note = paste(c(
       ifelse(mix_from_ini, "mixing override removed", "03-RegFish 5-region controls retained"),
-      if (has_reg_scaling) "regional scaling Prior_reg_biomass switch applied in PHASE 5 with flags 77-81 and prior start period 3",
+      if (has_reg_scaling) "regional scaling Prior_reg_biomass switch applied in PHASE 5 with flags 77-81 and active periods 53-72 (1965-1969)",
       if (has_reg_scaling) "index CPUE/selectivity groups unshared from PHASE 5",
       "doitall exits immediately on MFCL command failure",
       if (isTRUE(doitall_edits$size_based_selectivity)) "fish flag 26 set to 3",
@@ -1447,6 +1570,14 @@ for (base_step in c("01-Diag23", "02-FixM", "03-RegFish")) {
   write_doitall(base_doitall, base_doitall)
 }
 
+base_ini_1007_notes <- lapply(c("01-Diag23", "02-FixM"), function(base_step) {
+  ensure_ini_1007_compatibility(
+    file.path(root, "steps", base_step, "model", "bet.ini"),
+    file.path(root, "steps", base_step, "model", "bet.tag")
+  )
+})
+names(base_ini_1007_notes) <- c("01-Diag23", "02-FixM")
+
 write_readme(
   file.path(root, "steps", "01-Diag23"),
   "01 Diag23",
@@ -1454,16 +1585,18 @@ write_readme(
   c(
     "Uses the inherited 9-region, 41-fishery inputs ending in 2021.",
     "Natural mortality setup is the pre-FixM diagnostic baseline.",
+    "`bet.ini` is promoted from MFCL 1003 to 1007 layout for the current MFCL reader, while retaining the diagnostic values.",
     "Run mode is `doitall` so the model can be built from `bet.ini` with the bundled control script."
   ),
   c(
     "bet.frq" = "2023 diagnostic frequency/catch/size input, 9 regions, 41 fisheries, terminal year 2021",
-    "bet.ini" = "2023 diagnostic ini before the FixM M-scale row change",
+    "bet.ini" = "2023 diagnostic ini before the FixM M-scale row change; promoted from 1003 to 1007 by adding explicit tag flags, zero tag shed rates, total-population scalar default 25, and Richards default 0",
     "bet.tag" = "2023 diagnostic tag input",
     "bet.age_length" = "2023 diagnostic CAAL input"
   ),
   c(
     "Inherited 9-region `doitall.sh` retained.",
+    "`bet.ini` now carries 118 explicit MFCL 1007 tag-flag rows matching `bet.tag`; the inherited `-9999 1 2` control remains consistent with those rows.",
     "Survey index fishery sigma settings are the BET 2023 region-specific values.",
     "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.",
     "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders."
@@ -1482,17 +1615,19 @@ write_readme(
   c(
     "Same 9-region, 41-fishery input structure as 01-Diag23.",
     "The M-related age parameter row is set to `-2.54917483258212e+00 -1 ...`.",
+    "`bet.ini` is promoted from MFCL 1003 to 1007 layout for the current MFCL reader, while retaining the FixM diagnostic values.",
     "This is the M source used when preparing later 5-region inputs."
   ),
   c(
     "bet.frq" = "same structural input as 01-Diag23, terminal year 2021",
-    "bet.ini" = "FixM version of the diagnostic ini",
+    "bet.ini" = "FixM version of the diagnostic ini; promoted from 1003 to 1007 by adding explicit tag flags, zero tag shed rates, total-population scalar default 25, and Richards default 0",
     "bet.tag" = "same tag structure as 01-Diag23",
     "bet.age_length" = "same CAAL structure as 01-Diag23"
   ),
   c(
     "Inherited 9-region `doitall.sh` retained.",
     "This step is used as the reference for the M row copied into 03+.",
+    "`bet.ini` now carries 118 explicit MFCL 1007 tag-flag rows matching `bet.tag`; the inherited `-9999 1 2` control remains consistent with those rows.",
     "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.",
     "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders."
   ),
@@ -1898,11 +2033,13 @@ make_step(
     "`1 155 69` and `1 221 69` set the OPR year effect from the `69-01-50-50` setting.",
     "`1 217 1`, `1 216 50`, and `1 218 50` set season, region, and region-season interaction effects.",
     "`1 202 2`, `1 210 0`, `1 212 0`, and `1 214 0` apply the terminal constraints shown in John's example `do-OPR` file.",
+    "`2 30 1` is deliberately retained at the OPR phase because John Hampton's 25/05/2026 note says `age_flag(30)=1` is currently needed for MFCL to activate the OPR polynomial coefficients.",
     "`2 70`, `2 71`, `2 178`, and `-100000 1:5` recruitment-distribution controls are turned off at the OPR phase."
   ),
   run_notes = c(
     mix_period_alignment_run_notes,
-    "The step-specific OPR change follows John Hampton's `OPR.pptx` screening: the BET 4R rank-1 AIC setting `69-01-50-50` is carried into this 5-region path. The README records that this is an applied transfer from the 4R screening, not a separate 5-region OPR search."
+    "The step-specific OPR change follows John Hampton's `OPR.pptx` screening: the BET 4R rank-1 AIC setting `69-01-50-50` is carried into this 5-region path. The README records that this is an applied transfer from the 4R screening, not a separate 5-region OPR search.",
+    "John's 25/05/2026 email notes that Nick and John expected DEVS-related flags to be off for OPR, but found `age_flag(30)=1` must remain on or MFCL does not activate the OPR recruitment-polynomial coefficients; the step therefore keeps `2 30 1` while turning off `2 70`, `2 71`, `2 178`, and the `-100000 1:5` regional recruitment-distribution flags."
   ),
   outstanding = c(
     "After fitting, confirm the 5-region model behaves consistently with the 4R BET OPR screening result.",
@@ -1935,7 +2072,7 @@ make_step(
     "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
   ),
   control_notes = c(
-    "10-OPR `doitall.sh` controls are retained.",
+    "10-OPR `doitall.sh` controls are retained, including the explicit `2 30 1` OPR safeguard from John/Nick's note.",
     "No extra MFCL flag is used for effort creep; the change is in the index-fishery effort values in `bet.frq`."
   ),
   run_notes = c(
@@ -1973,6 +2110,7 @@ make_step(
     "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
   ),
   control_notes = c(
+    "10-OPR `doitall.sh` controls are retained, including the explicit `2 30 1` OPR safeguard from John/Nick's note.",
     "`-999 49 40` and `-999 50 40` replace the global LF/WF divisor-20 settings.",
     "Fishery-specific divisor-40 settings inherited from 03-RegFish are retained."
   ),
