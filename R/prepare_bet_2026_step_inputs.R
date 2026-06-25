@@ -136,6 +136,113 @@ copy_if_exists <- function(from, to) {
   if (file.exists(from)) copy_one(from, to)
 }
 
+remove_model_par_files <- function(model_dir) {
+  if (!dir.exists(model_dir)) return(invisible(character()))
+  paths <- list.files(
+    model_dir,
+    pattern = "([.]par[0-9]*$|^final[.]par$)",
+    full.names = TRUE,
+    recursive = FALSE
+  )
+  if (length(paths)) {
+    unlink(paths, force = TRUE)
+  }
+  invisible(paths)
+}
+
+format_flag_value <- function(value) {
+  value <- suppressWarnings(as.numeric(value))
+  if (!is.finite(value)) return("NA")
+  if (abs(value - round(value)) < .Machine$double.eps^0.5) {
+    return(as.character(as.integer(round(value))))
+  }
+  format(value, trim = TRUE, scientific = FALSE)
+}
+
+parse_doitall_parest_flags <- function(path, flag_ids) {
+  flag_ids <- as.character(flag_ids)
+  flags <- stats::setNames(rep(NA_real_, length(flag_ids)), flag_ids)
+  if (!file.exists(path)) return(flags)
+  lines <- readLines(path, warn = FALSE)
+  lines <- sub("#.*$", "", lines)
+  for (line in lines) {
+    words <- strsplit(trimws(line), "[[:space:]]+")[[1]]
+    if (length(words) < 3L || !identical(words[[1L]], "1")) next
+    flag_id <- words[[2L]]
+    if (!flag_id %in% names(flags)) next
+    value <- suppressWarnings(as.numeric(words[[3L]]))
+    if (is.finite(value)) flags[[flag_id]] <- value
+  }
+  flags
+}
+
+regional_scaling_period_window <- function(flags, n_periods) {
+  flag79 <- flags[["79"]]
+  flag80 <- flags[["80"]]
+  period_start <- if (is.finite(flag79) && flag79 > 0) {
+    as.integer(n_periods - round(flag79) + 1L)
+  } else {
+    1L
+  }
+  period_end <- if (is.finite(flag80) && flag80 > 0) {
+    as.integer(n_periods - round(flag80))
+  } else {
+    as.integer(n_periods)
+  }
+  period_start <- max(1L, min(as.integer(n_periods), period_start))
+  period_end <- max(1L, min(as.integer(n_periods), period_end))
+  list(start = period_start, end = period_end)
+}
+
+regional_scaling_control_notes <- function(doitall_path, n_periods, active_years) {
+  flags <- parse_doitall_parest_flags(doitall_path, 77:81)
+  window <- regional_scaling_period_window(flags, n_periods)
+  weight <- format_flag_value(flags[["77"]])
+  cv_note <- if (identical(weight, "50")) {
+    "; the inline control comment records this as approximately CV 0.1"
+  } else {
+    ""
+  }
+  c(
+    paste(
+      "`bet.reg_scaling` is read by MFCL starting in PHASE 5 because",
+      paste0("`parest_flags(77)=", weight, "`; flags 77-81 configure the"),
+      "regional-scaling MVN prior."
+    ),
+    paste0(
+      "The regional-scaling penalty weight is ", weight,
+      " (`parest_flags(77)=", weight, "`)", cv_note, "."
+    ),
+    paste(
+      "The active `bet.reg_scaling` window is periods",
+      paste0(window$start, "-", window$end),
+      paste0("(", active_years, ") because the global CPUE"),
+      "covariance matrices were estimated from data fitted over 1965 through the end of 1969, the period with the highest spatial-temporal coverage."
+    ),
+    paste(
+      "For the", paste0(n_periods, "-period"), "full-2024 models,",
+      paste0("`parest_flags(79)=", format_flag_value(flags[["79"]]), "`"),
+      "means",
+      paste0("`", n_periods, " - ", format_flag_value(flags[["79"]]), " + 1 = ", window$start, "`"),
+      "and",
+      paste0("`parest_flags(80)=", format_flag_value(flags[["80"]]), "`"),
+      "means",
+      paste0("`", n_periods, " - ", format_flag_value(flags[["80"]]), " = ", window$end, "`,"),
+      "so the regional-scaling prior is limited to that covariance-estimation window."
+    ),
+    paste(
+      "PHASE 1-4 retain the current CPUE_scaling setup: index fisheries",
+      "29-33 share CPUE group 29, share selectivity group 25, and keep",
+      "the 2026 index-fishery sigma settings."
+    ),
+    paste(
+      "PHASE 5 switches to Prior_reg_biomass: index CPUE groups become",
+      "29-33, fish flag 94 is set to 0, and index selectivity groups",
+      "become 25-29."
+    )
+  )
+}
+
 read_words <- function(line) {
   strsplit(trimws(line), "[[:space:]]+")[[1]]
 }
@@ -1409,6 +1516,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
   step_dir <- file.path(root, "steps", step_id)
   model_dir <- file.path(step_dir, "model")
   dir.create(model_dir, recursive = TRUE, showWarnings = FALSE)
+  remove_model_par_files(model_dir)
 
   frq_out <- file.path(model_dir, "bet.frq")
   if (identical(frq_transform, "effort_creep")) {
@@ -1498,34 +1606,6 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
       input_notes[["bet.reg_scaling"]] <-
         "`bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions"
     }
-    control_notes <- c(
-      control_notes,
-      paste(
-        "`bet.reg_scaling` is read by MFCL starting in PHASE 5 because",
-        "`parest_flags(77)=50`; flags 77-81 configure the",
-        "regional-scaling MVN prior."
-      ),
-      paste(
-        "The active `bet.reg_scaling` window is periods 53-72",
-        paste0("(", reg_scaling_active_years, ") because the global CPUE"),
-        "covariance matrices were estimated from data fitted over 1965 through the end of 1969, the period with the highest spatial-temporal coverage."
-      ),
-      paste(
-        "For the 292-period full-2024 models, `parest_flags(79)=240`",
-        "means `292 - 240 + 1 = 53` and `parest_flags(80)=220`",
-        "means `292 - 220 = 72`, so the regional-scaling prior is limited to that covariance-estimation window."
-      ),
-      paste(
-        "PHASE 1-4 retain the current CPUE_scaling setup: index fisheries",
-        "29-33 share CPUE group 29, share selectivity group 25, and keep",
-        "the 2026 index-fishery sigma settings."
-      ),
-      paste(
-        "PHASE 5 switches to Prior_reg_biomass: index CPUE groups become",
-        "29-33, fish flag 94 is set to 0, and index selectivity groups",
-        "become 25-29."
-      )
-    )
   }
   control_notes <- c(
     control_notes,
@@ -1552,6 +1632,17 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     regional_scaling = has_reg_scaling,
     regional_scaling_periods = if (has_reg_scaling) regional_scaling_periods else 292L
   )
+  reg_scaling_flags <- NULL
+  reg_scaling_window <- NULL
+  if (has_reg_scaling) {
+    doitall_out <- file.path(model_dir, "doitall.sh")
+    reg_scaling_flags <- parse_doitall_parest_flags(doitall_out, 77:81)
+    reg_scaling_window <- regional_scaling_period_window(reg_scaling_flags, regional_scaling_periods)
+    control_notes <- c(
+      control_notes,
+      regional_scaling_control_notes(doitall_out, regional_scaling_periods, reg_scaling_active_years)
+    )
+  }
 
   entries <- list(
     list(role = "frq", file = "bet.frq", source = frq_source, note = frq_note),
@@ -1560,7 +1651,16 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     list(role = "age_length", file = "bet.age_length", source = age_source, note = "CAAL input"),
     list(role = "doitall", file = "doitall.sh", source = "steps/03-RegFish/model/doitall.sh", note = paste(c(
       ifelse(mix_from_ini, "mixing override removed", "03-RegFish 5-region controls retained"),
-      if (has_reg_scaling) "regional scaling Prior_reg_biomass switch applied in PHASE 5 with flags 77-81 and active periods 53-72 (1965-1969)",
+      if (has_reg_scaling) paste0(
+        "regional scaling Prior_reg_biomass switch applied in PHASE 5 with ",
+        "flags 77=", format_flag_value(reg_scaling_flags[["77"]]),
+        ", 78=", format_flag_value(reg_scaling_flags[["78"]]),
+        ", 79=", format_flag_value(reg_scaling_flags[["79"]]),
+        ", 80=", format_flag_value(reg_scaling_flags[["80"]]),
+        ", 81=", format_flag_value(reg_scaling_flags[["81"]]),
+        "; active periods ", reg_scaling_window$start, "-", reg_scaling_window$end,
+        " (", reg_scaling_active_years, ")"
+      ),
       if (has_reg_scaling) "index CPUE/selectivity groups unshared from PHASE 5",
       "doitall exits immediately on MFCL command failure",
       if (isTRUE(doitall_edits$size_based_selectivity)) "fish flag 26 set to 3",
@@ -1605,6 +1705,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
 
 for (base_step in c("01-Diag23", "02-FixM", "03-RegFish")) {
   base_doitall <- file.path(root, "steps", base_step, "model", "doitall.sh")
+  remove_model_par_files(file.path(root, "steps", base_step, "model"))
   write_doitall(base_doitall, base_doitall)
 }
 
@@ -1687,6 +1788,7 @@ regfish_ini_source <- file.path(ini_root, "bet.2023.new.structure.ini")
 regfish_tag_source <- file.path(tag_root, "bet.2023.new.structure-low.recaps.removed.tag")
 regfish_dir <- file.path(root, "steps", "03-RegFish")
 regfish_model_dir <- file.path(regfish_dir, "model")
+remove_model_par_files(regfish_model_dir)
 copy_one(regfish_frq_source, file.path(regfish_model_dir, "bet.frq"))
 copy_one(regfish_ini_source, file.path(regfish_model_dir, "bet.ini"))
 copy_one(regfish_tag_source, file.path(regfish_model_dir, "bet.tag"))
