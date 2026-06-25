@@ -153,8 +153,6 @@ outputs/models/<step_id>/model_payload.rds
 outputs/models/<step_id>/model_payload_manifest.json
 outputs/models/<step_id>/final.par
 outputs/models/<step_id>/region-map/<region-map>.geojson
-outputs/models/<step_id>/region-map/region_map.geojson
-outputs/models/<step_id>/region-map/region-map.geojson
 outputs/region-map/bet-2023-nine-region.geojson
 outputs/region-map/bet-2026-five-region.geojson
 ```
@@ -177,9 +175,6 @@ run:
 - `bet-2026-five-region.geojson` for the 03+ 5-region models. This file uses
   the 2026 BET label convention where old Region 4 is labelled Region 5 and old
   Region 5 is labelled Region 4.
-
-Each model-specific `region-map/` folder also includes `region_map.geojson` and
-`region-map.geojson` aliases for tools that look for generic map names first.
 
 Kflow also exposes an `MFCL Shiny` local app on stepwise jobs. Open it from a
 completed model job to inspect the selected model payload directly, without

@@ -449,24 +449,6 @@ copy_shared_region_map_asset <- function(region_map_dir, source_name, fallback_w
   invisible(FALSE)
 }
 
-copy_region_map_aliases <- function(region_map_dir, source_name, aliases = c("region_map.geojson", "region-map.geojson")) {
-  source_geojson <- file.path(region_map_dir, source_name)
-  if (!file.exists(source_geojson)) {
-    return(invisible(FALSE))
-  }
-  aliases <- setdiff(unique(aliases), source_name)
-  if (!length(aliases)) {
-    return(invisible(TRUE))
-  }
-  targets <- file.path(region_map_dir, aliases)
-  ok <- file.copy(source_geojson, targets, overwrite = TRUE, copy.date = TRUE)
-  if (!all(ok)) {
-    failed <- aliases[!ok]
-    stop("Failed to copy region map alias(es): ", paste(failed, collapse = ", "), call. = FALSE)
-  }
-  invisible(TRUE)
-}
-
 copy_shared_region_map_assets <- function(region_counts) {
   region_counts <- suppressWarnings(as.integer(region_counts))
   needed_counts <- intersect(sort(unique(region_counts[is.finite(region_counts)])), c(5L, 9L))
@@ -488,9 +470,6 @@ copy_shared_region_map_assets <- function(region_counts) {
       "bet-2023-nine-region.geojson",
       if (exists("write_bet_nine_region_map_assets", mode = "function")) write_bet_nine_region_map_assets else NULL
     )
-  }
-  if (length(needed_counts) == 1L) {
-    copy_region_map_aliases(region_map_dir, region_map_asset_name_for_count(needed_counts[[1]]))
   }
   invisible(TRUE)
 }
@@ -524,7 +503,6 @@ copy_model_region_map_assets <- function(step_out, region_count) {
   ok <- copy_shared_region_map_asset(region_map_dir, asset_name, region_map_writer_for_count(region_count))
   target <- file.path(region_map_dir, asset_name)
   if (isTRUE(ok) && file.exists(target)) {
-    copy_region_map_aliases(region_map_dir, asset_name)
     return(target)
   }
   ""
