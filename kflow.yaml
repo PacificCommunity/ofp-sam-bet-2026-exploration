@@ -73,7 +73,8 @@ env:
   # mfclshiny is private, so runtime package updates need a forwarded GitHub
   # token from Kflow. Leave these true for cluster jobs.
   KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES: "true"
-  KFLOW_RUNTIME_UPDATE: direct
+  KFLOW_RUNTIME_UPDATE: skip
+  TUNA_FLOW_RUNTIME_UPDATE: direct
   KFLOW_RUNTIME_PACKAGES: mfclshiny=PacificCommunity/mfclshiny@fec9ab16b1f7627428d88f65d9cd5c0b55d104b1
   MFCLSHINY_GITHUB_REF: "fec9ab16b1f7627428d88f65d9cd5c0b55d104b1"
   KFLOW_RUNTIME_GITHUB_AUTH: "true"
@@ -342,7 +343,8 @@ triggers:
         KFLOW_REPORT_PUSH_GENERATED: "{{ job.config.KFLOW_REPORT_PUSH_GENERATED }}"
         KFLOW_REPORT_PUBLISH_REQUIRED: "{{ job.config.KFLOW_REPORT_PUBLISH_REQUIRED }}"
         KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES: "true"
-        KFLOW_RUNTIME_UPDATE: direct
+        KFLOW_RUNTIME_UPDATE: skip
+        TUNA_FLOW_RUNTIME_UPDATE: direct
         KFLOW_RUNTIME_PACKAGES: mfclshiny=PacificCommunity/mfclshiny@fec9ab16b1f7627428d88f65d9cd5c0b55d104b1
         MFCLSHINY_GITHUB_REF: "fec9ab16b1f7627428d88f65d9cd5c0b55d104b1"
         MFCLSHINY_REPORT_DPI: "180"
@@ -398,6 +400,7 @@ job_config:
     - KFLOW_REPORT_PUBLISH_REQUIRED
     - KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES
     - KFLOW_RUNTIME_UPDATE
+    - TUNA_FLOW_RUNTIME_UPDATE
     - KFLOW_RUNTIME_PACKAGES
     - MFCLSHINY_GITHUB_REF
     - KFLOW_RUNTIME_GITHUB_AUTH
