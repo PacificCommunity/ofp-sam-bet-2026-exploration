@@ -60,7 +60,7 @@ runtime_private_packages_required() {
 }
 
 drop_runtime_tokens() {
-  unset GIT_PAT GITHUB_PAT GH_TOKEN KFLOW_GITHUB_TOKEN KFLOW_PERSONAL_TOKEN
+  unset GIT_PAT GITHUB_PAT GITHUB_TOKEN GH_TOKEN KFLOW_GITHUB_TOKEN KFLOW_PERSONAL_TOKEN
 }
 
 truthy_value() {
@@ -159,7 +159,7 @@ if (!requireNamespace("remotes", quietly = TRUE)) {
   utils::install.packages("remotes", lib = lib, dependencies = TRUE, repos = getOption("repos"))
 }
 token <- ""
-for (name in c("GITHUB_PAT", "GIT_PAT", "GH_TOKEN", "KFLOW_GITHUB_TOKEN", "KFLOW_PERSONAL_TOKEN")) {
+for (name in c("GITHUB_PAT", "GIT_PAT", "GITHUB_TOKEN", "GH_TOKEN", "KFLOW_GITHUB_TOKEN", "KFLOW_PERSONAL_TOKEN")) {
   value <- Sys.getenv(name, "")
   if (nzchar(value)) {
     token <- value

@@ -31,9 +31,9 @@ FRQ ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS
 OUTPUT_PAR ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_row_value(Sys.getenv("STEP_SELECT"), "output_par"))')
 
 KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES ?= $(call yml,y$$env$$KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES,true)
-KFLOW_RUNTIME_UPDATE ?= $(call yml,y$$env$$KFLOW_RUNTIME_UPDATE,skip)
+KFLOW_RUNTIME_UPDATE ?= $(call yml,y$$env$$KFLOW_RUNTIME_UPDATE,never)
 TUNA_FLOW_RUNTIME_UPDATE ?= $(call yml,y$$env$$TUNA_FLOW_RUNTIME_UPDATE,direct)
-KFLOW_RUNTIME_PACKAGES ?= $(call yml,y$$env$$KFLOW_RUNTIME_PACKAGES,skip)
+KFLOW_RUNTIME_PACKAGES ?= $(call yml,y$$env$$KFLOW_RUNTIME_PACKAGES,mfclshiny=PacificCommunity/mfclshiny@fec9ab16b1f7627428d88f65d9cd5c0b55d104b1)
 KFLOW_REPO_RUNTIME_PACKAGES ?= $(call yml,y$$env$$KFLOW_REPO_RUNTIME_PACKAGES,mfclshiny=PacificCommunity/mfclshiny@fec9ab16b1f7627428d88f65d9cd5c0b55d104b1)
 MFCLSHINY_GITHUB_REF ?= $(call yml,y$$env$$MFCLSHINY_GITHUB_REF,fec9ab16b1f7627428d88f65d9cd5c0b55d104b1)
 KFLOW_RUNTIME_GITHUB_AUTH ?= $(call yml,y$$env$$KFLOW_RUNTIME_GITHUB_AUTH,true)
