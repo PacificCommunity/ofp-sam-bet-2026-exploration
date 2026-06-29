@@ -1,0 +1,6 @@
+"role","file","source","source_commit","note"
+"frq","bet.frq","input-repos/ofp-sam-2026-BET-YFT-frq-build/BET/bet.2023.new-structure.global-cpue.frq","db75a05","5-region 2021-terminal new-structure frq with global CPUE"
+"ini","bet.ini","input-repos/ofp-sam-2026-BET-YFT-build-ini/BET/bet.2023.new.structure.ini","b39cbfd","FixM M row applied; normalized tag flags marker"
+"tag","bet.tag","input-repos/ofp-sam-2026-BET-YFT-tag-prep/BET/bet.2023.new.structure-low.recaps.removed.tag","f6a9e4a","low-recapture-removed 2023 new-structure tag input; tag reporting map regenerated from ini/tag"
+"age_length","bet.age_length","input-repos/ofp-sam-2026-BET-YFT-age-length-build/BET/bet.2023.new-structure.age_length","a26b694","old CAAL / age_length reassigned to the new fisheries"
+"doitall","doitall.sh","steps/04-NewStructure/model/doitall.sh","d652c51","5-region controls retained and made fail-fast for Kflow"

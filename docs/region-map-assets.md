@@ -21,12 +21,12 @@ self-contained map beside each payload.
 
 | Steps | Region count | Output asset |
 | --- | ---: | --- |
-| `01-Diag23`, `02-FixM` | 9 | `bet-2023-nine-region.geojson` |
-| `03-RegFish` through `12-DataWeight40` | 5 | `bet-2026-five-region.geojson` |
+| `01-Diag2023` through `03-FixM` | 9 | `bet-2023-nine-region.geojson` |
+| `04-NewStructure` through `15-DataWeighting` | 5 | `bet-2026-five-region.geojson` |
 
 ## 2023 Nine-Region Source
 
-The 01/02 map is the display-only `bet-2023-nine-region.geojson` asset. It is
+The 01-03 map is the display-only `bet-2023-nine-region.geojson` asset. It is
 based on the 2023 9-region `MufArea` rectangles from the size-composition input
 repository at commit `31429f83a9119a11e52078a5d7412dc986f5ef38`.
 

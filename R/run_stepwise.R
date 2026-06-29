@@ -146,7 +146,19 @@ run_mfcl <- function(program, args, log_file, live_log = TRUE) {
 
 run_script <- function(script, program, log_file, live_log = TRUE) {
   if (!file.exists(script)) stop("Run script not found: ", basename(script), call. = FALSE)
-  script_env <- c(sprintf("PROGRAM_PATH=%s", shQuote(program)))
+  mfcl_shim_dir <- tempfile("mfcl-bin-")
+  dir.create(mfcl_shim_dir, recursive = TRUE, showWarnings = FALSE)
+  on.exit(unlink(mfcl_shim_dir, recursive = TRUE, force = TRUE), add = TRUE)
+  mfcl_shim <- file.path(mfcl_shim_dir, "mfclo64")
+  writeLines(c(
+    "#!/bin/sh",
+    sprintf("exec %s \"$@\"", shQuote(program))
+  ), mfcl_shim, useBytes = TRUE)
+  Sys.chmod(mfcl_shim, mode = "0755")
+  script_env <- c(
+    sprintf("PROGRAM_PATH=%s", shQuote(program)),
+    sprintf("PATH=%s:$PATH", shQuote(mfcl_shim_dir))
+  )
   command <- sprintf("set -o pipefail; %s bash %s", paste(script_env, collapse = " "), shQuote(script))
   if (isTRUE(live_log)) {
     command <- sprintf("%s 2>&1 | tee %s >&2", command, shQuote(log_file))
@@ -541,6 +553,7 @@ for (i in seq_len(nrow(step_table))) {
   par_fallback <- FALSE
   par_fallback_reason <- ""
   run_script_name <- cfg$RUN_SCRIPT %||% "doitall.sh"
+  step_program <- cfg$MFCL_PROGRAM_PATH %||% cfg$PROGRAM_PATH %||% program
   model_dir <- file.path(work_dir, "models", step_id)
   model_source <- resolve_source_dir(source_dir, input_subdir, step_dir, root, input_root, input_par)
   copy_model_source(model_source, model_dir, step_dir = step_dir)
@@ -560,6 +573,7 @@ for (i in seq_len(nrow(step_table))) {
   message("Running ", step_id, " (", label, ")")
   message("  source: ", relative_display_path(model_source, root))
   message("  mode:   ", run_mode)
+  message("  mfcl:   ", step_program)
   if (is_job_par_mode(run_mode)) {
     staged <- stage_previous_job_par(model_dir, step_id, par_source_job, root = root, work_dir = work_dir)
     input_par <- staged$input_par
@@ -602,13 +616,13 @@ for (i in seq_len(nrow(step_table))) {
   status <- tryCatch({
     if (is_doitall_mode(run_mode)) {
       message("  script: ", run_script_name)
-      run_script(file.path(model_dir, run_script_name), program = program, log_file = log_file, live_log = mfcl_live_log)
+      run_script(file.path(model_dir, run_script_name), program = step_program, log_file = log_file, live_log = mfcl_live_log)
     } else {
       if (!nzchar(output_par)) output_par <- next_par_name(input_par)
       message("  input:  ", frq, " + ", input_par)
       message("  output: ", output_par)
       args <- c(frq, input_par, output_par, smoke_switch_args())
-      run_mfcl(program, args, log_file = log_file, live_log = mfcl_live_log)
+      run_mfcl(step_program, args, log_file = log_file, live_log = mfcl_live_log)
     }
   }, finally = setwd(old))
   if (!identical(status, 0L)) stop("MFCL failed for ", step_id, " with status ", status, call. = FALSE)
@@ -676,6 +690,7 @@ for (i in seq_len(nrow(step_table))) {
     step_id = step_id,
     model_label = label,
     model_source = relative_display_path(model_source, root),
+    mfcl_program_path = step_program,
     run_mode = run_mode,
     requested_run_mode = requested_run_mode,
     input_par = input_par,

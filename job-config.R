@@ -17,73 +17,89 @@ stepwise_run <- list(
 stepwise_models <- data.frame(
   # Folder name and Kflow selector.
   step_id = c(
-    "01-Diag23",
-    "02-FixM",
-    "03-RegFish",
-    "04-WtAsLen21",
-    "05-WtAsLenPlusLen21",
-    "06-Full2024",
-    "07-CAAL2026",
-    "08-MixPeriod02",
-    "09-SizeBasedSel",
-    "10-OPR",
-    "11-EffortCreep",
-    "12-DataWeight40"
+    "01-Diag2023",
+    "02-NewExe",
+    "03-FixM",
+    "04-NewStructure",
+    "05-ConvertToLength",
+    "06-LengthPlusLength",
+    "07-DataTo2024",
+    "08-RegionalCPUE",
+    "09-NewOtoliths",
+    "10-TagMixingKS",
+    "11-TimeVaryingCV",
+    "12-OrthogonalPoly",
+    "13-LengthBasedSel",
+    "14-EffortCreep",
+    "15-DataWeighting"
   ),
-  enabled = rep(TRUE, 12),
+  enabled = rep(TRUE, 15),
 
   # Short model label used in logs, plots, and reports.
   model_label = c(
-    "2023 diagnostic",
+    "Diag2023",
+    "NewExe",
     "FixM",
-    "New regions/fisheries",
-    "Weights as lengths, 2021",
-    "Weights as lengths plus lengths, 2021",
-    "Full 2024 data",
-    "Updated CAAL",
-    "Mixing periods 0.2",
-    "Size-based selectivity",
-    "OPR",
+    "New structure",
+    "Convert to length",
+    "Length plus length",
+    "Data to 2024",
+    "Regional CPUE",
+    "New otoliths",
+    "Tag mixing KS",
+    "Time-varying CV",
+    "Orthogonal polynomial",
+    "Length-based selectivity",
     "Effort creep",
-    "Data weighting 40"
+    "Data weighting"
   ),
 
   # Title shown in the Kflow job list.
   job_title = c(
-    "2023 diagnostic",
+    "Diag2023",
+    "NewExe",
     "FixM",
-    "New regions/fisheries",
-    "Weights as lengths to 2021",
-    "Weights as lengths plus lengths to 2021",
-    "Full 2024 data",
-    "Updated CAAL",
-    "Mixing periods 0.2",
-    "Size-based selectivity",
-    "OPR",
+    "New structure",
+    "Convert to length",
+    "Length plus length",
+    "Data to 2024",
+    "Regional CPUE",
+    "New otoliths",
+    "Tag mixing KS",
+    "Time-varying CV",
+    "Orthogonal polynomial",
+    "Length-based selectivity",
     "Effort creep",
-    "Data weighting 40"
+    "Data weighting"
   ),
 
   # Stable key used by Kflow dependency links and selectors.
   job_key = c(
-    "01-diag23",
-    "02-fixm",
-    "03-regfish",
-    "04-wtaslen21",
-    "05-wtaslenpluslen21",
-    "06-full2024",
-    "07-caal2026",
-    "08-mixperiod02",
-    "09-sizebasedsel",
-    "10-opr",
-    "11-effortcreep",
-    "12-dataweight40"
+    "01-diag2023",
+    "02-newexe",
+    "03-fixm",
+    "04-newstructure",
+    "05-converttolength",
+    "06-lengthpluslength",
+    "07-datato2024",
+    "08-regionalcpue",
+    "09-newotoliths",
+    "10-tagmixingks",
+    "11-timevaryingcv",
+    "12-orthogonalpoly",
+    "13-lengthbasedsel",
+    "14-effortcreep",
+    "15-dataweighting"
   ),
 
   # Run settings for each model row.
-  run_mode = rep("doitall", 12),
-  input_par = rep("", 12),
-  frq = rep("bet.frq", 12),
-  output_par = rep("", 12),
+  run_mode = rep("doitall", 15),
+  mfcl_program_path = c(
+    "/home/mfcl/mfclo64_2023_diagnostic_2.2.2.0",
+    rep("", 14)
+  ),
+  input_par = rep("", 15),
+  frq = rep("bet.frq", 15),
+  output_par = rep("", 15),
   stringsAsFactors = FALSE
 )

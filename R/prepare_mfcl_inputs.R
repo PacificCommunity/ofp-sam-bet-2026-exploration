@@ -878,5 +878,12 @@ write_generated_tag_rep_map <- function(model_dir) {
     paste0("tag_event_map <- ", paste(deparse(event_rows), collapse = "\n")),
     ""
   )
+  out <- vapply(out, function(line) {
+    parts <- strsplit(line, "\n", fixed = TRUE)[[1]]
+    paste(sub("[ \t]+$", "", parts), collapse = "\n")
+  }, character(1))
+  while (length(out) && !nzchar(out[[length(out)]])) {
+    out <- out[-length(out)]
+  }
   writeLines(out, file.path(model_dir, "tag_rep_map.R"), useBytes = TRUE)
 }

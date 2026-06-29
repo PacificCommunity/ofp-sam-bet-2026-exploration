@@ -47,11 +47,45 @@ reg_scaling_active_years <- "1965-1969"
 
 fixm_age_par_value <- "-2.54917483258212e+00"
 
+diagnostic_root_env <- Sys.getenv("BET_2023_DIAGNOSTIC_ROOT", "")
+diagnostic_root_candidates <- if (nzchar(diagnostic_root_env)) {
+  diagnostic_root_env
+} else {
+  c(
+    file.path(dirname(root), "ofp-sam-bet-2023-diagnostic"),
+    file.path(dirname(root), "input-repos", "ofp-sam-bet-2023-diagnostic")
+  )
+}
+diagnostic_mfcl_candidate <- function(path) {
+  if (file.exists(file.path(path, "MFCL", "bet.frq"))) {
+    return(file.path(path, "MFCL"))
+  }
+  if (file.exists(file.path(path, "bet.frq"))) {
+    return(path)
+  }
+  ""
+}
+diagnostic_mfcl_hits <- vapply(diagnostic_root_candidates, diagnostic_mfcl_candidate, character(1))
+diagnostic_mfcl_hits <- diagnostic_mfcl_hits[nzchar(diagnostic_mfcl_hits)]
+if (!length(diagnostic_mfcl_hits)) {
+  stop(
+    "Could not find the BET 2023 diagnostic MFCL folder. Set BET_2023_DIAGNOSTIC_ROOT to the repo root or MFCL folder.",
+    call. = FALSE
+  )
+}
+diagnostic_mfcl_root <- normalizePath(diagnostic_mfcl_hits[[1L]], winslash = "/", mustWork = TRUE)
+diagnostic_repo_root <- if (basename(diagnostic_mfcl_root) == "MFCL") {
+  dirname(diagnostic_mfcl_root)
+} else {
+  diagnostic_mfcl_root
+}
+
 input_repo_roots <- c(
   "ofp-sam-2026-BET-YFT-frq-build" = file.path(input_root, "ofp-sam-2026-BET-YFT-frq-build"),
   "ofp-sam-2026-BET-YFT-build-ini" = file.path(input_root, "ofp-sam-2026-BET-YFT-build-ini"),
   "ofp-sam-2026-BET-YFT-tag-prep" = file.path(input_root, "ofp-sam-2026-BET-YFT-tag-prep"),
-  "ofp-sam-2026-BET-YFT-age-length-build" = file.path(input_root, "ofp-sam-2026-BET-YFT-age-length-build")
+  "ofp-sam-2026-BET-YFT-age-length-build" = file.path(input_root, "ofp-sam-2026-BET-YFT-age-length-build"),
+  "ofp-sam-bet-2023-diagnostic" = diagnostic_repo_root
 )
 
 git_value <- function(repo, args) {
@@ -74,6 +108,12 @@ git_subject <- function(repo) {
 source_commit_for_path <- function(path) {
   if (!nzchar(path)) return("")
   norm <- normalizePath(path, winslash = "/", mustWork = FALSE)
+  for (repo in input_repo_roots) {
+    repo_prefix <- paste0(normalizePath(repo, winslash = "/", mustWork = FALSE), "/")
+    if (startsWith(norm, repo_prefix)) {
+      return(git_commit(repo))
+    }
+  }
   input_prefix <- paste0(normalizePath(input_root, winslash = "/", mustWork = TRUE), "/")
   root_prefix <- paste0(normalizePath(root, winslash = "/", mustWork = TRUE), "/")
   if (startsWith(norm, input_prefix)) {
@@ -119,123 +159,260 @@ write_shared_region_map_assets()
 
 ## Step definitions ----------------------------------------------------------
 
-for (base_step in c("01-Diag23", "02-FixM", "03-RegFish")) {
-  base_doitall <- file.path(root, "steps", base_step, "model", "doitall.sh")
-  remove_model_par_files(file.path(root, "steps", base_step, "model"))
-  write_doitall(base_doitall, base_doitall)
+first_existing <- function(paths, label) {
+  hit <- paths[file.exists(paths)]
+  if (!length(hit)) {
+    stop(
+      "Could not find ", label, ". Tried: ",
+      paste(paths, collapse = ", "),
+      call. = FALSE
+    )
+  }
+  hit[[1L]]
 }
 
-base_ini_1007_notes <- lapply(c("01-Diag23", "02-FixM"), function(base_step) {
-  ensure_ini_1007_compatibility(
-    file.path(root, "steps", base_step, "model", "bet.ini"),
-    file.path(root, "steps", base_step, "model", "bet.tag")
-  )
-})
-names(base_ini_1007_notes) <- c("01-Diag23", "02-FixM")
+diagnostic_file <- function(file) {
+  file.path(diagnostic_mfcl_root, file)
+}
 
-write_readme(
-  file.path(root, "steps", "01-Diag23"),
-  "01 Diag23",
-  "2023 diagnostic BET model structure, retained as the starting point for the 2026 stepwise transition.",
-  c(
-    "Uses the inherited 9-region, 41-fishery inputs ending in 2021.",
-    "Natural mortality setup is the pre-FixM diagnostic baseline.",
-    "`bet.ini` is promoted from MFCL 1003 to 1007 layout for the current MFCL reader, while retaining the diagnostic values.",
-    "Run mode is `doitall` so the model can be built from `bet.ini` with the bundled control script."
-  ),
-  c(
-    "bet.frq" = "2023 diagnostic frequency/catch/size input, 9 regions, 41 fisheries, terminal year 2021",
-    "bet.ini" = "2023 diagnostic ini before the FixM M-scale row change; promoted from 1003 to 1007 by adding explicit tag flags, zero tag shed rates, total-population scalar default 25, and Richards default 0",
-    "bet.tag" = "2023 diagnostic tag input",
-    "bet.age_length" = "2023 diagnostic CAAL input"
-  ),
-  c(
-    "Inherited 9-region `doitall.sh` retained.",
-    "The step output includes `bet-2023-nine-region.geojson` as a display-only MFCL Shiny map asset; it does not change MFCL inputs.",
-    "`bet.ini` now carries 118 explicit MFCL 1007 tag-flag rows matching `bet.tag`; the inherited `-9999 1 2` control remains consistent with those rows.",
-    "Survey index fishery sigma settings are the BET 2023 region-specific values.",
-    "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.",
-    "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders."
-  ),
-  c(
-    "This is a baseline reference step; no 2026 input updates are intended here.",
-    "Run diagnostics should confirm the archived 2023 behavior before interpreting later deltas."
-  ),
-  "Ready for Kflow smoke runs; full MFCL fit not run here."
+diagnostic_model_files <- c(
+  "bet.frq",
+  "bet.ini",
+  "bet.tag",
+  "bet.age_length",
+  "mfcl.cfg",
+  "labels.tmp"
 )
 
-write_readme(
-  file.path(root, "steps", "02-FixM"),
-  "02 FixM",
-  "2023 diagnostic structure with the FixM M-scale row applied.",
-  c(
-    "Same 9-region, 41-fishery input structure as 01-Diag23.",
-    "The M-related age parameter row is set to `-2.54917483258212e+00 -1 ...`.",
-    "`bet.ini` is promoted from MFCL 1003 to 1007 layout for the current MFCL reader, while retaining the FixM diagnostic values.",
-    "This is the M source used when preparing later 5-region inputs."
-  ),
-  c(
-    "bet.frq" = "same structural input as 01-Diag23, terminal year 2021",
-    "bet.ini" = "FixM version of the diagnostic ini; promoted from 1003 to 1007 by adding explicit tag flags, zero tag shed rates, total-population scalar default 25, and Richards default 0",
-    "bet.tag" = "same tag structure as 01-Diag23",
-    "bet.age_length" = "same CAAL structure as 01-Diag23"
-  ),
-  c(
-    "Inherited 9-region `doitall.sh` retained.",
-    "This step is used as the reference for the M row copied into 03+.",
-    "The step output includes `bet-2023-nine-region.geojson` as a display-only MFCL Shiny map asset; it does not change MFCL inputs.",
-    "`bet.ini` now carries 118 explicit MFCL 1007 tag-flag rows matching `bet.tag`; the inherited `-9999 1 2` control remains consistent with those rows.",
-    "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.",
-    "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders."
-  ),
-  c(
-    "Confirm the FixM M row reproduces the intended fixed-M diagnostic before comparing against 03+.",
-    "No fishery, tag, CAAL, or CPUE update is intended in this step."
-  ),
-  "Ready for Kflow smoke runs; full MFCL fit not run here."
+prepare_step_model_dir <- function(step_id) {
+  step_dir <- file.path(root, "steps", step_id)
+  model_dir <- file.path(step_dir, "model")
+  dir.create(model_dir, recursive = TRUE, showWarnings = FALSE)
+  remove_model_par_files(model_dir)
+  list(step_dir = step_dir, model_dir = model_dir)
+}
+
+copy_diagnostic_model_files <- function(model_dir) {
+  for (file in diagnostic_model_files) {
+    copy_if_exists(diagnostic_file(file), file.path(model_dir, file))
+  }
+  unlink(file.path(model_dir, "fdesc.txt"), force = TRUE)
+}
+
+copy_aux_if_exists <- function(from_dir, to_dir, file) {
+  from <- file.path(from_dir, file)
+  to <- file.path(to_dir, file)
+  if (!file.exists(from)) return(invisible(FALSE))
+  if (normalizePath(from, winslash = "/", mustWork = FALSE) ==
+      normalizePath(to, winslash = "/", mustWork = FALSE)) {
+    return(invisible(FALSE))
+  }
+  copy_one(from, to)
+  invisible(TRUE)
+}
+
+write_original_diagnostic_step <- function() {
+  paths <- prepare_step_model_dir("01-Diag2023")
+  copy_diagnostic_model_files(paths$model_dir)
+  copy_one(diagnostic_file("doitall.sh"), file.path(paths$model_dir, "doitall.sh"))
+  Sys.chmod(file.path(paths$model_dir, "doitall.sh"), mode = "0755")
+  write_manifest(paths$step_dir, list(
+    list(role = "frq", file = "bet.frq", source = diagnostic_file("bet.frq"), note = "original 2023 diagnostic frequency/catch/size input"),
+    list(role = "ini", file = "bet.ini", source = diagnostic_file("bet.ini"), note = "original 2023 diagnostic ini, intentionally not promoted or edited"),
+    list(role = "tag", file = "bet.tag", source = diagnostic_file("bet.tag"), note = "original 2023 diagnostic tag input"),
+    list(role = "age_length", file = "bet.age_length", source = diagnostic_file("bet.age_length"), note = "original 2023 diagnostic CAAL input"),
+    list(role = "doitall", file = "doitall.sh", source = diagnostic_file("doitall.sh"), note = "original 2023 diagnostic control script; run_stepwise resolves bare mfclo64 to the historical 2.2.2.0 executable for this step")
+  ))
+  write_readme(
+    paths$step_dir,
+    "01 Diag2023",
+    "Original BET 2023 diagnostic model rerun with the historical MFCL executable.",
+    c(
+      "Copies the 2023 diagnostic `MFCL` model files without changing the model inputs.",
+      "`bet.ini` remains in its original 2023 diagnostic format for the historical `mfclo64` reader.",
+      "`doitall.sh` is the original diagnostic script; the runner supplies a temporary `mfclo64` PATH shim pointing to `/home/mfcl/mfclo64_2023_diagnostic_2.2.2.0`.",
+      "This step is the direct reproducibility anchor before moving to the current executable."
+    ),
+    c(
+      "bet.frq" = "original 2023 diagnostic frequency/catch/size input",
+      "bet.ini" = "original 2023 diagnostic ini, not promoted to MFCL 1007",
+      "bet.tag" = "original 2023 diagnostic tag input",
+      "bet.age_length" = "original 2023 diagnostic CAAL input",
+      "input_manifest.csv" = "machine-readable source/input notes with source commits"
+    ),
+    c(
+      "The model files come from `ofp-sam-bet-2023-diagnostic/MFCL`.",
+      "The step-specific executable path is set in `job-config.R`; only this step uses the historical MFCL binary.",
+      "No FixM, new-executable compatibility edits, new fishery structure, or 2026 input files are applied here."
+    ),
+    c(
+      "Compare this rerun against the archived 2023 diagnostic output before interpreting later deltas.",
+      "Because the original script is retained, failures will reflect the original diagnostic control sequence."
+    ),
+    "Ready for Kflow with the tuna-flow image that includes the historical 2023 diagnostic MFCL executable.",
+    source_revisions = input_repo_revision_table()
+  )
+}
+
+write_current_diagnostic_step <- function(step_id, title, summary, fixm = FALSE,
+                                          legacy_aux_step = "02-NewExe") {
+  paths <- prepare_step_model_dir(step_id)
+  copy_diagnostic_model_files(paths$model_dir)
+  ini_note <- ensure_ini_1007_compatibility(
+    file.path(paths$model_dir, "bet.ini"),
+    file.path(paths$model_dir, "bet.tag")
+  )
+  if (isTRUE(fixm)) {
+    apply_fixm_m(file.path(paths$model_dir, "bet.ini"))
+  }
+  write_generated_tag_rep_map(paths$model_dir)
+  write_2023_newexe_doitall(
+    diagnostic_file("doitall.sh"),
+    file.path(paths$model_dir, "doitall.sh"),
+    fixm = fixm
+  )
+  legacy_aux_dir <- file.path(root, "steps", legacy_aux_step, "model")
+  current_aux_dir <- file.path(root, "steps", step_id, "model")
+  copied <- copy_aux_if_exists(current_aux_dir, paths$model_dir, "fishery_map.R")
+  if (!isTRUE(copied)) copy_aux_if_exists(legacy_aux_dir, paths$model_dir, "fishery_map.R")
+  ini_notes <- c(
+    if (isTRUE(fixm)) "FixM M row applied",
+    ini_note
+  )
+  ini_note_text <- paste(ini_notes[nzchar(ini_notes)], collapse = "; ")
+  write_manifest(paths$step_dir, list(
+    list(role = "frq", file = "bet.frq", source = diagnostic_file("bet.frq"), note = "2023 diagnostic frequency/catch/size input"),
+    list(role = "ini", file = "bet.ini", source = diagnostic_file("bet.ini"), note = ini_note_text),
+    list(role = "tag", file = "bet.tag", source = diagnostic_file("bet.tag"), note = "2023 diagnostic tag input; tag reporting map regenerated from ini/tag"),
+    list(role = "age_length", file = "bet.age_length", source = diagnostic_file("bet.age_length"), note = "2023 diagnostic CAAL input"),
+    list(role = "doitall", file = "doitall.sh", source = diagnostic_file("doitall.sh"), note = "current-executable compatibility controls: updated initial Z and CPUE CV settings, PROGRAM_PATH wrapper, and PHASE 10/11 convergence switch")
+  ))
+  write_readme(
+    paths$step_dir,
+    title,
+    summary,
+    c(
+      "Uses the 2023 diagnostic 9-region, 41-fishery inputs ending in 2021.",
+      "`bet.ini` is promoted from MFCL 1003 to 1007 layout for the current MFCL reader while retaining the diagnostic values.",
+      "The current-executable `doitall.sh` controls match the existing stepwise diagnostic baseline: initial Z uses `2 94 1 2 128 100`, and survey CPUE CV settings are the current BET 2023 values.",
+      if (isTRUE(fixm)) "Applies the FixM M-scale row at the 2023 MLE value." else "Natural mortality setup remains the pre-FixM diagnostic baseline."
+    ),
+    c(
+      "bet.frq" = "2023 diagnostic frequency/catch/size input, 9 regions, 41 fisheries, terminal year 2021",
+      "bet.ini" = paste("2023 diagnostic ini promoted for the current reader", ini_note_text),
+      "bet.tag" = "2023 diagnostic tag input",
+      "bet.age_length" = "2023 diagnostic CAAL input",
+      "input_manifest.csv" = "machine-readable source/input notes with source commits"
+    ),
+    c(
+      "The current MFCL executable `/home/mfcl/mfclo64` is used.",
+      "The step output includes the 2023 nine-region GeoJSON asset as a display-only map asset; it does not change MFCL inputs.",
+      "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.",
+      "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders."
+    ),
+    c(
+      "This step should continue to match the previously generated 2026 stepwise diagnostic baseline.",
+      if (isTRUE(fixm)) "No fishery, tag, CAAL, or CPUE update is intended in this step." else "FixM is intentionally isolated in the next step."
+    ),
+    "Ready for Kflow smoke runs; full MFCL fit not run here.",
+    source_revisions = input_repo_revision_table()
+  )
+}
+
+write_original_diagnostic_step()
+write_current_diagnostic_step(
+  "02-NewExe",
+  "02 NewExe",
+  "2023 diagnostic inputs run with the current MFCL executable and the existing current-executable compatibility controls.",
+  fixm = FALSE,
+  legacy_aux_step = "02-NewExe"
+)
+write_current_diagnostic_step(
+  "03-FixM",
+  "03 FixM",
+  "NewExe baseline with the FixM M-scale row applied at the 2023 MLE value.",
+  fixm = TRUE,
+  legacy_aux_step = "03-FixM"
 )
 
 old_age <- file.path(age_root, "bet.2023.new-structure.age_length")
 new_age <- file.path(age_root, "bet.2026.age_length")
 new_ini <- file.path(ini_root, "bet.2026.ini")
 new_tag <- file.path(tag_root, "bet.2026.low.recaps.removed.tag")
-regfish_frq_source <- file.path(frq_root, "bet.2023.new.structure.frq")
+mix_ini <- file.path(ini_root, "ini.mix-period", "bet.2026.mix-0.2.ini")
 regfish_ini_source <- file.path(ini_root, "bet.2023.new.structure.ini")
 regfish_tag_source <- file.path(tag_root, "bet.2023.new.structure-low.recaps.removed.tag")
-regfish_dir <- file.path(root, "steps", "03-RegFish")
-regfish_model_dir <- file.path(regfish_dir, "model")
-remove_model_par_files(regfish_model_dir)
-copy_one(regfish_frq_source, file.path(regfish_model_dir, "bet.frq"))
-copy_one(regfish_ini_source, file.path(regfish_model_dir, "bet.ini"))
-copy_one(regfish_tag_source, file.path(regfish_model_dir, "bet.tag"))
-copy_one(old_age, file.path(regfish_model_dir, "bet.age_length"))
-n_normalized_03 <- normalize_frq_absent_lf_records(file.path(regfish_model_dir, "bet.frq"))
-ensure_frq_fishery_region_locations(file.path(regfish_model_dir, "bet.frq"))
-apply_fixm_m(file.path(regfish_model_dir, "bet.ini"))
-frq_counts_03 <- frq_header_counts(
-  readLines(file.path(regfish_model_dir, "bet.frq"), warn = FALSE),
-  file.path(regfish_model_dir, "bet.frq")
+
+frq_new_structure_global_2021 <- file.path(frq_root, "bet.2023.new-structure.global-cpue.frq")
+frq_convert_length_2021 <- file.path(frq_root, "bet.2023.new-structure.global-cpue.wt-as-len.frq")
+frq_length_plus_length_2021 <- file.path(frq_root, "bet.2023.new-structure.global-cpue.wt-as-len-plus-len.frq")
+frq_global_2024 <- file.path(frq_root, "bet.2026.new-structure.global-cpue.wt-as-len-plus-len.frq")
+frq_regional_2024 <- first_existing(
+  c(
+    file.path(frq_root, "bet.2026.new-strucure.regional-cpue.wt-as-len-plus-len.frq"),
+    file.path(frq_root, "bet.2026.new-structure.regional-cpue.wt-as-len-plus-len.frq")
+  ),
+  "2026 regional CPUE frq"
 )
-ini_tag_note_03 <- ensure_ini_tag_flags(
-  file.path(regfish_model_dir, "bet.ini"),
-  frq_counts_03$n_tag_groups
+
+## 04-NewStructure is the first 5-region template. Cache the inherited template
+## before overwriting the folder so the script is rerunnable after old folders
+## have been removed.
+newstructure_dir <- file.path(root, "steps", "04-NewStructure")
+newstructure_model_dir <- file.path(newstructure_dir, "model")
+template_candidates <- c(
+  newstructure_model_dir
 )
-write_generated_tag_rep_map(regfish_model_dir)
-write_manifest(regfish_dir, list(
+template_model_dir <- first_existing(
+  file.path(template_candidates, "doitall.sh"),
+  "5-region doitall template"
+)
+template_model_dir <- dirname(template_model_dir)
+template_cache <- tempfile("newstructure-template-")
+dir.create(template_cache, recursive = TRUE, showWarnings = FALSE)
+for (file in c("mfcl.cfg", "fishery_map.R", "doitall.sh")) {
+  copy_one(file.path(template_model_dir, file), file.path(template_cache, file))
+}
+
+dir.create(newstructure_model_dir, recursive = TRUE, showWarnings = FALSE)
+remove_model_par_files(newstructure_model_dir)
+copy_one(frq_new_structure_global_2021, file.path(newstructure_model_dir, "bet.frq"))
+copy_one(regfish_ini_source, file.path(newstructure_model_dir, "bet.ini"))
+copy_one(regfish_tag_source, file.path(newstructure_model_dir, "bet.tag"))
+copy_one(old_age, file.path(newstructure_model_dir, "bet.age_length"))
+copy_one(file.path(template_cache, "mfcl.cfg"), file.path(newstructure_model_dir, "mfcl.cfg"))
+copy_one(file.path(template_cache, "fishery_map.R"), file.path(newstructure_model_dir, "fishery_map.R"))
+n_normalized_04 <- normalize_frq_absent_lf_records(file.path(newstructure_model_dir, "bet.frq"))
+ensure_frq_fishery_region_locations(file.path(newstructure_model_dir, "bet.frq"))
+apply_fixm_m(file.path(newstructure_model_dir, "bet.ini"))
+frq_counts_04 <- frq_header_counts(
+  readLines(file.path(newstructure_model_dir, "bet.frq"), warn = FALSE),
+  file.path(newstructure_model_dir, "bet.frq")
+)
+ini_tag_note_04 <- ensure_ini_tag_flags(
+  file.path(newstructure_model_dir, "bet.ini"),
+  frq_counts_04$n_tag_groups
+)
+write_generated_tag_rep_map(newstructure_model_dir)
+write_doitall(
+  file.path(template_cache, "doitall.sh"),
+  file.path(newstructure_model_dir, "doitall.sh")
+)
+write_manifest(newstructure_dir, list(
   list(
     role = "frq",
     file = "bet.frq",
-    source = regfish_frq_source,
+    source = frq_new_structure_global_2021,
     note = paste0(
-      "5-region 2021-terminal new-structure frq; old CPUE/global index approach retained",
-      if (n_normalized_03) paste0("; normalized ", n_normalized_03, " records with stray absent-LF bins") else ""
+      "5-region 2021-terminal new-structure frq with global CPUE",
+      if (n_normalized_04) paste0("; normalized ", n_normalized_04, " records with stray absent-LF bins") else ""
     )
   ),
   list(
     role = "ini",
     file = "bet.ini",
     source = regfish_ini_source,
-    note = paste(c("FixM M row applied", ini_tag_note_03)[nzchar(c("FixM M row applied", ini_tag_note_03))], collapse = "; ")
+    note = paste(c("FixM M row applied", ini_tag_note_04)[nzchar(c("FixM M row applied", ini_tag_note_04))], collapse = "; ")
   ),
   list(
     role = "tag",
@@ -248,436 +425,398 @@ write_manifest(regfish_dir, list(
     file = "bet.age_length",
     source = old_age,
     note = "old CAAL / age_length reassigned to the new fisheries"
+  ),
+  list(
+    role = "doitall",
+    file = "doitall.sh",
+    source = file.path("steps", basename(dirname(template_model_dir)), "model", "doitall.sh"),
+    note = "5-region controls retained and made fail-fast for Kflow"
   )
 ))
-
 write_readme(
-  file.path(root, "steps", "03-RegFish"),
-  "03 RegFish",
-  "First 5-region / 33-fishery BET input step, ending in 2021.",
+  newstructure_dir,
+  "04 NewStructure",
+  "First 5-region / 33-fishery BET input step, ending in 2021 with global CPUE.",
   c(
-    "Uses the latest `bet.2023.new.structure.*` source inputs from the 2026 input build repos.",
+    "Uses the new 5-region and new-fishery frequency source from the frq-build repo.",
     "Represents 28 extraction fisheries plus 5 index fisheries.",
-    "Uses `bet.2023.new.structure.frq` exactly as the 2021-terminal new-region/new-fishery frequency source, including the old CPUE/global index approach.",
-    "Uses the old CAAL data re-assigned to the new fisheries.",
-    paste0(
-      "Uses the old/restructured tag setup with ", frq_counts_03$n_tag_groups,
-      " release groups and ", frq_counts_03$n_tag_groups + 1L,
-      " tag-event rows including pooled tags."
-    ),
-    "Regenerates `tag_rep_map.R` from the five MFCL reporting-rate matrices in `bet.ini` plus release metadata in `bet.tag`.",
-    paste0("Normalizes ", n_normalized_03, " old records that had an absent-LF sentinel followed by stray LF bins."),
-    "Applies the 2026 CPUE index sigma settings for index fisheries 29-33.",
-    "Applies FixM M row while retaining the 5-region `.ini` structure.",
-    "Inserts default MFCL 1007 tag flags for the pre-mix step: 2 mixing periods and reporting rates excluded during mixing."
+    "Keeps data through 2021 and uses the global CPUE setup for this structural transition.",
+    "Uses old CAAL re-assigned to the new fisheries.",
+    paste0("Uses the restructured tag setup with ", frq_counts_04$n_tag_groups, " release groups."),
+    "Applies FixM M row while retaining the 5-region `.ini` structure."
   ),
   c(
-    "bet.frq" = "`bet.2023.new.structure.frq`; 5-region, 33-fishery structure, terminal year 2021, old CPUE/global index approach retained",
+    "bet.frq" = "`bet.2023.new-structure.global-cpue.frq`; 5-region, 33-fishery structure, terminal year 2021, global CPUE",
     "bet.ini" = "`bet.2023.new.structure.ini`; FixM M row applied and explicit default tag flags inserted if needed",
-    "bet.tag" = paste0(
-      "`bet.2023.new.structure-low.recaps.removed.tag`; ",
-      frq_counts_03$n_tag_groups,
-      " release-group tag input with low recap groups removed"
-    ),
+    "bet.tag" = "`bet.2023.new.structure-low.recaps.removed.tag`; low-recapture-removed tag input",
     "bet.age_length" = "`bet.2023.new-structure.age_length`; old CAAL / age_length re-assigned to new fisheries",
     "input_manifest.csv" = "machine-readable source/input notes with source commits"
   ),
   c(
-    "5-region fishery/tag/selectivity controls are remapped in `doitall.sh`.",
-    "Index fisheries 29-33 use sigmas 0.28, 0.20, 0.22, 0.21, and 0.24.",
-    "The `-9999 1 2` all-release mixing-period setting is retained for this pre-mix step.",
+    "This step becomes the 5-region control template for steps 05-15.",
+    "Generated `.frq` files include region locations for every fishery, including index fisheries.",
     "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.",
     "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders."
   ),
   c(
     "After fitting, review the 5-region selectivity/tag grouping inherited from the workbook mapping.",
-    "The `.frq` region-location line must contain all 33 fisheries: 28 extraction fisheries followed by index fishery regions 1-5.",
-    paste0("The ", n_normalized_03, " normalized absent-LF records should be reviewed against the upstream frq-build script so the source generator can eventually emit MFCL-ready records."),
-    "The upstream non-mix `.ini` files are labelled 1007 but can have non-standard or short tag-flag blocks; generated inputs now normalize and pad explicit tag flags for MFCL >=2.2.7.5.",
-    "Local MFCL `-makepar` smoke still reports 30 `caught before it was released` tag recapture warnings; review upstream tag prep before final production runs."
+    "The `.frq` region-location line must contain all 33 fisheries: 28 extraction fisheries followed by index fishery regions 1-5."
   ),
   "Ready for Kflow smoke runs; full MFCL fit not run here.",
   source_revisions = input_repo_revision_table()
 )
 
-regfish_ini <- file.path(root, "steps", "03-RegFish", "model", "bet.ini")
-regfish_tag <- file.path(root, "steps", "03-RegFish", "model", "bet.tag")
-full_plus_frq <- file.path(frq_root, "bet.2026.wt.as.len.plus.len.frq")
-wt_as_len_frq <- file.path(frq_root, "bet.2026.wt.as.len.frq")
+stepwise_5_region_template_step_id <- "04-NewStructure"
+newstructure_ini <- file.path(newstructure_model_dir, "bet.ini")
+newstructure_tag <- file.path(newstructure_model_dir, "bet.tag")
+
 full_2024_alignment_run_notes <- c(
-  "The first full-2024 Kflow attempt failed during MFCL `-makepar`, before any fit output was available. The logged fatal sequence was `initial_tag_year(2) 157`, `Error reading region_flags`, and `Bounds error reading pmature(34) in par file value is 0`; downstream payload creation then failed because no MFCL output folder existed.",
-  "The failure was traced to using the 2026 `.frq/.tag` release-group count with a source `bet.2026.ini` whose tag controls were shorter: the selected `.frq` and `.tag` had 98 release groups, while the ini tag flags and tag shed-rate vector only covered 91 groups and the tag reporting-rate matrices were missing the 7 new release rows.",
-  "Generated inputs now repair only the `.ini` alignment: missing tag reporting-rate rows 92-98 are filled by matching tag program, region, year, and month from `bet.2023.new.structure.ini`; explicit MFCL 1007 tag flags are padded to 98 rows; and `# tag shed rate` is padded from 91 to 98 zero shed rates.",
-  "The 2026 tag file itself is kept from `bet.2026.low.recaps.removed.tag`; no tag release or recapture rows were deleted to suppress warnings.",
-  "After the alignment repair, `mfclo64 bet.frq bet.ini 00.par -makepar` exits 0 and creates `00.par` for 06-Full2024 and 07-CAAL2026 in the `tuna-flow:v1.10` image."
+  "Generated inputs repair only the `.ini` alignment where needed: tag reporting-rate matrices, explicit tag flags, and tag shed rates are matched to the selected release-group count.",
+  "The 2026 tag file itself is kept from `bet.2026.low.recaps.removed.tag`; no tag release or recapture rows are deleted to suppress warnings.",
+  "These steps use the current tuna-flow MFCL executable and the 04-NewStructure 5-region controls unless a later step explicitly changes controls."
 )
 mix_period_alignment_run_notes <- c(
-  "These steps were audited after the 06/07 full-2024 failure because they use the same 98-release 2026 `.frq` and `.tag` family.",
-  "The mix-period ini family already carries release-group-specific tag controls, so the generated `doitall.sh` removes the inherited `-9999 1 2` override and lets the ini tag flags drive the mixing-period settings.",
-  "Generation still validates the same release-group alignment checks as 06/07: tag flags, tag shed rate, and the five tag reporting-rate matrices must match the 98 selected release groups plus the pooled reporting row where appropriate.",
-  "Zero mixing-period values in the source mix-period ini are raised to 1 because the current MFCL reader disallows 0; this is an ini-control normalization, not a deletion of tag data.",
-  "Local `mfclo64 bet.frq bet.ini 00.par -makepar` smoke tests now exit 0 and create `00.par` for 08-MixPeriod02 through 12-DataWeight40 in the `tuna-flow:v1.10` image."
+  "The mix-period ini family carries release-group-specific tag controls, so generated `doitall.sh` removes the inherited `-9999 1 2` override and lets the ini tag flags drive mixing periods.",
+  "Generation validates that tag flags, tag shed rate, and the five tag reporting-rate matrices match the selected release-group count.",
+  "Zero mixing-period values in the source mix-period ini are raised to 1 because the current MFCL reader disallows 0."
 )
 
 make_step(
-  step_id = "04-WtAsLen21",
-  frq_source = wt_as_len_frq,
-  ini_source = regfish_ini,
-  tag_source = regfish_tag,
+  step_id = "05-ConvertToLength",
+  frq_source = frq_convert_length_2021,
+  ini_source = newstructure_ini,
+  tag_source = newstructure_tag,
   age_source = old_age,
-  frq_chop_year = 2021L,
-  frq_tag_groups = frq_counts_03$n_tag_groups,
-  index_cpue_source = regfish_frq_source,
-  title = "04 WtAsLen21",
-  summary = "Transition step using 2026 weights-as-lengths size/catch data chopped to 2021, while retaining the 2023 new-structure CPUE/index records.",
+  frq_tag_groups = frq_counts_04$n_tag_groups,
+  title = "05 ConvertToLength",
+  summary = "Data to 2021, global CPUE, converting existing weight compositions to length.",
   bullets = c(
-    "Builds a hybrid `bet.frq`: non-index records come from `bet.2026.wt.as.len.frq` chopped to year <= 2021, while index fisheries 29-33 are replaced with CPUE records from `bet.2023.new.structure.frq`.",
-    "This isolates the weights-to-lengths transition without also switching the CPUE/index data to the 2026 regional index series.",
-    paste0("Keeps the 03-RegFish ", frq_counts_03$n_tag_groups, "-release tag/ini structure because this step remains a 2021-terminal comparison."),
-    paste0("Resets the chopped `.frq` tag-group header from the 2026 source count to ", frq_counts_03$n_tag_groups, " to match the selected tag file."),
-    "Keeps old CAAL (`bet.2023.new-structure.age_length`) as requested by the stepwise plan.",
-    "Applies the FixM M row to the 03-RegFish-compatible ini."
+    "Uses `bet.2023.new-structure.global-cpue.wt-as-len.frq` from the frq-build repo.",
+    "Keeps the 04-NewStructure `.ini`, tag, and old CAAL inputs so this step isolates the weight-to-length conversion.",
+    "Applies the FixM M row through the inherited 04-NewStructure ini."
   ),
   input_notes = c(
-    "bet.frq" = paste0(
-      "hybrid of `bet.2026.wt.as.len.frq` chopped to 2021 for non-index size/catch records, plus index fisheries 29-33 copied from `bet.2023.new.structure.frq`; tag-group header reset to ",
-      frq_counts_03$n_tag_groups
-    ),
-    "bet.ini" = "`steps/03-RegFish/model/bet.ini`, FixM M row applied",
-    "bet.tag" = "`steps/03-RegFish/model/bet.tag`",
+    "bet.frq" = "`bet.2023.new-structure.global-cpue.wt-as-len.frq`; terminal year 2021, global CPUE",
+    "bet.ini" = "`steps/04-NewStructure/model/bet.ini`, FixM M row applied",
+    "bet.tag" = "`steps/04-NewStructure/model/bet.tag`",
     "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
   ),
-  control_notes = c(
-    "03-RegFish 5-region `doitall.sh` controls retained.",
-    paste0(
-      "The all-release-group `-9999 1 2` mixing-period override is retained because this step uses the 03-RegFish ",
-      frq_counts_03$n_tag_groups,
-      "-release tag set."
-    )
-  ),
-  run_notes = c(
-    "The first implementation chopped the 2026 `.frq` directly, which also carried the 2026 CPUE/index records. The corrected transition keeps the 2023 new-structure CPUE/index records for fisheries 29-33.",
-    "Kflow failed when this 2021-chopped `.frq` was paired with the full 2026 tag/ini family; MFCL stopped at tag release group 18 because its mixing period reached the terminal model period.",
-    paste0(
-      "To make the step runnable as a 2021-terminal transition, `bet.ini` and `bet.tag` now come from 03-RegFish's ",
-      frq_counts_03$n_tag_groups,
-      "-release setup, and the chopped `.frq` tag-group header is reset to ",
-      frq_counts_03$n_tag_groups,
-      "."
-    ),
-    "No tag release or recapture rows were deleted to silence warnings; this step only changes which already-prepared input family is paired with the chopped 2026 size/catch records.",
-    "Local `mfclo64 bet.frq bet.ini 00.par -makepar` now exits 0 and creates `00.par`; the remaining 30 `caught before it was released` messages are the known upstream tag-prep warnings also seen in 03."
-  ),
-  outstanding = c(
-    "After fitting, compare directly with 03-RegFish to isolate the effect of converting weights to lengths while CPUE/index data are held constant.",
-    "Review fit impacts before deciding whether any size-composition weighting needs adjustment at this stage."
-  )
+  control_notes = c("04-NewStructure 5-region `doitall.sh` controls retained."),
+  run_notes = c("Compare directly with 04-NewStructure to isolate the effect of converting existing weight compositions to length."),
+  outstanding = c("Review fit impacts before deciding whether any size-composition weighting needs adjustment at this stage.")
 )
 
 make_step(
-  step_id = "05-WtAsLenPlusLen21",
-  frq_source = full_plus_frq,
-  ini_source = regfish_ini,
-  tag_source = regfish_tag,
+  step_id = "06-LengthPlusLength",
+  frq_source = frq_length_plus_length_2021,
+  ini_source = newstructure_ini,
+  tag_source = newstructure_tag,
   age_source = old_age,
-  frq_chop_year = 2021L,
-  frq_tag_groups = frq_counts_03$n_tag_groups,
-  index_cpue_source = regfish_frq_source,
-  title = "05 WtAsLenPlusLen21",
-  summary = "Transition step using 2026 weights-as-lengths plus observed lengths chopped to 2021, while retaining the 2023 new-structure CPUE/index records.",
+  frq_tag_groups = frq_counts_04$n_tag_groups,
+  title = "06 LengthPlusLength",
+  summary = "Data to 2021, global CPUE, adding length compositions that were not used in the past.",
   bullets = c(
-    "Builds a hybrid `bet.frq`: non-index records come from `bet.2026.wt.as.len.plus.len.frq` chopped to year <= 2021, while index fisheries 29-33 are replaced with CPUE records from `bet.2023.new.structure.frq`.",
-    "This isolates the plus-length size-composition transition without also switching the CPUE/index data to the 2026 regional index series.",
-    "Maintains the old CAAL input while moving the size-composition frequency file to the plus-length variant.",
-    paste0("Keeps the 03-RegFish ", frq_counts_03$n_tag_groups, "-release tag/ini structure because this step remains a 2021-terminal comparison."),
-    paste0("Resets the chopped `.frq` tag-group header from the 2026 source count to ", frq_counts_03$n_tag_groups, " to match the selected tag file."),
-    "Applies the FixM M row to the 03-RegFish-compatible ini."
+    "Uses `bet.2023.new-structure.global-cpue.wt-as-len-plus-len.frq` from the frq-build repo.",
+    "Keeps the 04-NewStructure `.ini`, tag, and old CAAL inputs so this step isolates the additional length-composition data.",
+    "Applies the FixM M row through the inherited 04-NewStructure ini."
   ),
   input_notes = c(
-    "bet.frq" = paste0(
-      "hybrid of `bet.2026.wt.as.len.plus.len.frq` chopped to 2021 for non-index size/catch records, plus index fisheries 29-33 copied from `bet.2023.new.structure.frq`; tag-group header reset to ",
-      frq_counts_03$n_tag_groups
-    ),
-    "bet.ini" = "`steps/03-RegFish/model/bet.ini`, FixM M row applied",
-    "bet.tag" = "`steps/03-RegFish/model/bet.tag`",
+    "bet.frq" = "`bet.2023.new-structure.global-cpue.wt-as-len-plus-len.frq`; terminal year 2021, global CPUE",
+    "bet.ini" = "`steps/04-NewStructure/model/bet.ini`, FixM M row applied",
+    "bet.tag" = "`steps/04-NewStructure/model/bet.tag`",
     "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
   ),
-  control_notes = c(
-    "03-RegFish 5-region `doitall.sh` controls retained.",
-    paste0(
-      "The all-release-group `-9999 1 2` mixing-period override is retained because this step uses the 03-RegFish ",
-      frq_counts_03$n_tag_groups,
-      "-release tag set."
-    )
-  ),
-  run_notes = c(
-    "The first implementation chopped the 2026 `.frq` directly, which also carried the 2026 CPUE/index records. The corrected transition keeps the 2023 new-structure CPUE/index records for fisheries 29-33.",
-    "Kflow failed when this 2021-chopped `.frq` was paired with the full 2026 tag/ini family; MFCL stopped at tag release group 18 because its mixing period reached the terminal model period.",
-    paste0(
-      "To make the step runnable as a 2021-terminal transition, `bet.ini` and `bet.tag` now come from 03-RegFish's ",
-      frq_counts_03$n_tag_groups,
-      "-release setup, and the chopped `.frq` tag-group header is reset to ",
-      frq_counts_03$n_tag_groups,
-      "."
-    ),
-    "No tag release or recapture rows were deleted to silence warnings; this step only changes which already-prepared input family is paired with the chopped 2026 size/catch records.",
-    "Local `mfclo64 bet.frq bet.ini 00.par -makepar` now exits 0 and creates `00.par`; the remaining 30 `caught before it was released` messages are the known upstream tag-prep warnings also seen in 03."
-  ),
-  outstanding = c(
-    "After fitting, compare directly with 04-WtAsLen21 to isolate the effect of adding observed lengths while CPUE/index data are held constant."
-  )
+  control_notes = c("04-NewStructure 5-region `doitall.sh` controls retained."),
+  run_notes = c("Compare directly with 05-ConvertToLength to isolate the extra length-composition records."),
+  outstanding = c("Review fit impacts before deciding whether length-composition weighting needs adjustment.")
 )
 
 make_step(
-  step_id = "06-Full2024",
-  frq_source = full_plus_frq,
+  step_id = "07-DataTo2024",
+  frq_source = frq_global_2024,
   ini_source = new_ini,
   tag_source = new_tag,
   age_source = old_age,
-  reg_scaling_source = reg_scaling_source,
-  title = "06 Full2024",
-  summary = "Full 2024 data step with weights-as-lengths plus lengths, new regional CPUE/index inputs, and 2026 tag reporting priors.",
+  title = "07 DataTo2024",
+  summary = "Data to 2024, global CPUE, isolating the effect of adding three years of data.",
   bullets = c(
-    "Uses `bet.2026.wt.as.len.plus.len.frq` without year chopping.",
-    "Moves from the 2021-chopped transition steps to the full 2024 frequency/catch/size series.",
-    "Keeps old CAAL for this step, matching the plan's 'no change to CAAL file' instruction.",
+    "Uses `bet.2026.new-structure.global-cpue.wt-as-len-plus-len.frq` without year chopping.",
+    "Moves from the 2021 transition steps to the full 2024 frequency/catch/size series.",
+    "Keeps old CAAL so the new otolith update is isolated in 09-NewOtoliths.",
     "Uses the 2026 low-recapture-removed tag file and 2026 ini, with FixM M row applied."
   ),
   input_notes = c(
-    "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, full 2024",
+    "bet.frq" = "`bet.2026.new-structure.global-cpue.wt-as-len-plus-len.frq`, full 2024 with global CPUE",
     "bet.ini" = "`bet.2026.ini`, FixM M row applied",
     "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
     "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
   ),
   control_notes = c(
-    "03-RegFish 5-region `doitall.sh` controls retained.",
+    "04-NewStructure 5-region `doitall.sh` controls retained.",
     "The all-release-group mixing period remains fixed at 2 for this pre-mix step."
   ),
   run_notes = full_2024_alignment_run_notes,
-  outstanding = c(
-    "Full 2024 input behavior still needs a real MFCL fit and residual/CPUE-sigma review.",
-    "This step intentionally keeps old CAAL so the CAAL update is isolated in 07-CAAL2026."
-  )
+  outstanding = c("Full 2024 input behavior still needs a real MFCL fit and residual/CPUE-sigma review.")
 )
 
 make_step(
-  step_id = "07-CAAL2026",
-  frq_source = full_plus_frq,
+  step_id = "08-RegionalCPUE",
+  frq_source = frq_regional_2024,
+  ini_source = new_ini,
+  tag_source = new_tag,
+  age_source = old_age,
+  reg_scaling_source = reg_scaling_source,
+  title = "08 RegionalCPUE",
+  summary = "Regional CPUE step using the 2024 regional CPUE frequency file and regional-scaling prior.",
+  bullets = c(
+    "Uses the full 2024 regional CPUE `.frq` from the frq-build repo.",
+    "Adds `bet.reg_scaling` and switches to the regional-scaling prior in PHASE 5.",
+    "Keeps old CAAL so the new otolith update is isolated in 09-NewOtoliths.",
+    "Uses the 2026 low-recapture-removed tag file and 2026 ini, with FixM M row applied."
+  ),
+  input_notes = c(
+    "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
+    "bet.ini" = "`bet.2026.ini`, FixM M row applied",
+    "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
+    "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
+  ),
+  control_notes = c(
+    "04-NewStructure 5-region `doitall.sh` controls retained until PHASE 5.",
+    "PHASE 5 switches index CPUE/selectivity grouping for the regional-scaling prior."
+  ),
+  run_notes = full_2024_alignment_run_notes,
+  outstanding = c("Evaluate and test different regional CPUE prior values after this runnable baseline fit.")
+)
+
+make_step(
+  step_id = "09-NewOtoliths",
+  frq_source = frq_regional_2024,
   ini_source = new_ini,
   tag_source = new_tag,
   age_source = new_age,
   reg_scaling_source = reg_scaling_source,
-  title = "07 CAAL2026",
-  summary = "Full 2024 data step with the updated 2026 CAAL / age_length input.",
+  title = "09 NewOtoliths",
+  summary = "New Japanese otoliths and 2026 CAAL input on the regional CPUE model.",
   bullets = c(
-    "Uses the same full 2024 `.frq`, 2026 `.ini`, and 2026 `.tag` as 06-Full2024.",
+    "Uses the same regional CPUE `.frq`, 2026 `.ini`, and 2026 `.tag` as 08-RegionalCPUE.",
     "Switches CAAL from `bet.2023.new-structure.age_length` to `bet.2026.age_length`.",
-    "The 2026 age_length file has 181 records through 2024 and includes Japan/SPC new age data.",
+    "The 2026 age_length file includes the new otolith data used for this step.",
     "Applies the FixM M row to the 2026 ini."
   ),
   input_notes = c(
-    "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, full 2024",
+    "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
     "bet.ini" = "`bet.2026.ini`, FixM M row applied",
     "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
-    "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
+    "bet.age_length" = "`bet.2026.age_length` (updated CAAL/new otoliths)"
   ),
-  control_notes = c(
-    "03-RegFish 5-region `doitall.sh` controls retained.",
-    "The all-release-group mixing period remains fixed at 2 for this pre-mix step."
-  ),
+  control_notes = c("08-RegionalCPUE controls retained."),
   run_notes = full_2024_alignment_run_notes,
-  outstanding = c(
-    "After fitting, compare CAAL likelihood and age residuals against 06-Full2024.",
-    "Confirm the 2026 CAAL source remains the chosen final CAAL file before later sensitivity runs."
-  )
+  outstanding = c("After fitting, compare CAAL likelihood and age residuals against 08-RegionalCPUE.")
 )
 
 make_step(
-  step_id = "08-MixPeriod02",
-  frq_source = full_plus_frq,
-  ini_source = file.path(ini_root, "ini.mix-period", "bet.2026.mix-0.2.ini"),
+  step_id = "10-TagMixingKS",
+  frq_source = frq_regional_2024,
+  ini_source = mix_ini,
   tag_source = new_tag,
   age_source = new_age,
   reg_scaling_source = reg_scaling_source,
   mix_from_ini = TRUE,
-  title = "08 MixPeriod02",
-  summary = "Release-group-specific tag mixing periods using the 0.2 KS diagnostic cutoff.",
+  title = "10 TagMixingKS",
+  summary = "KS coefficient 0.2 release-group-specific tag mixing periods.",
   bullets = c(
     "Uses `bet.2026.mix-0.2.ini` from the ini-build repo.",
-    "Keeps the full 2024 `.frq`, 2026 tag file, and updated 2026 CAAL.",
+    "Keeps the full 2024 regional CPUE `.frq`, 2026 tag file, and updated 2026 CAAL.",
     "Applies the FixM M row to the mix-period ini.",
-    "Removes the inherited `-9999 1 2` line from `doitall.sh` so the release-group-specific tag flags in the ini are not overwritten."
+    "Removes the inherited `-9999 1 2` line from `doitall.sh` so release-group-specific tag flags in the ini are not overwritten."
   ),
   input_notes = c(
-    "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, full 2024",
+    "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
     "bet.ini" = "`bet.2026.mix-0.2.ini`, FixM M row applied",
     "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
     "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
   ),
   control_notes = c(
     "The all-release-group mixing-period override is removed.",
-    "All other 03-RegFish 5-region fishery, tag recapture, selectivity, and CPUE sigma controls are retained."
+    "All other 08-RegionalCPUE fishery, tag recapture, selectivity, and regional-scaling controls are retained."
   ),
   run_notes = mix_period_alignment_run_notes,
-  outstanding = c(
-    "Confirm that the 0.2 KS mix-period ini is the main 12-step path; the 0.15 version remains a sensitivity candidate.",
-    "After fitting, inspect tag residuals and release-group behavior before tuning tag-reporting assumptions further."
-  )
+  outstanding = c("After fitting, inspect tag residuals and release-group behavior before tuning tag-reporting assumptions further.")
 )
 
 make_step(
-  step_id = "09-SizeBasedSel",
-  frq_source = full_plus_frq,
-  ini_source = file.path(ini_root, "ini.mix-period", "bet.2026.mix-0.2.ini"),
+  step_id = "11-TimeVaryingCV",
+  frq_source = frq_regional_2024,
+  ini_source = mix_ini,
   tag_source = new_tag,
   age_source = new_age,
   reg_scaling_source = reg_scaling_source,
   mix_from_ini = TRUE,
-  doitall_edits = list(size_based_selectivity = TRUE),
-  title = "09 SizeBasedSel",
-  summary = "Size-based selectivity step after the main 0.2 KS tag mixing-period setup.",
+  doitall_edits = list(time_varying_cv = TRUE),
+  title = "11 TimeVaryingCV",
+  summary = "Enable time-varying CPUE CV for the regional index fisheries.",
   bullets = c(
-    "Uses the same full 2024 `.frq`, `bet.2026.mix-0.2.ini`, 2026 tag file, and updated 2026 CAAL as 08-MixPeriod02.",
-    "Sets fish flag 26 from 2 to 3 in `doitall.sh`, following the YFT 2026 length-based selectivity note.",
-    "Keeps the extraction-fishery selectivity mapping and fishery-specific constraints from 03-RegFish, while index fisheries unshare from PHASE 5 under regional scaling."
+    "Uses the same inputs as 10-TagMixingKS.",
+    "Sets the index-fishery time-varying CPUE CV flag from 0 to 1 in `doitall.sh`.",
+    "No fishery, tag, CAAL, or `.frq` source changes are made in this step."
   ),
   input_notes = c(
-    "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, full 2024",
+    "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
     "bet.ini" = "`bet.2026.mix-0.2.ini`, FixM M row applied",
     "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
     "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
   ),
   control_notes = c(
     "The all-release-group mixing-period override remains removed.",
-    "`-999 26 3` is applied for size-based selectivity."
+    "Index fisheries 29-33 have fish flag 66 set to 1 for time-varying CPUE CV."
   ),
-  run_notes = c(
-    mix_period_alignment_run_notes,
-    "The extra step-specific change after the mix-period audit is limited to fish flag 26: `doitall.sh` sets `-999 26 3` for the size-based selectivity experiment."
-  ),
-  outstanding = c(
-    "Confirm with the modelling group that BET should use the same flag-26 setting as the YFT 2026 size-based selectivity experiment.",
-    "Not yet reviewed after fitting: upper-age selectivity constraints inherited from 03-RegFish, especially `24.PL.ALL.WEST.3`."
-  )
+  run_notes = mix_period_alignment_run_notes,
+  outstanding = c("After fitting, compare CPUE residuals and estimated CV behavior against 10-TagMixingKS.")
 )
 
 make_step(
-  step_id = "10-OPR",
-  frq_source = full_plus_frq,
-  ini_source = file.path(ini_root, "ini.mix-period", "bet.2026.mix-0.2.ini"),
+  step_id = "12-OrthogonalPoly",
+  frq_source = frq_regional_2024,
+  ini_source = mix_ini,
   tag_source = new_tag,
   age_source = new_age,
   reg_scaling_source = reg_scaling_source,
   mix_from_ini = TRUE,
-  doitall_edits = list(size_based_selectivity = TRUE, opr = TRUE),
-  title = "10 OPR",
-  summary = "Orthogonal polynomial recruitment step using the best-ranked BET OPR screening setting.",
+  doitall_edits = list(time_varying_cv = TRUE, opr = TRUE),
+  title = "12 OrthogonalPoly",
+  summary = "Orthogonal polynomial recruitment step, ensuring `2 177 0` is used.",
   bullets = c(
-    "Uses the same input files as 09-SizeBasedSel.",
-    "Applies the BIGEYE AIC rank-1 OPR screening model: `69-01-50-50`.",
-    "The OPR comparison was run on the BET 4R model, but this step carries the best-ranked setting into the current 5-region stepwise path.",
-    "OPR controls are applied in PHASE 3 of `doitall.sh`, so early phases still use the pre-OPR recruitment setup before the transfer."
+    "Uses the same inputs as 11-TimeVaryingCV.",
+    "Applies the BET OPR screening rank-1 model: `69-01-50-50`.",
+    "Keeps time-varying CPUE CV enabled for index fisheries 29-33.",
+    "OPR controls are applied in PHASE 3 of `doitall.sh`, including `2 177 0`."
   ),
   input_notes = c(
-    "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, full 2024",
+    "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
     "bet.ini" = "`bet.2026.mix-0.2.ini`, FixM M row applied",
     "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
     "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
   ),
   control_notes = c(
-    "`-999 26 3` is retained from 09-SizeBasedSel.",
-    "PHASE 1 and PHASE 2 retain the pre-OPR recruitment setup.",
-    "`1 149 0`, `1 398 0`, `1 400 0`, `2 177 0`, `2 32 0`, and `2 113 0` are applied at PHASE 3 for the OPR transfer, matching the OPR screening `doitall` example except for obsolete `parest_flag(221)`.",
-    "`1 155 69` sets the OPR year effect from the `69-01-50-50` setting. `parest_flag(221)` is not set because current MFCL treats it as an obsolete/commented-out legacy year-effect override; the active source reads the year degree from `parest_flag(155)`.",
-    "`1 217 1`, `1 216 50`, and `1 218 50` set season, region, and region-season interaction effects.",
-    "`1 202 2` sets the OPR end window to the last 2 real years, where the orthogonal-polynomial basis is held at the lower-degree/constant-end form. `1 210 0`, `1 212 0`, and `1 214 0` do not turn that off; in current MFCL, zero means the region, season, and region-season effects inherit `parest_flag(202)`. Use `-1` to turn an end window off.",
-    "`2 30 1` is deliberately retained at the OPR phase because current MFCL requires `age_flag(30)=1` to activate the OPR polynomial coefficients.",
-    "`2 70`, `2 71`, `2 178`, and `-100000 1:5` recruitment-distribution controls are turned off at the OPR phase.",
-    "PHASE 3 uses 500 function evaluations, matching the OPR screening `doitall` example."
+    "Time-varying CPUE CV flags are retained.",
+    "`1 149 0`, `1 398 0`, `1 400 0`, `2 177 0`, `2 32 0`, and `2 113 0` are applied at PHASE 3 for the OPR transfer.",
+    "`1 155 69`, `1 217 1`, `1 216 50`, and `1 218 50` set the OPR year, season, region, and region-season effects.",
+    "`2 30 1` is deliberately retained at the OPR phase because current MFCL requires `age_flag(30)=1` to activate the OPR polynomial coefficients."
   ),
   run_notes = c(
     mix_period_alignment_run_notes,
-    "The step-specific OPR change follows the BET OPR screening: the BET 4R rank-1 AIC setting `69-01-50-50` is carried into this 5-region path. The README records that this is an applied transfer from the 4R screening, not a separate 5-region OPR search.",
-    "The OPR transfer keeps `2 30 1` because current MFCL does not activate the OPR recruitment-polynomial coefficients without it; the step turns off `2 70`, `2 71`, `2 178`, and the `-100000 1:5` regional recruitment-distribution flags."
+    "The OPR transfer follows the BET 4R screening rank-1 AIC setting `69-01-50-50`."
   ),
-  outstanding = c(
-    "After fitting, confirm the 5-region model behaves consistently with the 4R BET OPR screening result.",
-    "If diagnostics disagree with the 4R screening, revisit the other BET-ranked OPR options."
-  )
+  outstanding = c("After fitting, confirm the 5-region model behaves consistently with the 4R BET OPR screening result.")
 )
 
 make_step(
-  step_id = "11-EffortCreep",
-  frq_source = full_plus_frq,
-  ini_source = file.path(ini_root, "ini.mix-period", "bet.2026.mix-0.2.ini"),
+  step_id = "13-LengthBasedSel",
+  frq_source = frq_regional_2024,
+  ini_source = mix_ini,
+  tag_source = new_tag,
+  age_source = new_age,
+  reg_scaling_source = reg_scaling_source,
+  mix_from_ini = TRUE,
+  doitall_edits = list(time_varying_cv = TRUE, opr = TRUE, size_based_selectivity = TRUE),
+  title = "13 LengthBasedSel",
+  summary = "Length-based selectivity test after the OPR step.",
+  bullets = c(
+    "Uses the same inputs as 12-OrthogonalPoly.",
+    "Retains time-varying CPUE CV and OPR controls.",
+    "Sets fish flag 26 from 2 to 3 in `doitall.sh` for the length-based selectivity test."
+  ),
+  input_notes = c(
+    "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
+    "bet.ini" = "`bet.2026.mix-0.2.ini`, FixM M row applied",
+    "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
+    "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
+  ),
+  control_notes = c(
+    "12-OrthogonalPoly controls are retained.",
+    "`-999 26 3` is applied for length-based selectivity."
+  ),
+  run_notes = c(
+    mix_period_alignment_run_notes,
+    "The step-specific change after OPR is limited to fish flag 26: `doitall.sh` sets `-999 26 3`."
+  ),
+  outstanding = c("Confirm with the modelling group whether BET should keep the same flag-26 setting after the test fit.")
+)
+
+make_step(
+  step_id = "14-EffortCreep",
+  frq_source = frq_regional_2024,
+  ini_source = mix_ini,
   tag_source = new_tag,
   age_source = new_age,
   reg_scaling_source = reg_scaling_source,
   frq_transform = "effort_creep",
   mix_from_ini = TRUE,
-  doitall_edits = list(size_based_selectivity = TRUE, opr = TRUE),
-  title = "11 EffortCreep",
-  summary = "Minimum effort-creep scenario applied to the regional index fisheries.",
+  doitall_edits = list(time_varying_cv = TRUE, opr = TRUE, size_based_selectivity = TRUE),
+  title = "14 EffortCreep",
+  summary = "Apply the lower effort-creep level in the diagnostic model path.",
   bullets = c(
-    "Uses 10-OPR controls and applies an effort-creep transform to index fisheries 29-33 in `bet.frq`.",
-    "Retains the `69-01-50-50` OPR setting selected from the BET 4R OPR screening.",
+    "Uses 13-LengthBasedSel controls and applies an effort-creep transform to index fisheries 29-33 in `bet.frq`.",
+    "Retains the `69-01-50-50` OPR setting and time-varying CPUE CV controls.",
     "The effort-creep transform multiplies index-fishery effort by a piecewise linear multiplier: 1%/yr for 1952-1976 and 0.5%/yr for 1977-2024.",
     "Only positive index-fishery effort values are changed; extraction fisheries and size compositions are untouched."
   ),
   input_notes = c(
-    "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, full 2024, with index effort creep applied",
+    "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE, with index effort creep applied"),
     "bet.ini" = "`bet.2026.mix-0.2.ini`, FixM M row applied",
     "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
     "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
   ),
   control_notes = c(
-    "10-OPR `doitall.sh` controls are retained, including the explicit `2 30 1` OPR activation safeguard.",
+    "13-LengthBasedSel controls are retained.",
     "No extra MFCL flag is used for effort creep; the change is in the index-fishery effort values in `bet.frq`."
   ),
   run_notes = c(
     mix_period_alignment_run_notes,
-    "The effort-creep `.frq` is generated from the full 2024 plus-length source by changing only positive effort values for index fisheries 29-33; extraction fisheries and size-composition records are left as in the source file.",
-    "The implemented multiplier is 1.00 in 1952, 1.24 in 1976, and 1.48 in 2024; this applies the agreed piecewise effort-creep scenario rather than extending the 1%/yr rate through the full time series."
+    "The effort-creep `.frq` is generated from the full 2024 regional CPUE source by changing only positive effort values for index fisheries 29-33."
   ),
-  outstanding = c(
-    "After fitting, review the index residuals and implied CPUE scaling against 10-OPR to confirm this agreed effort-creep scenario behaves as expected."
-  )
+  outstanding = c("After fitting, review index residuals and implied CPUE scaling against 13-LengthBasedSel.")
 )
 
 make_step(
-  step_id = "12-DataWeight40",
-  frq_source = full_plus_frq,
-  ini_source = file.path(ini_root, "ini.mix-period", "bet.2026.mix-0.2.ini"),
+  step_id = "15-DataWeighting",
+  frq_source = frq_regional_2024,
+  ini_source = mix_ini,
   tag_source = new_tag,
   age_source = new_age,
   reg_scaling_source = reg_scaling_source,
   frq_transform = "effort_creep",
   mix_from_ini = TRUE,
-  doitall_edits = list(size_based_selectivity = TRUE, opr = TRUE, data_weighting = TRUE),
-  title = "12 DataWeight40",
-  summary = "Initial manual strategic data-weighting step with stronger global size-composition downweighting.",
+  doitall_edits = list(
+    time_varying_cv = TRUE,
+    opr = TRUE,
+    size_based_selectivity = TRUE,
+    data_weighting = TRUE
+  ),
+  title = "15 DataWeighting",
+  summary = "Initial selective data-weighting step after the effort-creep model.",
   bullets = c(
-    "Uses the same effort-creep `.frq`, mix-period `.ini`, tag, and CAAL as 11-EffortCreep.",
-    "Keeps size-based selectivity and the `69-01-50-50` OPR controls from 10-OPR.",
-    "Changes global LF and WF sample-size divisors from 20 to 40 in `doitall.sh`."
+    "Uses the same effort-creep `.frq`, mix-period `.ini`, tag, and CAAL as 14-EffortCreep.",
+    "Keeps time-varying CPUE CV, OPR, and length-based selectivity controls.",
+    "Applies the currently implemented size-composition data-weighting control change."
   ),
   input_notes = c(
-    "bet.frq" = "`bet.2026.wt.as.len.plus.len.frq`, full 2024, with index effort creep applied",
+    "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE, with index effort creep applied"),
     "bet.ini" = "`bet.2026.mix-0.2.ini`, FixM M row applied",
     "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
     "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
   ),
   control_notes = c(
-    "10-OPR `doitall.sh` controls are retained, including the explicit `2 30 1` OPR activation safeguard.",
+    "14-EffortCreep controls are retained.",
     "`-999 49 40` and `-999 50 40` replace the global LF/WF divisor-20 settings.",
-    "Fishery-specific divisor-40 settings inherited from 03-RegFish are retained."
+    "Fishery-specific divisor-40 settings inherited from the 5-region controls are retained."
   ),
   run_notes = c(
     mix_period_alignment_run_notes,
-    "The step-specific data-weighting change is limited to the global LF/WF sample-size divisors: `-999 49 40` and `-999 50 40` replace the divisor-20 settings. This was documented as an initial runnable weighting scenario, not a final tuned weighting scheme."
+    "The implemented data-weighting change is the existing runnable control path: global LF/WF sample-size divisors are changed from 20 to 40."
   ),
   outstanding = c(
-    "This is a first runnable manual weighting scenario, not a final tuned weighting scheme.",
-    "Not yet implemented: alternative divisor scenarios or targeted CAAL/size weighting after diagnostics."
+    "This is a first runnable weighting scenario; targeted weighting by small-catch strata can be refined after diagnostics.",
+    "Review likelihood and composition residuals before treating this as the final tuned weighting scheme."
   )
 )

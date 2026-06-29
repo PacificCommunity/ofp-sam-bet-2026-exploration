@@ -1,0 +1,6 @@
+"role","file","source","source_commit","note"
+"frq","bet.frq","input-repos/ofp-sam-bet-2023-diagnostic/MFCL/bet.frq","81fc412","2023 diagnostic frequency/catch/size input"
+"ini","bet.ini","input-repos/ofp-sam-bet-2023-diagnostic/MFCL/bet.ini","81fc412","set ini version to 1007; inserted MFCL 1007 tag flags for 118 release groups with 2 mixing periods and reporting rates excluded during mixing; inserted zero tag shed-rate vector for 118 release groups; inserted MFCL 1007 total-population scalar default 25; inserted MFCL 1007 Richards growth parameter default 0"
+"tag","bet.tag","input-repos/ofp-sam-bet-2023-diagnostic/MFCL/bet.tag","81fc412","2023 diagnostic tag input; tag reporting map regenerated from ini/tag"
+"age_length","bet.age_length","input-repos/ofp-sam-bet-2023-diagnostic/MFCL/bet.age_length","81fc412","2023 diagnostic CAAL input"
+"doitall","doitall.sh","input-repos/ofp-sam-bet-2023-diagnostic/MFCL/doitall.sh","81fc412","current-executable compatibility controls: updated initial Z and CPUE CV settings, PROGRAM_PATH wrapper, and PHASE 10/11 convergence switch"

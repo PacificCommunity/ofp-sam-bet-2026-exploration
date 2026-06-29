@@ -113,18 +113,21 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.",
     "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders."
   )
-  copy_one(file.path(root, "steps", "03-RegFish", "model", "mfcl.cfg"), file.path(model_dir, "mfcl.cfg"))
+  template_step_id <- get0("stepwise_5_region_template_step_id", ifnotfound = "04-NewStructure")
+  template_model_dir <- file.path(root, "steps", template_step_id, "model")
+  copy_one(file.path(template_model_dir, "mfcl.cfg"), file.path(model_dir, "mfcl.cfg"))
   fishery_map_out <- file.path(model_dir, "fishery_map.R")
-  copy_one(file.path(root, "steps", "03-RegFish", "model", "fishery_map.R"), fishery_map_out)
+  copy_one(file.path(template_model_dir, "fishery_map.R"), fishery_map_out)
   if (has_reg_scaling) {
     apply_regional_index_selectivity_map(fishery_map_out)
   }
   write_generated_tag_rep_map(model_dir)
   write_doitall(
-    file.path(root, "steps", "03-RegFish", "model", "doitall.sh"),
+    file.path(template_model_dir, "doitall.sh"),
     file.path(model_dir, "doitall.sh"),
     mix_from_ini = mix_from_ini,
     size_based_selectivity = isTRUE(doitall_edits$size_based_selectivity),
+    time_varying_cv = isTRUE(doitall_edits$time_varying_cv),
     opr = isTRUE(doitall_edits$opr),
     data_weighting = isTRUE(doitall_edits$data_weighting),
     regional_scaling = has_reg_scaling,
@@ -147,8 +150,8 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     list(role = "ini", file = "bet.ini", source = ini_source, note = ini_note),
     list(role = "tag", file = "bet.tag", source = tag_source, note = "tag reporting map regenerated from ini/tag; five MFCL reporting-rate matrices parsed"),
     list(role = "age_length", file = "bet.age_length", source = age_source, note = "CAAL input"),
-    list(role = "doitall", file = "doitall.sh", source = "steps/03-RegFish/model/doitall.sh", note = paste(c(
-      ifelse(mix_from_ini, "mixing override removed", "03-RegFish 5-region controls retained"),
+    list(role = "doitall", file = "doitall.sh", source = file.path("steps", template_step_id, "model", "doitall.sh"), note = paste(c(
+      ifelse(mix_from_ini, "mixing override removed", paste0(template_step_id, " 5-region controls retained")),
       if (has_reg_scaling) paste0(
         "regional scaling Prior_reg_biomass switch applied in PHASE 5 with ",
         "flags 77=", format_flag_value(reg_scaling_flags[["77"]]),
@@ -161,6 +164,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
       ),
       if (has_reg_scaling) "index CPUE/selectivity groups unshared from PHASE 5",
       "doitall exits immediately on MFCL command failure",
+      if (isTRUE(doitall_edits$time_varying_cv)) "index fishery time-varying CPUE CV flags enabled",
       if (isTRUE(doitall_edits$size_based_selectivity)) "fish flag 26 set to 3",
       if (isTRUE(doitall_edits$opr)) "OPR recruitment flags applied",
       if (isTRUE(doitall_edits$data_weighting)) "global LF/WF divisors set to 40"

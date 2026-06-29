@@ -9,12 +9,137 @@ replace_one_line <- function(lines, pattern, replacement) {
   lines
 }
 
+set_doitall_fishery_flag <- function(lines, fishery, flag, value) {
+  pattern <- sprintf("(^|[[:space:]])-%d[[:space:]]+%d[[:space:]]+", fishery, flag)
+  hit <- grep(pattern, lines)
+  if (length(hit) != 1L) {
+    stop(
+      "Expected one doitall fishery flag for fishery ", fishery,
+      " and flag ", flag,
+      call. = FALSE
+    )
+  }
+  line <- lines[[hit]]
+  comment <- regmatches(line, regexpr("[[:space:]]+#.*$", line))
+  body <- sub("[[:space:]]+#.*$", "", line)
+  words <- read_words(body)
+  targets <- which(
+    seq_along(words) <= length(words) - 2L &
+      words == paste0("-", fishery) &
+      words[seq_along(words) + 1L] == as.character(flag)
+  )
+  if (length(targets) != 1L) {
+    stop(
+      "Expected one doitall triplet for fishery ", fishery,
+      " and flag ", flag,
+      call. = FALSE
+    )
+  }
+  words[[targets + 2L]] <- as.character(value)
+  lines[[hit]] <- paste0(
+    "  ",
+    paste(words, collapse = " "),
+    if (length(comment)) comment else ""
+  )
+  lines
+}
+
+write_program_path_doitall <- function(from, to) {
+  lines <- readLines(from, warn = FALSE)
+  if (!length(lines) || !grepl("^#!", lines[[1]])) {
+    lines <- c("#!/bin/sh", lines)
+  }
+  if (!any(grepl("^set -eu$", lines))) {
+    lines <- append(lines, "set -eu", after = 1L)
+  }
+  if (!any(grepl("^program_path=", lines))) {
+    lines <- append(lines, c(
+      "",
+      "program_path=${PROGRAM_PATH:-}",
+      "",
+      "if [ -z \"$program_path\" ]; then",
+      "  echo \"PROGRAM_PATH is not set. Exiting.\"",
+      "  exit 1",
+      "fi"
+    ), after = 2L)
+  }
+  lines <- sub("^([[:space:]]*)mfclo64([[:space:]])", "\\1$program_path\\2", lines)
+  writeLines(lines, to, useBytes = TRUE)
+  Sys.chmod(to, mode = "0755")
+  invisible(to)
+}
+
+apply_2023_newexe_controls <- function(lines) {
+  cpue_cv <- c(
+    "33" = 24L,
+    "34" = 31L,
+    "35" = 20L,
+    "36" = 21L,
+    "37" = 26L,
+    "38" = 23L,
+    "39" = 20L,
+    "40" = 25L,
+    "41" = 47L
+  )
+  for (fishery in names(cpue_cv)) {
+    lines <- set_doitall_fishery_flag(
+      lines,
+      fishery = as.integer(fishery),
+      flag = 92L,
+      value = cpue_cv[[fishery]]
+    )
+  }
+  replace_one_line(
+    lines,
+    "^[[:space:]]*2[[:space:]]+94[[:space:]]+1[[:space:]]+2[[:space:]]+128[[:space:]]+10([[:space:]]|$)",
+    "  2 94 1 2 128 100  # initial Z = 1.0*M, i.e. initial F = 0"
+  )
+}
+
+apply_2023_current_baseline_tail_controls <- function(lines, fixm = FALSE) {
+  if (isTRUE(fixm)) {
+    lines <- replace_one_line(
+      lines,
+      "^[[:space:]]*1[[:space:]]+121[[:space:]]+1([[:space:]]|$)",
+      "  1 121 0    # estimate scaling parameter for Lorenzen (age_pars(5,1)); off"
+    )
+  }
+  phase11_start <- grep("<<PHASE11$", lines)
+  phase11_end <- grep("^PHASE11$", lines)
+  if (length(phase11_start) != 1L || length(phase11_end) != 1L || phase11_start >= phase11_end) {
+    stop("Expected one PHASE11 block in the 2023 current baseline doitall", call. = FALSE)
+  }
+  phase11_block <- seq.int(phase11_start, phase11_end)
+  if (!any(grepl("^[[:space:]]*1[[:space:]]+246[[:space:]]+1([[:space:]]|$)", lines[phase11_block]))) {
+    lines <- append(lines, "  1 246 1   # indepvar.rpt", after = phase11_end - 1L)
+  }
+  lines
+}
+
+write_2023_newexe_doitall <- function(from, to, fixm = FALSE) {
+  write_program_path_doitall(from, to)
+  lines <- readLines(to, warn = FALSE)
+  lines <- apply_2023_newexe_controls(lines)
+  lines <- apply_phase10_11_convergence_switch(lines)
+  lines <- apply_2023_current_baseline_tail_controls(lines, fixm = fixm)
+  writeLines(lines, to, useBytes = TRUE)
+  Sys.chmod(to, mode = "0755")
+  invisible(to)
+}
+
 apply_size_based_selectivity <- function(lines) {
   replace_one_line(
     lines,
     "^[[:space:]]*-999[[:space:]]+26[[:space:]]+2[[:space:]]",
     "  -999 26 3  # use length-based selectivity"
   )
+}
+
+apply_time_varying_cpue_cv <- function(lines, index_fisheries = 29:33) {
+  for (fishery in index_fisheries) {
+    lines <- set_doitall_fishery_flag(lines, fishery = fishery, flag = 66L, value = 1L)
+  }
+  lines
 }
 
 apply_opr <- function(lines, year_effect = 69L, season_effect = 1L,
@@ -231,6 +356,7 @@ apply_phase10_11_convergence_switch <- function(lines) {
 
 write_doitall <- function(from, to, mix_from_ini = FALSE,
                           size_based_selectivity = FALSE,
+                          time_varying_cv = FALSE,
                           opr = FALSE,
                           data_weighting = FALSE,
                           regional_scaling = FALSE,
@@ -252,6 +378,9 @@ write_doitall <- function(from, to, mix_from_ini = FALSE,
   }
   if (isTRUE(size_based_selectivity)) {
     lines <- apply_size_based_selectivity(lines)
+  }
+  if (isTRUE(time_varying_cv)) {
+    lines <- apply_time_varying_cpue_cv(lines)
   }
   if (isTRUE(opr)) {
     lines <- apply_opr(lines)

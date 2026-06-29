@@ -23,6 +23,17 @@ public_source_path <- function(path) {
   norm <- normalizePath(path, winslash = "/", mustWork = FALSE)
   root_prefix <- paste0(normalizePath(root, winslash = "/", mustWork = TRUE), "/")
   input_prefix <- paste0(normalizePath(input_root, winslash = "/", mustWork = TRUE), "/")
+  if (exists("input_repo_roots", inherits = TRUE)) {
+    for (repo_name in names(input_repo_roots)) {
+      repo_root <- normalizePath(input_repo_roots[[repo_name]], winslash = "/", mustWork = FALSE)
+      repo_prefix <- paste0(repo_root, "/")
+      if (startsWith(norm, repo_prefix)) {
+        rel <- substring(norm, nchar(repo_prefix) + 1L)
+        repo_parent <- if (startsWith(repo_root, input_prefix)) "input-repos" else "external-repos"
+        return(file.path(repo_parent, repo_name, rel))
+      }
+    }
+  }
   if (startsWith(norm, root_prefix)) {
     return(substring(norm, nchar(root_prefix) + 1L))
   }

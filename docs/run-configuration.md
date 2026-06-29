@@ -11,7 +11,7 @@ This file keeps the operational Kflow/local-run details out of the root README.
 | `default_step_select` | `all` | Model selection used when `STEP_SELECT` is not supplied. |
 | `flow_group` | `bet-2026-stepwise-v2` | Kflow group label used to connect stepwise, results, and report jobs. |
 | `trigger_next` | `true` | Whether command-line Kflow submissions keep the downstream results/report chain. |
-| `docker_image` | `ghcr.io/pacificcommunity/tuna-flow:v1.10` | Docker image used by Kflow and local Docker runs. |
+| `docker_image` | `ghcr.io/pacificcommunity/tuna-flow:v2.0` | Docker image used by Kflow and local Docker runs. |
 | `program_path` | `/home/mfcl/mfclo64` | MFCL executable path inside the Docker image. |
 | `stepwise_save_final_par` | `false` | Optional: copy the final `.par` back into `steps/<step_id>/model/`. Off by default; Kflow outputs always include `outputs/models/<step_id>/final.par`. |
 | `stepwise_commit_final_pars` | `false` | Optional: create a narrow KflowBot commit containing saved final `.par` files. Off by default to avoid concurrent job push conflicts. |
@@ -25,20 +25,23 @@ This file keeps the operational Kflow/local-run details out of the root README.
 
 <!-- This section is generated from job-config.R. It is refreshed by Makefile targets and the local pre-commit hook once a Makefile target has run. -->
 
-| `step_id` | `enabled` | `model_label` | `job_title` | `job_key` | `run_mode` | `input_par` | `frq` | `output_par` |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `01-Diag23` | `TRUE` | 2023 diagnostic | 2023 diagnostic | `01-diag23` | `doitall` | `blank` | `bet.frq` | `blank` |
-| `02-FixM` | `TRUE` | FixM | FixM | `02-fixm` | `doitall` | `blank` | `bet.frq` | `blank` |
-| `03-RegFish` | `TRUE` | New regions/fisheries | New regions/fisheries | `03-regfish` | `doitall` | `blank` | `bet.frq` | `blank` |
-| `04-WtAsLen21` | `TRUE` | Weights as lengths, 2021 | Weights as lengths to 2021 | `04-wtaslen21` | `doitall` | `blank` | `bet.frq` | `blank` |
-| `05-WtAsLenPlusLen21` | `TRUE` | Weights as lengths plus lengths, 2021 | Weights as lengths plus lengths to 2021 | `05-wtaslenpluslen21` | `doitall` | `blank` | `bet.frq` | `blank` |
-| `06-Full2024` | `TRUE` | Full 2024 data | Full 2024 data | `06-full2024` | `doitall` | `blank` | `bet.frq` | `blank` |
-| `07-CAAL2026` | `TRUE` | Updated CAAL | Updated CAAL | `07-caal2026` | `doitall` | `blank` | `bet.frq` | `blank` |
-| `08-MixPeriod02` | `TRUE` | Mixing periods 0.2 | Mixing periods 0.2 | `08-mixperiod02` | `doitall` | `blank` | `bet.frq` | `blank` |
-| `09-SizeBasedSel` | `TRUE` | Size-based selectivity | Size-based selectivity | `09-sizebasedsel` | `doitall` | `blank` | `bet.frq` | `blank` |
-| `10-OPR` | `TRUE` | OPR | OPR | `10-opr` | `doitall` | `blank` | `bet.frq` | `blank` |
-| `11-EffortCreep` | `TRUE` | Effort creep | Effort creep | `11-effortcreep` | `doitall` | `blank` | `bet.frq` | `blank` |
-| `12-DataWeight40` | `TRUE` | Data weighting 40 | Data weighting 40 | `12-dataweight40` | `doitall` | `blank` | `bet.frq` | `blank` |
+| `step_id` | `enabled` | `model_label` | `job_title` | `job_key` | `run_mode` | `mfcl_program_path` | `input_par` | `frq` | `output_par` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `01-Diag2023` | `TRUE` | Diag2023 | Diag2023 | `01-diag2023` | `doitall` | /home/mfcl/mfclo64_2023_diagnostic_2.2.2.0 | `blank` | `bet.frq` | `blank` |
+| `02-NewExe` | `TRUE` | NewExe | NewExe | `02-newexe` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `03-FixM` | `TRUE` | FixM | FixM | `03-fixm` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `04-NewStructure` | `TRUE` | New structure | New structure | `04-newstructure` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `05-ConvertToLength` | `TRUE` | Convert to length | Convert to length | `05-converttolength` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `06-LengthPlusLength` | `TRUE` | Length plus length | Length plus length | `06-lengthpluslength` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `07-DataTo2024` | `TRUE` | Data to 2024 | Data to 2024 | `07-datato2024` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `08-RegionalCPUE` | `TRUE` | Regional CPUE | Regional CPUE | `08-regionalcpue` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `09-NewOtoliths` | `TRUE` | New otoliths | New otoliths | `09-newotoliths` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `10-TagMixingKS` | `TRUE` | Tag mixing KS | Tag mixing KS | `10-tagmixingks` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `11-TimeVaryingCV` | `TRUE` | Time-varying CV | Time-varying CV | `11-timevaryingcv` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `12-OrthogonalPoly` | `TRUE` | Orthogonal polynomial | Orthogonal polynomial | `12-orthogonalpoly` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `13-LengthBasedSel` | `TRUE` | Length-based selectivity | Length-based selectivity | `13-lengthbasedsel` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `14-EffortCreep` | `TRUE` | Effort creep | Effort creep | `14-effortcreep` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `15-DataWeighting` | `TRUE` | Data weighting | Data weighting | `15-dataweighting` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
 
 
 ## Folder Checks
@@ -47,26 +50,29 @@ This file keeps the operational Kflow/local-run details out of the root README.
 
 | `step_id` | `expected_source_folder` | `status` |
 | --- | --- | --- |
-| `01-Diag23` | `steps/01-Diag23/model` | `exists` |
-| `02-FixM` | `steps/02-FixM/model` | `exists` |
-| `03-RegFish` | `steps/03-RegFish/model` | `exists` |
-| `04-WtAsLen21` | `steps/04-WtAsLen21/model` | `exists` |
-| `05-WtAsLenPlusLen21` | `steps/05-WtAsLenPlusLen21/model` | `exists` |
-| `06-Full2024` | `steps/06-Full2024/model` | `exists` |
-| `07-CAAL2026` | `steps/07-CAAL2026/model` | `exists` |
-| `08-MixPeriod02` | `steps/08-MixPeriod02/model` | `exists` |
-| `09-SizeBasedSel` | `steps/09-SizeBasedSel/model` | `exists` |
-| `10-OPR` | `steps/10-OPR/model` | `exists` |
-| `11-EffortCreep` | `steps/11-EffortCreep/model` | `exists` |
-| `12-DataWeight40` | `steps/12-DataWeight40/model` | `exists` |
+| `01-Diag2023` | `steps/01-Diag2023/model` | `exists` |
+| `02-NewExe` | `steps/02-NewExe/model` | `exists` |
+| `03-FixM` | `steps/03-FixM/model` | `exists` |
+| `04-NewStructure` | `steps/04-NewStructure/model` | `exists` |
+| `05-ConvertToLength` | `steps/05-ConvertToLength/model` | `exists` |
+| `06-LengthPlusLength` | `steps/06-LengthPlusLength/model` | `exists` |
+| `07-DataTo2024` | `steps/07-DataTo2024/model` | `exists` |
+| `08-RegionalCPUE` | `steps/08-RegionalCPUE/model` | `exists` |
+| `09-NewOtoliths` | `steps/09-NewOtoliths/model` | `exists` |
+| `10-TagMixingKS` | `steps/10-TagMixingKS/model` | `exists` |
+| `11-TimeVaryingCV` | `steps/11-TimeVaryingCV/model` | `exists` |
+| `12-OrthogonalPoly` | `steps/12-OrthogonalPoly/model` | `exists` |
+| `13-LengthBasedSel` | `steps/13-LengthBasedSel/model` | `exists` |
+| `14-EffortCreep` | `steps/14-EffortCreep/model` | `exists` |
+| `15-DataWeighting` | `steps/15-DataWeighting/model` | `exists` |
 
 
 ## Useful Kflow Config
 
 | Field | Typical value | Purpose |
 | --- | --- | --- |
-| `STEP_SELECT` | `12-DataWeight40` | Run one model folder. |
-| `STEP_SELECT` | `03-RegFish,07-CAAL2026` | Run selected model folders. |
+| `STEP_SELECT` | `15-DataWeighting` | Run one model folder. |
+| `STEP_SELECT` | `08-RegionalCPUE,09-NewOtoliths` | Run selected model folders. |
 | `STEP_SELECT` | `all` | Run every enabled row. |
 | `MFCL_LIVE_LOG` | `true` | Stream MFCL output into the Kflow log. |
 | `RUN_MODE` | `job_par` | Rerun from a previous Kflow job output `.par`. Use this with `PAR_SOURCE_JOB` and `KFLOW_INPUT_JOBS`. |

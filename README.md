@@ -12,18 +12,21 @@ and notes.
 
 | Step | Purpose |
 | --- | --- |
-| `01-Diag23` | 2023 diagnostic starting point |
-| `02-FixM` | FixM update |
-| `03-RegFish` | 5-region / 33-fishery structure |
-| `04-WtAsLen21` | weights-as-lengths data to 2021 |
-| `05-WtAsLenPlusLen21` | weights-as-lengths plus lengths to 2021 |
-| `06-Full2024` | full 2024 data |
-| `07-CAAL2026` | updated 2026 CAAL |
-| `08-MixPeriod02` | release-group mixing periods from the 0.2 KS cutoff |
-| `09-SizeBasedSel` | size-based selectivity |
-| `10-OPR` | OPR recruitment setting selected from BET screening |
-| `11-EffortCreep` | agreed index-fishery effort creep |
-| `12-DataWeight40` | initial LF/WF divisor-40 weighting run |
+| `01-Diag2023` | original 2023 diagnostic rerun with historical MFCL |
+| `02-NewExe` | current executable compatibility baseline |
+| `03-FixM` | FixM update at the 2023 MLE value |
+| `04-NewStructure` | 5-region / 33-fishery structure with global CPUE |
+| `05-ConvertToLength` | convert existing weight compositions to length |
+| `06-LengthPlusLength` | add additional length compositions |
+| `07-DataTo2024` | add data to 2024 with global CPUE |
+| `08-RegionalCPUE` | regional CPUE and regional-scaling prior |
+| `09-NewOtoliths` | updated 2026 CAAL / new otoliths |
+| `10-TagMixingKS` | release-group mixing periods from the 0.2 KS cutoff |
+| `11-TimeVaryingCV` | time-varying CPUE CV |
+| `12-OrthogonalPoly` | OPR recruitment setting selected from BET screening |
+| `13-LengthBasedSel` | length-based selectivity |
+| `14-EffortCreep` | agreed index-fishery effort creep |
+| `15-DataWeighting` | initial data-weighting run |
 
 ## Where To Look
 
@@ -36,9 +39,9 @@ and notes.
 
 ## Assessment Notes
 
-- Steps 06-12 use `bet.reg_scaling` over periods 53-72, matching the 1965-1969 global CPUE covariance-estimation window with the broadest spatial-temporal coverage.
-- Step 11 applies the agreed index-fishery effort-creep scenario to fisheries 29-33: 1%/yr for 1952-1976 and 0.5%/yr for 1977-2024.
-- Steps 01-02 use the 2023 BET 9-region GeoJSON asset; steps 03-12 use the 2026 5-region asset. See [`docs/region-map-assets.md`](docs/region-map-assets.md).
+- Steps 08-15 use `bet.reg_scaling` over periods 53-72, matching the 1965-1969 global CPUE covariance-estimation window with the broadest spatial-temporal coverage.
+- Steps 14-15 apply the agreed index-fishery effort-creep scenario to fisheries 29-33: 1%/yr for 1952-1976 and 0.5%/yr for 1977-2024.
+- Steps 01-03 use the 2023 BET 9-region GeoJSON asset; steps 04-15 use the 2026 5-region asset. See [`docs/region-map-assets.md`](docs/region-map-assets.md).
 - `tag_rep_map.R` files are generated audit maps derived from `bet.ini` reporting-rate matrices and `bet.tag` release metadata; MFCL reads the `.ini`, not `tag_rep_map.R`. The reporting-rate grouping tables are in [`docs/tag-reporting-groups.md`](docs/tag-reporting-groups.md).
 
 Operational Kflow/local run details are kept in [`docs/run-configuration.md`](docs/run-configuration.md).
