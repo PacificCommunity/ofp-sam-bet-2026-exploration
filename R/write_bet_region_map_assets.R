@@ -89,8 +89,24 @@ bet_region_map_close_polygons <- function(vertices) {
   do.call(rbind, out)
 }
 
-bet_region_map_to_geojson <- function(vertices = bet_region_map_default_vertices()) {
+bet_region_map_label_from_stem <- function(stem = "") {
+  if (is.null(stem) || !length(stem)) stem <- ""
+  stem <- trimws(as.character(stem[[1L]]))
+  if (!nzchar(stem)) return("Region map")
+  stem <- gsub("[._-]+", " ", stem)
+  words <- strsplit(stem, "[[:space:]]+")[[1L]]
+  words <- vapply(words, function(word) {
+    if (grepl("^[[:upper:][:digit:]]+$", word)) return(word)
+    paste0(toupper(substr(word, 1L, 1L)), tolower(substr(word, 2L, nchar(word))))
+  }, character(1))
+  paste(words, collapse = " ")
+}
+
+bet_region_map_to_geojson <- function(vertices = bet_region_map_default_vertices(),
+                                      map_label = "Region map") {
   # Hand-build this small FeatureCollection so `sf` is optional.
+  if (is.null(map_label) || !length(map_label)) map_label <- ""
+  map_label <- trimws(as.character(map_label[[1L]]))
   vertices <- bet_region_map_normalize_vertices(vertices)
   features <- lapply(split(vertices, vertices$region), function(x) {
     closed <- bet_region_map_close_polygons(x)
@@ -101,8 +117,10 @@ bet_region_map_to_geojson <- function(vertices = bet_region_map_default_vertices
       geometry = list(type = "Polygon", coordinates = list(coords))
     )
   })
+  geojson <- list(type = "FeatureCollection", features = unname(features))
+  if (nzchar(map_label)) geojson$name <- map_label
   jsonlite::toJSON(
-    list(type = "FeatureCollection", features = unname(features)),
+    geojson,
     auto_unbox = TRUE,
     pretty = TRUE,
     digits = 10
@@ -282,33 +300,26 @@ bet_region_map_plot <- function(vertices = bet_region_map_default_vertices()) {
 write_bet_region_map_assets <- function(output_dir,
                                         stem = "bet-2026-five-region",
                                         vertices = bet_region_map_default_vertices(),
-                                        make_plot = TRUE) {
+                                        make_plot = TRUE,
+                                        map_label = bet_region_map_label_from_stem(stem)) {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
   vertices <- bet_region_map_normalize_vertices(vertices)
   files <- c(geojson = file.path(output_dir, paste0(stem, ".geojson")))
-  if (requireNamespace("sf", quietly = TRUE)) {
-    sf::st_write(
-      bet_region_map_to_sf(vertices),
-      dsn = files[["geojson"]],
-      driver = "GeoJSON",
-      quiet = TRUE,
-      delete_dsn = TRUE
-    )
-  } else {
-    writeLines(as.character(bet_region_map_to_geojson(vertices)), files[["geojson"]])
-  }
+  writeLines(as.character(bet_region_map_to_geojson(vertices, map_label = map_label)), files[["geojson"]])
   invisible(files)
 }
 
 write_bet_nine_region_map_assets <- function(output_dir,
                                              stem = "bet-2023-nine-region",
                                              vertices = bet_nine_region_map_default_vertices(),
-                                             make_plot = TRUE) {
+                                             make_plot = TRUE,
+                                             map_label = bet_region_map_label_from_stem(stem)) {
   write_bet_region_map_assets(
     output_dir = output_dir,
     stem = stem,
     vertices = vertices,
-    make_plot = make_plot
+    make_plot = make_plot,
+    map_label = map_label
   )
 }
 

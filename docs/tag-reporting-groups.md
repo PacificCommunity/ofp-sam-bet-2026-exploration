@@ -98,7 +98,7 @@ Steps 03-05 use the 33-fishery new-structure reporting-rate grouping. Step 03 re
 | 6 | RTTP | PHID.2 | 14-15,17-18,21-22 | 1-15 | 1-15 | TRUE | 0.5 | 50 | 1 |
 | 7 | RTTP | PL.ALL.2 | 16 | 1-15 | 1-15 | TRUE | 0.5 | 50 | 1 |
 | 8 | RTTP | PS.2 | 19-20 | 1-15 | 1-15 | TRUE | 0.586 | 58.6 | 244 |
-| 9 | RTTP | MISC.VN.2 | 23 | 1-15 | 1-15 | FALSE | 0 | 0 | 0 |
+| 9 | RTTP | DOM.VN.2 | 23 | 1-15 | 1-15 | FALSE | 0 | 0 | 0 |
 | 10 | RTTP | PL.ALL.WEST.3 | 24 | 1-15 | 1-15 | FALSE | 0 | 0 | 0 |
 | 11 | RTTP | PS.WEST.3 | 25,27 | 1-15 | 1-15 | TRUE | 0.586 | 58.6 | 244 |
 | 12 | RTTP | PS.EAST.3 | 26,28 | 1-15 | 1-15 | FALSE | 0 | 0 | 0 |
@@ -106,7 +106,7 @@ Steps 03-05 use the 33-fishery new-structure reporting-rate grouping. Step 03 re
 | 14 | PTTP/pooled | PL.JP.1 | 13 | 16-56,97 | 16-56 | FALSE | 0 | 0 | 0 |
 | 15 | PTTP/pooled | PHID.2 | 14-15,17-18,21-22 | 16-56,97 | 16-56 | TRUE | 0.5 | 50 | 1 |
 | 16 | PTTP/pooled | PL.ALL.2; PS.2 | 16,19-20 | 16-56,97 | 16-56 | FALSE | 0 | 0 | 0 |
-| 17 | PTTP/pooled | MISC.VN.2 | 23 | 16-56,97 | 16-56 | FALSE | 0 | 0 | 0 |
+| 17 | PTTP/pooled | DOM.VN.2 | 23 | 16-56,97 | 16-56 | FALSE | 0 | 0 | 0 |
 | 18 | PTTP/pooled | PL.ALL.WEST.3 | 24 | 16-56,97 | 16-56 | TRUE | 0.5 | 50 | 1 |
 | 19 | PTTP/pooled | PS.WEST.3 | 25,27 | 16-56,97 | 16-56 | TRUE | 0.595 | 59.5 | 676 |
 | 20 | PTTP/pooled | PS.EAST.3 | 26,28 | 16-56,97 | 16-56 | TRUE | 0.7 | 70 | 195 |
@@ -118,7 +118,7 @@ Steps 03-05 use the 33-fishery new-structure reporting-rate grouping. Step 03 re
 | 26 | JPTP | PHID.2 | 14-15,17-18,21-22 | 57-96 | 57-96 | FALSE | 0 | 0 | 0 |
 | 27 | JPTP | PL.ALL.2 | 16 | 57-96 | 57-96 | FALSE | 0 | 0 | 0 |
 | 28 | JPTP | PS.2 | 19-20 | 57-96 | 57-96 | FALSE | 0 | 0 | 0 |
-| 29 | JPTP | MISC.VN.2 | 23 | 57-96 | 57-96 | FALSE | 0 | 0 | 0 |
+| 29 | JPTP | DOM.VN.2 | 23 | 57-96 | 57-96 | FALSE | 0 | 0 | 0 |
 | 30 | JPTP | PL.ALL.WEST.3 | 24 | 57-96 | 57-96 | FALSE | 0 | 0 | 0 |
 | 31 | JPTP | PS.WEST.3 | 25,27 | 57-96 | 57-96 | TRUE | 0.5 | 50 | 1 |
 | 32 | JPTP | PS.EAST.3 | 26,28 | 57-96 | 57-96 | FALSE | 0 | 0 | 0 |
@@ -148,7 +148,7 @@ Steps 06-07 use `bet.2026.ini`. The source `.ini` had 91 reporting rows, while t
 | 6 | RTTP | PHID.2 | 14-15,17-18,21-22 | 1-15 | 1-15 | TRUE | 0.5 | 50 | 1 |
 | 7 | RTTP | PL.ALL.2 | 16 | 1-15 | 1-15 | TRUE | 0.5 | 50 | 1 |
 | 8 | RTTP | PS.2 | 19-20 | 1-15 | 1-15 | TRUE | 0.586 | 58.6 | 244 |
-| 9 | RTTP | MISC.VN.2 | 23 | 1-15 | 1-15 | FALSE | 0 | 0 | 0 |
+| 9 | RTTP | DOM.VN.2 | 23 | 1-15 | 1-15 | FALSE | 0 | 0 | 0 |
 | 10 | RTTP | PL.ALL.WEST.3 | 24 | 1-15 | 1-15 | FALSE | 0 | 0 | 0 |
 | 11 | RTTP | PS.WEST.3 | 25,27 | 1-15 | 1-15 | TRUE | 0.586 | 58.6 | 244 |
 | 12 | RTTP | PS.EAST.3 | 26,28 | 1-15 | 1-15 | FALSE | 0 | 0 | 0 |
@@ -156,7 +156,7 @@ Steps 06-07 use `bet.2026.ini`. The source `.ini` had 91 reporting rows, while t
 | 14 | PTTP/pooled | PL.JP.1 | 13 | 16-59,99 | 16-59 | FALSE | 0 | 0 | 0 |
 | 15 | PTTP/pooled | PHID.2 | 14-15,17-18,21-22 | 16-59,99 | 16-59 | FALSE | 0 | 0 | 0 |
 | 16 | PTTP/pooled | PL.ALL.2; PS.2 | 16,19-20 | 16-59,99 | 16-59 | FALSE | 0 | 0 | 0 |
-| 17 | PTTP/pooled | MISC.VN.2 | 23 | 16-59,99 | 16-59 | FALSE | 0 | 0 | 0 |
+| 17 | PTTP/pooled | DOM.VN.2 | 23 | 16-59,99 | 16-59 | FALSE | 0 | 0 | 0 |
 | 18 | PTTP/pooled | PL.ALL.WEST.3 | 24 | 16-59,99 | 16-59 | TRUE | 0.5 | 50 | 1 |
 | 19 | PTTP/pooled | PS.WEST.3 | 25,27 | 16-59,99 | 16-59 | TRUE | 0.5121 | 51.21 | 739.2 |
 | 20 | PTTP/pooled | PS.EAST.3 | 26,28 | 16-59,99 | 16-59 | TRUE | 0.5282 | 52.82 | 231.2 |
@@ -168,7 +168,7 @@ Steps 06-07 use `bet.2026.ini`. The source `.ini` had 91 reporting rows, while t
 | 26 | PTTP/JPTP | PHID.2 | 14-15,17-18,21-22 | 60-98 | 60-98 | FALSE | 0 | 0 | 0 |
 | 27 | PTTP/JPTP | PL.ALL.2 | 16 | 60-98 | 60-98 | FALSE | 0 | 0 | 0 |
 | 28 | PTTP/JPTP | PS.2 | 19-20 | 60-98 | 60-98 | FALSE | 0 | 0 | 0 |
-| 29 | PTTP/JPTP | MISC.VN.2 | 23 | 60-98 | 60-98 | FALSE | 0 | 0 | 0 |
+| 29 | PTTP/JPTP | DOM.VN.2 | 23 | 60-98 | 60-98 | FALSE | 0 | 0 | 0 |
 | 30 | PTTP/JPTP | PL.ALL.WEST.3 | 24 | 60-98 | 60-98 | FALSE | 0 | 0 | 0 |
 | 31 | PTTP/JPTP | PS.WEST.3 | 25,27 | 60-98 | 60-98 | TRUE | 0.5 | 50 | 1 |
 | 32 | PTTP/JPTP | PS.EAST.3 | 26,28 | 60-98 | 60-98 | FALSE | 0 | 0 | 0 |
@@ -188,7 +188,7 @@ Steps 08-12 use the mix-period `.ini` family. The reporting-rate matrix shape is
 | 6 | RTTP | PHID.2 | 14-15,17-18,21-22 | 1-15 | 1-15 | TRUE | 0.5 | 50 | 1 |
 | 7 | RTTP | PL.ALL.2 | 16 | 1-15 | 1-15 | TRUE | 0.5 | 50 | 1 |
 | 8 | RTTP | PS.2 | 19-20 | 1-15 | 1-15 | TRUE | 0.586 | 58.6 | 244 |
-| 9 | RTTP | MISC.VN.2 | 23 | 1-15 | 1-15 | FALSE | 0 | 0 | 0 |
+| 9 | RTTP | DOM.VN.2 | 23 | 1-15 | 1-15 | FALSE | 0 | 0 | 0 |
 | 10 | RTTP | PL.ALL.WEST.3 | 24 | 1-15 | 1-15 | FALSE | 0 | 0 | 0 |
 | 11 | RTTP | PS.WEST.3 | 25,27 | 1-15 | 1-15 | TRUE | 0.586 | 58.6 | 244 |
 | 12 | RTTP | PS.EAST.3 | 26,28 | 1-15 | 1-15 | FALSE | 0 | 0 | 0 |
@@ -196,7 +196,7 @@ Steps 08-12 use the mix-period `.ini` family. The reporting-rate matrix shape is
 | 14 | PTTP/pooled | PL.JP.1 | 13 | 16-61,99 | 16-61 | FALSE | 0 | 0 | 0 |
 | 15 | PTTP/pooled | PHID.2 | 14-15,17-18,21-22 | 16-61,99 | 16-61 | TRUE | 0.5 | 50 | 1 |
 | 16 | PTTP/pooled | PL.ALL.2; PS.2 | 16,19-20 | 16-61,99 | 16-61 | FALSE | 0 | 0 | 0 |
-| 17 | PTTP/pooled | MISC.VN.2 | 23 | 16-61,99 | 16-61 | FALSE | 0 | 0 | 0 |
+| 17 | PTTP/pooled | DOM.VN.2 | 23 | 16-61,99 | 16-61 | FALSE | 0 | 0 | 0 |
 | 18 | PTTP/pooled | PL.ALL.WEST.3 | 24 | 16-61,99 | 16-61 | TRUE | 0.5 | 50 | 1 |
 | 19 | PTTP/pooled | PS.WEST.3 | 25,27 | 16-61,99 | 16-61 | TRUE | 0.5121 | 51.21 | 739.2 |
 | 20 | PTTP/pooled | PS.EAST.3 | 26,28 | 16-61,99 | 16-61 | TRUE | 0.5282 | 52.82 | 231.2 |
@@ -208,7 +208,7 @@ Steps 08-12 use the mix-period `.ini` family. The reporting-rate matrix shape is
 | 26 | JPTP | PHID.2 | 14-15,17-18,21-22 | 62-98 | 62-98 | FALSE | 0 | 0 | 0 |
 | 27 | JPTP | PL.ALL.2 | 16 | 62-98 | 62-98 | FALSE | 0 | 0 | 0 |
 | 28 | JPTP | PS.2 | 19-20 | 62-98 | 62-98 | FALSE | 0 | 0 | 0 |
-| 29 | JPTP | MISC.VN.2 | 23 | 62-98 | 62-98 | FALSE | 0 | 0 | 0 |
+| 29 | JPTP | DOM.VN.2 | 23 | 62-98 | 62-98 | FALSE | 0 | 0 | 0 |
 | 30 | JPTP | PL.ALL.WEST.3 | 24 | 62-98 | 62-98 | FALSE | 0 | 0 | 0 |
 | 31 | JPTP | PS.WEST.3 | 25,27 | 62-98 | 62-98 | TRUE | 0.5 | 50 | 1 |
 | 32 | JPTP | PS.EAST.3 | 26,28 | 62-98 | 62-98 | FALSE | 0 | 0 | 0 |

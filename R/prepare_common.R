@@ -4,12 +4,14 @@ write_shared_region_map_assets <- function() {
   if (!exists("write_bet_region_map_assets", mode = "function")) return(invisible(FALSE))
   write_bet_region_map_assets(
     file.path(root, "assets", "maps"),
-    stem = "bet-2026-five-region"
+    stem = "bet-2026-five-region",
+    map_label = "BET 2026 5-region"
   )
   if (exists("write_bet_nine_region_map_assets", mode = "function")) {
     write_bet_nine_region_map_assets(
       file.path(root, "assets", "maps"),
-      stem = "bet-2023-nine-region"
+      stem = "bet-2023-nine-region",
+      map_label = "BET 2023 9-region"
     )
   }
   invisible(TRUE)

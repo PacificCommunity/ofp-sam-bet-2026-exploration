@@ -155,9 +155,9 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -18 32 14  # PS.PH.2, split old24
   -19 32 16  # PS.ASS.2, old30
   -20 32 16  # PS.UNA.2, old31
-  -21 32 14  # MISC.ID.2, old23
-  -22 32 14  # MISC.PH.2, old17
-  -23 32 17  # MISC.VN.2, old32
+  -21 32 14  # DOM.ID.2, old23
+  -22 32 14  # DOM.PH.2, old17
+  -23 32 17  # DOM.VN.2, old32
   -24 32 18  # PL.ALL.WEST.3, old21 + old22
   -25 32 19  # PS.ASS.WEST.3, old13 + old25
   -26 32 20  # PS.ASS.EAST.3, old15
@@ -195,9 +195,9 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -18 24 16  # PS.PH.2, split old24
   -19 24 17  # PS.ASS.2, old30; share with PS.ASS.WEST.3
   -20 24 18  # PS.UNA.2, old31; share with PS.UNA.WEST.3
-  -21 24 19  # MISC.ID.2, old23
-  -22 24 20  # MISC.PH.2, old17
-  -23 24 21  # MISC.VN.2, old32
+  -21 24 19  # DOM.ID.2, old23
+  -22 24 20  # DOM.PH.2, old17
+  -23 24 21  # DOM.VN.2, old32
   -24 24 22  # PL.ALL.WEST.3, old21 + old22
   -25 24 17  # PS.ASS.WEST.3, old13 + old25
   -26 24 23  # PS.ASS.EAST.3, old15
@@ -233,11 +233,11 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -12 16 2  -12 3 25  # PS.JP.1, old19
   -13 16 2  -13 3 25  # PL.JP.1, old20
 # Upper-age selectivity constraints mapped from old fishery recipes.
-  -22 16 2  -22 3 9   # MISC.PH.2, old17
+  -22 16 2  -22 3 9   # DOM.PH.2, old17
   -24 16 2  -24 3 10  # PL.ALL.WEST.3, old21 + old22
-  -21 16 2  -21 3 6   # MISC.ID.2, old23
+  -21 16 2  -21 3 6   # DOM.ID.2, old23
   -16 16 2  -16 3 7   # PL.ALL.2, old28
-  -23 16 2  -23 3 9   # MISC.VN.2, old32
+  -23 16 2  -23 3 9   # DOM.VN.2, old32
 # Turn on weighted spline for calculating maturity at age
   2 188 2
 # Set Lorenzen M

@@ -26,9 +26,9 @@ fishery_map <- data.frame(
     "18.PS.PH.2",
     "19.PS.ASS.2",
     "20.PS.UNA.2",
-    "21.MISC.ID.2",
-    "22.MISC.PH.2",
-    "23.MISC.VN.2",
+    "21.DOM.ID.2",
+    "22.DOM.PH.2",
+    "23.DOM.VN.2",
     "24.PL.ALL.WEST.3",
     "25.PS.ASS.WEST.3",
     "26.PS.ASS.EAST.3",
@@ -48,7 +48,7 @@ fishery_map <- data.frame(
   group = c(
     "LL", "LL", "LL", "LL", "LL", "LL", "LL", "LL", "LL",
     "LL", "LL", "PS", "PL", "HL", "HL", "PL", "PS", "PS",
-    "PS ASS", "PS UNASS", "MISC", "MISC", "MISC", "PL",
+    "PS ASS", "PS UNASS", "DOM", "DOM", "DOM", "PL",
     "PS ASS", "PS ASS", "PS UNASS", "PS UNASS",
     "Index", "Index", "Index", "Index", "Index"
   ),
@@ -100,7 +100,7 @@ tag_recapture_names <- c(
   "LL.WEST.1", "LL.EAST.1", "LL.US.1", "LL.ALL.2", "LL.OS.2",
   "LL.ARCH.3", "LL.WEST.3", "LL.EAST.3", "LL.OS.3",
   "LL.ALL.5", "LL.AU.5", "PS.JP.1", "PL.JP.1", "PHID.2",
-  "PL.ALL.2", "PS.2", "MISC.VN.2", "PL.ALL.WEST.3",
+  "PL.ALL.2", "PS.2", "DOM.VN.2", "PL.ALL.WEST.3",
   "PS.WEST.3", "PS.EAST.3", "Index"
 )
 fishery_map$tag_recapture_name <-
@@ -117,7 +117,7 @@ selectivity_names <- c(
   "LL.ARCH.3", "LL.WEST.3", "LL.EAST.3", "LL.OS.3",
   "LL.ALL.5", "LL.AU.5", "PS.JP.1", "PL.JP.1", "HL.IDPH.2",
   "PL.ALL.2", "PS.IDPH.2", "PS.ASS.WEST3+2", "PS.UNA.WEST3+2",
-  "MISC.ID.2", "MISC.PH.2", "MISC.VN.2", "PL.ALL.WEST.3",
+  "DOM.ID.2", "DOM.PH.2", "DOM.VN.2", "PL.ALL.WEST.3",
   "PS.ASS.EAST.3", "PS.UNA.EAST.3", "Index"
 )
 fishery_map$selectivity_name <- selectivity_names[fishery_map$selectivity_group]
