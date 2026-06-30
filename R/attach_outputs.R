@@ -91,6 +91,116 @@ rebase_model_index_paths <- function(model_index, output_dir) {
   model_index
 }
 
+pluck <- function(x, ..., default = NULL) {
+  keys <- c(...)
+  for (key in keys) {
+    if (!is.list(x) || is.null(x[[key]])) return(default)
+    x <- x[[key]]
+  }
+  x
+}
+
+scalar_chr <- function(x, default = NA_character_) {
+  if (is.null(x) || !length(x) || is.na(x[[1L]])) return(default)
+  as.character(x[[1L]])
+}
+
+scalar_int <- function(x, default = NA_integer_) {
+  if (is.null(x) || !length(x) || is.na(x[[1L]])) return(default)
+  value <- suppressWarnings(as.integer(x[[1L]]))
+  if (!length(value) || is.na(value)) default else value
+}
+
+scalar_lgl <- function(x, default = NA) {
+  if (is.null(x) || !length(x) || is.na(x[[1L]])) return(default)
+  value <- suppressWarnings(as.logical(x[[1L]]))
+  if (!length(value) || is.na(value)) default else value
+}
+
+read_neigenvalues <- function(hessian_dir) {
+  path <- file.path(hessian_dir, "neigenvalues")
+  if (!file.exists(path)) return(NULL)
+  vals <- suppressWarnings(scan(path, what = numeric(), quiet = TRUE, nmax = 2))
+  if (length(vals) < 2L) return(NULL)
+  list(n_negative_eigenvalues = as.integer(vals[[1L]]), n_total_eigenvalues = as.integer(vals[[2L]]))
+}
+
+hessian_status_from_neigen <- function(n_negative, n_total) {
+  if (!is.finite(n_negative) || !is.finite(n_total) || n_total <= 0) {
+    return(list(status = "Unknown", reliability = "UNKNOWN", is_pdh = NA))
+  }
+  if (n_negative <= 0L) {
+    return(list(status = "PDH", reliability = "HIGH", is_pdh = TRUE))
+  }
+  if ((n_negative / n_total) < 0.01) {
+    return(list(status = "Near-PDH", reliability = "MODERATE", is_pdh = FALSE))
+  }
+  list(status = "Non-PDH", reliability = "LOW", is_pdh = FALSE)
+}
+
+hessian_summary_from_dir <- function(model_dir) {
+  hessian_dir <- file.path(model_dir, "hessian")
+  hinfo_file <- file.path(hessian_dir, "hessian_info.rds")
+  neig <- read_neigenvalues(hessian_dir)
+  hinfo <- if (file.exists(hinfo_file)) tryCatch(readRDS(hinfo_file), error = function(e) NULL) else NULL
+
+  n_negative <- scalar_int(pluck(hinfo, "eigen", "n_negative_eigenvalues"), NA_integer_)
+  n_total <- scalar_int(pluck(hinfo, "eigen", "n_total_eigenvalues"), NA_integer_)
+  if ((!is.finite(n_negative) || !is.finite(n_total)) && !is.null(neig)) {
+    n_negative <- neig$n_negative_eigenvalues
+    n_total <- neig$n_total_eigenvalues
+  }
+  status <- hessian_status_from_neigen(n_negative, n_total)
+
+  is_pdh <- scalar_lgl(pluck(hinfo, "diagnostics", "summary", "pdh", "is_pdh"), NA)
+  if (is.na(is_pdh)) is_pdh <- scalar_lgl(pluck(hinfo, "diagnostics", "summary", "is_pdh"), status$is_pdh)
+  is_spd <- scalar_lgl(pluck(hinfo, "diagnostics", "summary", "positivised_cov_is_spd"), NA)
+  if (is.na(is_spd)) is_spd <- scalar_lgl(pluck(hinfo, "diagnostics", "summary", "is_spd"), NA)
+  hessian_ok <- scalar_lgl(pluck(hinfo, "diagnostics", "summary", "hessian_ok"), NA)
+  if (is.na(hessian_ok) && !is.na(is_pdh)) {
+    hessian_ok <- if (!is.na(is_spd)) isTRUE(is_pdh) && isTRUE(is_spd) else isTRUE(is_pdh)
+  }
+
+  hessian_file <- file.path(hessian_dir, paste0(scalar_chr(pluck(hinfo, "meta", "root_name"), "bet"), ".hes"))
+  if (!file.exists(hessian_file)) hessian_file <- NA_character_
+  if (!file.exists(hinfo_file) && is.null(neig) && is.na(hessian_file)) return(NULL)
+
+  list(
+    requested = TRUE,
+    attempted = TRUE,
+    run_ok = TRUE,
+    error = NA_character_,
+    info_file = if (file.exists(hinfo_file)) normalize_loose(hinfo_file) else NA_character_,
+    hessian_file = if (!is.na(hessian_file)) normalize_loose(hessian_file) else NA_character_,
+    hessian_range = NULL,
+    is_pdh = is_pdh,
+    is_spd = is_spd,
+    hessian_ok = hessian_ok,
+    n_negative_eigenvalues = n_negative,
+    n_total_eigenvalues = n_total,
+    hessian_status = scalar_chr(pluck(hinfo, "eigen", "hessian_status"), status$status),
+    reliability = scalar_chr(pluck(hinfo, "eigen", "reliability"), status$reliability)
+  )
+}
+
+update_model_payload_hessian <- function(model_dir) {
+  payload_file <- file.path(model_dir, "model_payload.rds")
+  if (!file.exists(payload_file)) return(FALSE)
+  summary <- hessian_summary_from_dir(model_dir)
+  if (is.null(summary)) return(FALSE)
+  payload <- tryCatch(readRDS(payload_file), error = function(e) NULL)
+  if (is.null(payload) || !is.list(payload)) return(FALSE)
+  if (!is.null(payload$data) && is.list(payload$data)) {
+    if (is.null(payload$data$info) || !is.list(payload$data$info)) payload$data$info <- list()
+    payload$data$info$hessian <- summary
+  } else {
+    if (is.null(payload$info) || !is.list(payload$info)) payload$info <- list()
+    payload$info$hessian <- summary
+  }
+  saveRDS(payload, payload_file, compress = "xz")
+  TRUE
+}
+
 read_csv_safe <- function(path) {
   tryCatch(read.csv(path, stringsAsFactors = FALSE, check.names = FALSE), error = function(e) data.frame())
 }
@@ -368,10 +478,12 @@ main <- function() {
       copied <- c(copied, name)
     }
     if (!length(copied)) next
+    payload_hessian_updated <- if ("hessian" %in% copied) update_model_payload_hessian(target_dir) else FALSE
     attached_rows[[length(attached_rows) + 1L]] <- data.frame(
       model_key = row_value(target_model_rows, "model_key", row_value(target_model_rows, "step_id", row_key)),
       step_id = row_value(target_model_rows, "step_id", row_key),
       check_type = paste(copied, collapse = " "),
+      payload_hessian_updated = payload_hessian_updated,
       source_input_root = normalize_loose(row$input_root %||% ""),
       source_check_dir = normalize_loose(source_dir),
       attached_model_dir = normalize_loose(target_dir),
