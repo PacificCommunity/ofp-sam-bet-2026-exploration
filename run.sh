@@ -552,7 +552,14 @@ echo "BET stepwise task"
 echo "Model folders: steps/<step-id>/model"
 echo "MFCL program: ${PROGRAM_PATH}"
 
-prepare_runtime_packages
-Rscript R/run_stepwise.R
-publish_final_pars
+case "${RUN_MODE:-}" in
+  attach|attach_outputs|attach-checks|attach_checks|update_outputs|update-outputs)
+    Rscript R/attach_outputs.R
+    ;;
+  *)
+    prepare_runtime_packages
+    Rscript R/run_stepwise.R
+    publish_final_pars
+    ;;
+esac
 drop_runtime_tokens
