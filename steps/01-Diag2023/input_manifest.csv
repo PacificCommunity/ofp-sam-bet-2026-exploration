@@ -3,4 +3,4 @@
 "ini","bet.ini","input-repos/ofp-sam-bet-2023-diagnostic/MFCL/bet.ini","81fc412","original 2023 diagnostic ini, intentionally not promoted or edited"
 "tag","bet.tag","input-repos/ofp-sam-bet-2023-diagnostic/MFCL/bet.tag","81fc412","original 2023 diagnostic tag input"
 "age_length","bet.age_length","input-repos/ofp-sam-bet-2023-diagnostic/MFCL/bet.age_length","81fc412","original 2023 diagnostic CAAL input"
-"doitall","doitall.sh","input-repos/ofp-sam-bet-2023-diagnostic/MFCL/doitall.sh","81fc412","original 2023 diagnostic control script; run_stepwise resolves bare mfclo64 to the historical 2.2.2.0 executable for this step"
+"doitall","doitall.sh","input-repos/ofp-sam-bet-2023-diagnostic/MFCL/doitall.sh","81fc412","historical 2023 diagnostic control script with PHASE 10/11 convergence switch; run_stepwise resolves bare mfclo64 to the historical 2.2.2.0 executable for this step"

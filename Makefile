@@ -24,7 +24,7 @@ FLOW_GROUP ?= $(call cfg,flow_group,bet-2026-e2e)
 TRIGGER_NEXT ?= $(call cfg,trigger_next,true)
 JOB_TITLE ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_job_title(Sys.getenv("STEP_SELECT")))')
 MODEL_LABEL ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_model_label(Sys.getenv("STEP_SELECT")))')
-EFFECTIVE_BET_PHASE10_11_CONVERGENCE ?= $(shell if [ '$(STEP_SELECT)' = '01-Diag2023' ]; then printf '%s' '-5'; elif [ '$(STEP_SELECT)' = 'all' ]; then printf '%s' 'mixed: 01=-5, 02-15=$(BET_PHASE10_11_CONVERGENCE)'; else printf '%s' '$(BET_PHASE10_11_CONVERGENCE)'; fi)
+EFFECTIVE_BET_PHASE10_11_CONVERGENCE ?= $(BET_PHASE10_11_CONVERGENCE)
 JOB_DESCRIPTION ?= Run $(MODEL_LABEL) with PHASE 10/11 convergence $(EFFECTIVE_BET_PHASE10_11_CONVERGENCE).
 JOB_KEY ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_job_key(Sys.getenv("STEP_SELECT")))')
 RUN_MODE ?= $(shell STEP_SELECT='$(STEP_SELECT)' Rscript -e 'source("$(CONFIG_HELPERS_R)"); source_stepwise_config("$(CONFIG_R)"); cat(stepwise_row_value(Sys.getenv("STEP_SELECT"), "run_mode"))')

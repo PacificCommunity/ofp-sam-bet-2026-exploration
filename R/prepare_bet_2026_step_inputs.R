@@ -214,14 +214,16 @@ copy_aux_if_exists <- function(from_dir, to_dir, file) {
 write_original_diagnostic_step <- function() {
   paths <- prepare_step_model_dir("01-Diag2023")
   copy_diagnostic_model_files(paths$model_dir)
-  copy_one(diagnostic_file("doitall.sh"), file.path(paths$model_dir, "doitall.sh"))
-  Sys.chmod(file.path(paths$model_dir, "doitall.sh"), mode = "0755")
+  write_2023_historical_doitall(
+    diagnostic_file("doitall.sh"),
+    file.path(paths$model_dir, "doitall.sh")
+  )
   write_manifest(paths$step_dir, list(
     list(role = "frq", file = "bet.frq", source = diagnostic_file("bet.frq"), note = "original 2023 diagnostic frequency/catch/size input"),
     list(role = "ini", file = "bet.ini", source = diagnostic_file("bet.ini"), note = "original 2023 diagnostic ini, intentionally not promoted or edited"),
     list(role = "tag", file = "bet.tag", source = diagnostic_file("bet.tag"), note = "original 2023 diagnostic tag input"),
     list(role = "age_length", file = "bet.age_length", source = diagnostic_file("bet.age_length"), note = "original 2023 diagnostic CAAL input"),
-    list(role = "doitall", file = "doitall.sh", source = diagnostic_file("doitall.sh"), note = "original 2023 diagnostic control script; run_stepwise resolves bare mfclo64 to the historical 2.2.2.0 executable for this step")
+    list(role = "doitall", file = "doitall.sh", source = diagnostic_file("doitall.sh"), note = "historical 2023 diagnostic control script with PHASE 10/11 convergence switch; run_stepwise resolves bare mfclo64 to the historical 2.2.2.0 executable for this step")
   ))
   write_readme(
     paths$step_dir,
@@ -230,7 +232,8 @@ write_original_diagnostic_step <- function() {
     c(
       "Copies the 2023 diagnostic `MFCL` model files without changing the model inputs.",
       "`bet.ini` remains in its original 2023 diagnostic format for the historical `mfclo64` reader.",
-      "`doitall.sh` is the original diagnostic script; the runner supplies a temporary `mfclo64` PATH shim pointing to `/home/mfcl/mfclo64_2023_diagnostic_2.2.2.0`.",
+      "`doitall.sh` keeps the historical diagnostic control sequence while allowing `BET_PHASE10_11_CONVERGENCE` to set PHASE 10/11 convergence from Kflow.",
+      "The runner supplies a temporary `mfclo64` PATH shim pointing to `/home/mfcl/mfclo64_2023_diagnostic_2.2.2.0`.",
       "This step is the direct reproducibility anchor before moving to the current executable."
     ),
     c(
@@ -243,11 +246,12 @@ write_original_diagnostic_step <- function() {
     c(
       "The model files come from `ofp-sam-bet-2023-diagnostic/MFCL`.",
       "The step-specific executable path is set in `job-config.R`; only this step uses the historical MFCL binary.",
+      "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict archival comparisons can set `-5` without editing model folders.",
       "No FixM, new-executable compatibility edits, new fishery structure, or 2026 input files are applied here."
     ),
     c(
       "Compare this rerun against the archived 2023 diagnostic output before interpreting later deltas.",
-      "Because the original script is retained, failures will reflect the original diagnostic control sequence."
+      "Apart from the PHASE 10/11 convergence switch, failures will reflect the original diagnostic control sequence."
     ),
     "Ready for Kflow with the tuna-flow image that includes the historical 2023 diagnostic MFCL executable.",
     source_revisions = input_repo_revision_table()

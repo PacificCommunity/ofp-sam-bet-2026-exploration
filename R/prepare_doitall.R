@@ -127,6 +127,14 @@ write_2023_newexe_doitall <- function(from, to, fixm = FALSE) {
   invisible(to)
 }
 
+write_2023_historical_doitall <- function(from, to) {
+  lines <- readLines(from, warn = FALSE)
+  lines <- apply_historical_phase10_11_convergence_switch(lines)
+  writeLines(lines, to, useBytes = TRUE)
+  Sys.chmod(to, mode = "0755")
+  invisible(to)
+}
+
 apply_size_based_selectivity <- function(lines) {
   replace_one_line(
     lines,
@@ -305,10 +313,10 @@ apply_regional_index_selectivity_map <- function(path) {
   invisible(TRUE)
 }
 
-apply_phase10_11_convergence_switch <- function(lines) {
-  block <- c(
+phase10_11_convergence_block <- function(default = "-3") {
+  c(
     "",
-    "phase10_11_convergence=${BET_PHASE10_11_CONVERGENCE:--3}",
+    sprintf("phase10_11_convergence=${BET_PHASE10_11_CONVERGENCE:-%s}", default),
     "case \"$phase10_11_convergence\" in",
     "  -[0-9]|-[0-9][0-9]|[0-9]|[0-9][0-9]) ;;",
     "  *)",
@@ -318,18 +326,9 @@ apply_phase10_11_convergence_switch <- function(lines) {
     "esac",
     "echo \"PHASE 10/11 convergence criterion: $phase10_11_convergence\""
   )
-  if (!any(grepl("^phase10_11_convergence=", lines))) {
-    guard_start <- grep("^if \\[ -z \"\\$program_path\" \\]; then$", lines)
-    if (length(guard_start) != 1L) {
-      stop("Expected one PROGRAM_PATH guard in doitall.sh", call. = FALSE)
-    }
-    guard_end <- which(seq_along(lines) > guard_start & trimws(lines) == "fi")
-    if (!length(guard_end)) {
-      stop("Expected PROGRAM_PATH guard terminator in doitall.sh", call. = FALSE)
-    }
-    lines <- append(lines, block, after = guard_end[[1]])
-  }
+}
 
+replace_phase10_11_convergence_lines <- function(lines) {
   replace_phase <- function(lines, phase) {
     start <- grep(paste0("<<PHASE", phase), lines, fixed = TRUE)
     if (length(start) != 1L) {
@@ -352,6 +351,32 @@ apply_phase10_11_convergence_switch <- function(lines) {
   lines <- replace_phase(lines, 10L)
   lines <- replace_phase(lines, 11L)
   lines
+}
+
+apply_historical_phase10_11_convergence_switch <- function(lines) {
+  if (!length(lines) || !grepl("^#!", lines[[1]])) {
+    lines <- c("#!/bin/sh", lines)
+  }
+  if (!any(grepl("^phase10_11_convergence=", lines))) {
+    lines <- append(lines, phase10_11_convergence_block(), after = 1L)
+  }
+  replace_phase10_11_convergence_lines(lines)
+}
+
+apply_phase10_11_convergence_switch <- function(lines) {
+  if (!any(grepl("^phase10_11_convergence=", lines))) {
+    guard_start <- grep("^if \\[ -z \"\\$program_path\" \\]; then$", lines)
+    if (length(guard_start) != 1L) {
+      stop("Expected one PROGRAM_PATH guard in doitall.sh", call. = FALSE)
+    }
+    guard_end <- which(seq_along(lines) > guard_start & trimws(lines) == "fi")
+    if (!length(guard_end)) {
+      stop("Expected PROGRAM_PATH guard terminator in doitall.sh", call. = FALSE)
+    }
+    lines <- append(lines, phase10_11_convergence_block(), after = guard_end[[1]])
+  }
+
+  replace_phase10_11_convergence_lines(lines)
 }
 
 write_doitall <- function(from, to, mix_from_ini = FALSE,
