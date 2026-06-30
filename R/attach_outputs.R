@@ -913,21 +913,6 @@ main <- function() {
       attached_at = attached_at,
       stringsAsFactors = FALSE
     )
-    payload_checks_updated <- update_model_payload_attached_checks(
-      target_dir,
-      copied = copied,
-      attached_row = attached_row,
-      attached_at = attached_at
-    )
-    attached_row$payload_checks_updated <- payload_checks_updated
-    if (isTRUE(payload_checks_updated)) {
-      attached_row$payload_checks_updated <- update_model_payload_attached_checks(
-        target_dir,
-        copied = copied,
-        attached_row = attached_row,
-        attached_at = attached_at
-      )
-    }
     attached_rows[[length(attached_rows) + 1L]] <- attached_row
   }
 
@@ -935,6 +920,20 @@ main <- function() {
   if (!nrow(attached)) {
     stop("No diagnostic folders were attached.", call. = FALSE)
   }
+
+  for (dir in unique(attached$attached_model_dir)) {
+    rows <- attached[attached$attached_model_dir == dir, , drop = FALSE]
+    copied_for_dir <- unique(unlist(strsplit(paste(rows$check_type, collapse = " "), "\\s+")))
+    copied_for_dir <- copied_for_dir[nzchar(copied_for_dir)]
+    payload_checks_updated <- update_model_payload_attached_checks(
+      dir,
+      copied = copied_for_dir,
+      attached_row = rows,
+      attached_at = attached_at
+    )
+    attached$payload_checks_updated[attached$attached_model_dir == dir] <- payload_checks_updated
+  }
+
   write.csv(attached, file.path(output_dir, "attached-checks-index.csv"), row.names = FALSE)
   for (dir in unique(attached$attached_model_dir)) {
     write.csv(attached[attached$attached_model_dir == dir, , drop = FALSE],
