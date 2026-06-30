@@ -63,6 +63,34 @@ copy_dir_contents <- function(from, to) {
   invisible(normalize_loose(to))
 }
 
+portable_output_path <- function(path, output_dir) {
+  if (is.na(path) || !nzchar(path)) return(path)
+  path <- as.character(path)
+  if (!is_absolute_path(path)) return(path)
+  path_norm <- normalize_loose(path)
+  output_norm <- normalize_loose(output_dir)
+  prefix <- paste0(output_norm, "/")
+  if (startsWith(path_norm, prefix)) {
+    return(substring(path_norm, nchar(prefix) + 1L))
+  }
+  for (marker in c("/outputs/", "/output/")) {
+    pos <- regexpr(marker, path_norm, fixed = TRUE)[[1L]]
+    if (pos > 0L) {
+      rel <- substring(path_norm, pos + nchar(marker))
+      if (file.exists(file.path(output_dir, rel))) return(rel)
+    }
+  }
+  path
+}
+
+rebase_model_index_paths <- function(model_index, output_dir) {
+  cols <- intersect(c("region_map_asset"), names(model_index))
+  for (col in cols) {
+    model_index[[col]] <- vapply(model_index[[col]], portable_output_path, character(1), output_dir = output_dir)
+  }
+  model_index
+}
+
 read_csv_safe <- function(path) {
   tryCatch(read.csv(path, stringsAsFactors = FALSE, check.names = FALSE), error = function(e) data.frame())
 }
@@ -282,6 +310,7 @@ main <- function() {
   if (!nrow(model_index)) {
     stop("Base output did not contain model-index.csv.", call. = FALSE)
   }
+  model_index <- rebase_model_index_paths(model_index, output_dir)
 
   if (!nzchar(check_refs)) {
     refs <- split_values(env("KFLOW_INPUT_JOBS", ""))

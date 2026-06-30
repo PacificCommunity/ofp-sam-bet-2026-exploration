@@ -501,6 +501,17 @@ copy_model_region_map_assets <- function(step_out, region_count) {
   ""
 }
 
+portable_output_path <- function(path, output_dir) {
+  if (!nzchar(path)) return("")
+  path_norm <- normalizePath(path, winslash = "/", mustWork = FALSE)
+  output_norm <- normalizePath(output_dir, winslash = "/", mustWork = FALSE)
+  prefix <- paste0(output_norm, "/")
+  if (startsWith(path_norm, prefix)) {
+    return(substring(path_norm, nchar(prefix) + 1L))
+  }
+  path
+}
+
 copy_root_region_map_assets <- function(output_dir, region_counts) {
   region_counts <- suppressWarnings(as.integer(region_counts))
   region_counts <- sort(unique(region_counts[is.finite(region_counts)]))
@@ -709,7 +720,7 @@ for (i in seq_len(nrow(step_table))) {
     raw_mfcl_inputs_saved = FALSE,
     region_count = region_count,
     region_map_assets = region_map_assets,
-    region_map_asset = if (region_map_assets) relative_display_path(region_map_asset_path, root) else "",
+    region_map_asset = if (region_map_assets) portable_output_path(region_map_asset_path, out_dir) else "",
     payload_status = payload_status,
     stringsAsFactors = FALSE
   )
