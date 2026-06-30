@@ -148,6 +148,127 @@ read_hessian_parameter_labels <- function(model_dir) {
   if (!nrow(out)) NULL else out[!duplicated(out$Parameter.Index), , drop = FALSE]
 }
 
+parameter_labels_match_hessian <- function(model_dir) {
+  labels <- read_hessian_parameter_labels(model_dir)
+  if (is.null(labels) || !nrow(labels)) return(FALSE)
+  neig <- read_neigenvalues(file.path(model_dir, "hessian"))
+  if (is.null(neig)) return(TRUE)
+  n_total <- suppressWarnings(as.integer(neig$n_total_eigenvalues[[1L]]))
+  if (!is.finite(n_total) || n_total <= 0L) return(TRUE)
+  isTRUE(max(labels$Parameter.Index, na.rm = TRUE) == n_total)
+}
+
+resolve_model_source_dir <- function(model_row) {
+  candidates <- c(
+    row_value(model_row, "model_source"),
+    row_value(model_row, "source_dir"),
+    if (nzchar(row_value(model_row, "step_id"))) file.path("steps", row_value(model_row, "step_id"), "model") else "",
+    if (nzchar(row_value(model_row, "model_key"))) file.path("steps", row_value(model_row, "model_key"), "model") else ""
+  )
+  candidates <- unique(candidates[nzchar(candidates)])
+  for (path in candidates) {
+    candidate <- if (is_absolute_path(path)) path else file.path(getwd(), path)
+    if (dir.exists(candidate)) return(normalize_loose(candidate))
+  }
+  ""
+}
+
+copy_generated_parameter_labels <- function(work_dir, model_dir) {
+  copied <- FALSE
+  copied_paths <- character()
+  for (name in c("xinit.rpt", "indepvar.rpt")) {
+    source <- file.path(work_dir, name)
+    if (!file.exists(source)) next
+    target <- file.path(model_dir, name)
+    file.copy(source, target, overwrite = TRUE, copy.date = TRUE)
+    copied_paths <- c(copied_paths, target)
+    copied <- TRUE
+  }
+  matched <- copied && parameter_labels_match_hessian(model_dir)
+  if (copied && !matched) unlink(copied_paths, force = TRUE)
+  matched
+}
+
+ensure_hessian_parameter_labels <- function(model_dir, model_row) {
+  if (parameter_labels_match_hessian(model_dir)) return(FALSE)
+  if (!truthy(env("STEPWISE_GENERATE_HESSIAN_LABELS", "true"), TRUE)) return(FALSE)
+
+  final_par <- file.path(model_dir, "final.par")
+  if (!file.exists(final_par)) {
+    message("[stepwise] Hessian parameter labels not generated: final.par is missing")
+    return(FALSE)
+  }
+
+  model_source <- resolve_model_source_dir(model_row)
+  if (!nzchar(model_source)) {
+    message("[stepwise] Hessian parameter labels not generated: model source directory was not found")
+    return(FALSE)
+  }
+
+  frq <- row_value(model_row, "frq", env("FRQ", "bet.frq"))
+  frq_path <- file.path(model_source, frq)
+  if (!file.exists(frq_path)) {
+    frq_hits <- list.files(model_source, pattern = "[.]frq$", full.names = FALSE)
+    if (length(frq_hits)) {
+      frq <- frq_hits[[1L]]
+      frq_path <- file.path(model_source, frq)
+    }
+  }
+  if (!file.exists(frq_path)) {
+    message("[stepwise] Hessian parameter labels not generated: no .frq file in ", model_source)
+    return(FALSE)
+  }
+
+  program <- env("PROGRAM_PATH", "/home/mfcl/mfclo64")
+  if (!nzchar(program) || !file.exists(program)) {
+    program_found <- Sys.which(basename(program))
+    if (nzchar(program_found)) program <- program_found
+  }
+  if (!nzchar(program) || !file.exists(program)) {
+    message("[stepwise] Hessian parameter labels not generated: PROGRAM_PATH was not found")
+    return(FALSE)
+  }
+
+  work_dir <- tempfile("stepwise-hessian-labels-")
+  dir.create(work_dir, recursive = TRUE, showWarnings = FALSE)
+  on.exit(unlink(work_dir, recursive = TRUE, force = TRUE), add = TRUE)
+  copy_dir_contents(model_source, work_dir)
+  file.copy(final_par, file.path(work_dir, "final.par"), overwrite = TRUE, copy.date = TRUE)
+
+  log_file <- file.path(work_dir, "mfcl-label-report.log")
+  timeout <- suppressWarnings(as.integer(env("STEPWISE_LABEL_GENERATION_TIMEOUT", "300")))
+  use_timeout <- is.finite(timeout) && timeout > 0L && nzchar(Sys.which("timeout"))
+  command <- if (use_timeout) Sys.which("timeout") else program
+  args <- c(frq, "final.par", "label.par", "-file", "-")
+  if (use_timeout) args <- c(as.character(timeout), program, args)
+
+  message("[stepwise] generating Hessian parameter labels from ", frq, " and final.par")
+  old_wd <- getwd()
+  setwd(work_dir)
+  on.exit(setwd(old_wd), add = TRUE)
+  status <- suppressWarnings(system2(
+    command,
+    args,
+    stdout = log_file,
+    stderr = log_file,
+    input = c("  1 1 0", "  1 246 1")
+  ))
+  status <- suppressWarnings(as.integer(status %||% 0L))
+  generated <- copy_generated_parameter_labels(work_dir, model_dir)
+  if (!generated) {
+    if (is.finite(status) && status != 0L) {
+      message("[stepwise] MFCL label generation exited with status ", status, " and no matching xinit.rpt")
+    } else {
+      message("[stepwise] MFCL label generation did not produce a matching xinit.rpt")
+    }
+    return(FALSE)
+  }
+  if (is.finite(status) && status != 0L) {
+    message("[stepwise] MFCL label generation exited with status ", status, " after writing xinit.rpt")
+  }
+  TRUE
+}
+
 read_hessian_nonpositive_parameters <- function(model_dir, top_n = 40L) {
   hessian_dir <- file.path(model_dir, "hessian")
   path <- file.path(hessian_dir, "neigenvalues")
@@ -564,12 +685,20 @@ main <- function() {
       copied <- c(copied, name)
     }
     if (!length(copied)) next
+    parameter_labels_generated <- if ("hessian" %in% copied) {
+      ensure_hessian_parameter_labels(target_dir, target_model_rows[1L, , drop = FALSE])
+    } else {
+      FALSE
+    }
+    parameter_labels_available <- if ("hessian" %in% copied) parameter_labels_match_hessian(target_dir) else FALSE
     payload_hessian_updated <- if ("hessian" %in% copied) update_model_payload_hessian(target_dir) else FALSE
     attached_rows[[length(attached_rows) + 1L]] <- data.frame(
       model_key = row_value(target_model_rows, "model_key", row_value(target_model_rows, "step_id", row_key)),
       step_id = row_value(target_model_rows, "step_id", row_key),
       check_type = paste(copied, collapse = " "),
       payload_hessian_updated = payload_hessian_updated,
+      parameter_labels_available = parameter_labels_available,
+      parameter_labels_generated = parameter_labels_generated,
       source_input_root = normalize_loose(row$input_root %||% ""),
       source_check_dir = normalize_loose(source_dir),
       attached_model_dir = normalize_loose(target_dir),
