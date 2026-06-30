@@ -125,6 +125,91 @@ read_neigenvalues <- function(hessian_dir) {
   list(n_negative_eigenvalues = as.integer(vals[[1L]]), n_total_eigenvalues = as.integer(vals[[2L]]))
 }
 
+read_hessian_parameter_labels <- function(model_dir) {
+  candidates <- unique(c(
+    file.path(model_dir, "xinit.rpt"),
+    file.path(model_dir, "indepvar.rpt"),
+    file.path(model_dir, "hessian", "xinit.rpt"),
+    file.path(model_dir, "hessian", "indepvar.rpt")
+  ))
+  candidates <- candidates[file.exists(candidates)]
+  if (!length(candidates)) return(NULL)
+  tbl <- tryCatch(
+    read.table(candidates[[1L]], header = FALSE, fill = TRUE, quote = "", comment.char = "", stringsAsFactors = FALSE),
+    error = function(e) NULL
+  )
+  if (is.null(tbl) || !is.data.frame(tbl) || ncol(tbl) < 2L || nrow(tbl) == 0L) return(NULL)
+  index <- suppressWarnings(as.integer(tbl[[1L]]))
+  label <- apply(tbl[, seq.int(2L, ncol(tbl)), drop = FALSE], 1L, function(x) {
+    paste(as.character(x[!is.na(x) & nzchar(as.character(x))]), collapse = " ")
+  })
+  out <- data.frame(Parameter.Index = index, Parameter.Label = label, stringsAsFactors = FALSE)
+  out <- out[is.finite(out$Parameter.Index) & nzchar(out$Parameter.Label), , drop = FALSE]
+  if (!nrow(out)) NULL else out[!duplicated(out$Parameter.Index), , drop = FALSE]
+}
+
+read_hessian_nonpositive_parameters <- function(model_dir, top_n = 40L) {
+  hessian_dir <- file.path(model_dir, "hessian")
+  path <- file.path(hessian_dir, "neigenvalues")
+  neig <- read_neigenvalues(hessian_dir)
+  if (is.null(neig) || !file.exists(path)) return(data.frame(stringsAsFactors = FALSE))
+  n_negative <- suppressWarnings(as.integer(neig$n_negative_eigenvalues[[1L]]))
+  n_total <- suppressWarnings(as.integer(neig$n_total_eigenvalues[[1L]]))
+  if (!is.finite(n_negative) || n_negative <= 0L || !is.finite(n_total) || n_total <= 0L) {
+    return(data.frame(stringsAsFactors = FALSE))
+  }
+  values <- suppressWarnings(scan(path, what = numeric(), quiet = TRUE, skip = 1L))
+  row_width <- n_total + 1L
+  if (!length(values)) return(data.frame(stringsAsFactors = FALSE))
+  if (length(values) %% row_width == 0L) {
+    mat <- matrix(values, ncol = row_width, byrow = TRUE)
+    eigenvalues <- mat[, 1L]
+    vectors <- mat[, -1L, drop = FALSE]
+  } else if (length(values) %% n_total == 0L) {
+    mat <- matrix(values, ncol = n_total, byrow = TRUE)
+    eigenvalues <- rep(NA_real_, nrow(mat))
+    vectors <- mat
+  } else {
+    return(data.frame(stringsAsFactors = FALSE))
+  }
+  n_rows <- min(n_negative, nrow(vectors))
+  labels <- read_hessian_parameter_labels(model_dir)
+  label_lookup <- if (!is.null(labels) && nrow(labels)) {
+    stats::setNames(as.character(labels$Parameter.Label), as.character(labels$Parameter.Index))
+  } else {
+    NULL
+  }
+  top_n <- suppressWarnings(as.integer(top_n[[1L]]))
+  if (!is.finite(top_n) || top_n <= 0L) top_n <- 40L
+  rows <- lapply(seq_len(n_rows), function(i) {
+    loading <- as.numeric(vectors[i, ])
+    keep <- is.finite(loading)
+    if (!any(keep)) return(NULL)
+    idx <- seq_along(loading)[keep]
+    loading <- loading[keep]
+    total_sq <- sum(loading^2, na.rm = TRUE)
+    ord <- order(abs(loading), decreasing = TRUE)
+    ord <- ord[seq_len(min(length(ord), top_n))]
+    idx <- idx[ord]
+    loading <- loading[ord]
+    label <- if (!is.null(label_lookup)) unname(label_lookup[as.character(idx)]) else rep(NA_character_, length(idx))
+    missing_label <- is.na(label) | !nzchar(label)
+    label[missing_label] <- paste0("Parameter ", idx[missing_label])
+    data.frame(
+      Eigen.Direction = i,
+      Eigenvalue = eigenvalues[[i]],
+      Parameter.Index = as.integer(idx),
+      Parameter.Label = label,
+      Loading = loading,
+      Abs.Loading = abs(loading),
+      Contribution.Percent = if (is.finite(total_sq) && total_sq > 0) (loading^2 / total_sq) * 100 else NA_real_,
+      stringsAsFactors = FALSE
+    )
+  })
+  rows <- rows[vapply(rows, function(x) is.data.frame(x) && nrow(x), logical(1))]
+  if (!length(rows)) data.frame(stringsAsFactors = FALSE) else do.call(rbind, rows)
+}
+
 hessian_status_from_neigen <- function(n_negative, n_total) {
   if (!is.finite(n_negative) || !is.finite(n_total) || n_total <= 0) {
     return(list(status = "Unknown", reliability = "UNKNOWN", is_pdh = NA))
@@ -179,7 +264,8 @@ hessian_summary_from_dir <- function(model_dir) {
     n_negative_eigenvalues = n_negative,
     n_total_eigenvalues = n_total,
     hessian_status = scalar_chr(pluck(hinfo, "eigen", "hessian_status"), status$status),
-    reliability = scalar_chr(pluck(hinfo, "eigen", "reliability"), status$reliability)
+    reliability = scalar_chr(pluck(hinfo, "eigen", "reliability"), status$reliability),
+    nonpositive_parameters = read_hessian_nonpositive_parameters(model_dir)
   )
 }
 

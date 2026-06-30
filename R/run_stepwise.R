@@ -683,7 +683,10 @@ for (i in seq_len(nrow(step_table))) {
     "fishery_map.R",
     "tag_rep_map.R",
     "doitall.sh",
-    "bet.reg_scaling"
+    "bet.reg_scaling",
+    "xinit.rpt",
+    "indepvar.rpt",
+    "new_cor_report"
   ))
   for (file in keep) {
     src <- file.path(model_dir, file)
