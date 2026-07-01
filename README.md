@@ -12,8 +12,10 @@ model folder with a compact README and input manifest.
 | Step | Adds / isolates | Tag treatment |
 | --- | --- | --- |
 | `01-Diag2023` | 2023 diagnostic rerun with historical MFCL | historical |
-| `02-NewExe` | current executable compatibility baseline | inherited |
-| `03-FixM` | FixM update at the 2023 MLE value | inherited |
+| `02a-NewExe` | current executable using `2023_rep` and 1003 ini | doitall `-9999 1 2` |
+| `02b-Ini1007` | promote the 02a diagnostic ini to 1007 | `tag_flags(it,2)=0` |
+| `02c-LnR0` | set diagnostic LN(R0) to 17 | inherits 02b |
+| `03-FixM` | FixM update at the 2023 MLE value after 02c | inherits 02c |
 | `04a-NewStructure` | 5-region / 33-fishery structure, global CPUE | `tag_flags(it,2)=0` |
 | `04b-TagReportingMixing` | reporting-rate treatment during tag mixing | `tag_flags(it,2)=1` |
 | `05-ConvertToLength` | existing weight comps converted to length | inherits 04b |

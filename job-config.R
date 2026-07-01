@@ -18,7 +18,9 @@ stepwise_models <- data.frame(
   # Folder name and Kflow selector.
   step_id = c(
     "01-Diag2023",
-    "02-NewExe",
+    "02a-NewExe",
+    "02b-Ini1007",
+    "02c-LnR0",
     "03-FixM",
     "04a-NewStructure",
     "04b-TagReportingMixing",
@@ -34,12 +36,14 @@ stepwise_models <- data.frame(
     "14-EffortCreep",
     "15-DataWeighting"
   ),
-  enabled = rep(TRUE, 16),
+  enabled = rep(TRUE, 18),
 
   # Scientific grouping for reporting/provenance. `substep` is where changes
   # like tag_flags(it,2) are made explicit without hiding them inside a data step.
   major_step = c(
     "01-Diagnostic",
+    "02-Executable",
+    "02-Executable",
     "02-Executable",
     "03-FixM",
     "04-NewStructure",
@@ -59,6 +63,8 @@ stepwise_models <- data.frame(
   substep = c(
     "01a",
     "02a",
+    "02b",
+    "02c",
     "03a",
     "04a",
     "04b",
@@ -76,8 +82,10 @@ stepwise_models <- data.frame(
   ),
   change_axis = c(
     "historical diagnostic",
-    "current MFCL executable",
-    "fixed natural mortality from mgc=-5 diagnostic",
+    "current MFCL executable with 1003 ini",
+    "promote diagnostic ini to 1007",
+    "set diagnostic LN(R0) to 17",
+    "fixed natural mortality from mgc=-5 diagnostic after 02c",
     "5-region structure with tag_flags(it,2)=0",
     "exclude reporting rates during tag mixing",
     "convert weight compositions to length",
@@ -95,7 +103,9 @@ stepwise_models <- data.frame(
   tag_flags_it2 = c(
     NA,
     NA,
-    NA,
+    0L,
+    0L,
+    0L,
     0L,
     1L,
     1L,
@@ -114,7 +124,9 @@ stepwise_models <- data.frame(
   # Short model label used in logs, plots, and reports.
   model_label = c(
     "Diag2023",
-    "NewExe",
+    "NewExe 1003",
+    "Ini 1007",
+    "LN(R0) 17",
     "FixM",
     "New structure",
     "Tag reporting mixing",
@@ -134,7 +146,9 @@ stepwise_models <- data.frame(
   # Title shown in the Kflow job list.
   job_title = c(
     "Diag2023",
-    "NewExe",
+    "NewExe 1003",
+    "Ini 1007",
+    "LN(R0) 17",
     "FixM",
     "New structure",
     "Tag reporting mixing",
@@ -154,7 +168,9 @@ stepwise_models <- data.frame(
   # Stable key used by Kflow dependency links and selectors.
   job_key = c(
     "01-diag2023",
-    "02-newexe",
+    "02a-newexe",
+    "02b-ini1007",
+    "02c-lnr0",
     "03-fixm",
     "04a-newstructure",
     "04b-tagreportingmixing",
@@ -172,13 +188,13 @@ stepwise_models <- data.frame(
   ),
 
   # Run settings for each model row.
-  run_mode = rep("doitall", 16),
+  run_mode = rep("doitall", 18),
   mfcl_program_path = c(
     "/home/mfcl/mfclo64_2023_diagnostic_2.2.2.0",
-    rep("", 15)
+    rep("", 17)
   ),
-  input_par = rep("", 16),
-  frq = rep("bet.frq", 16),
-  output_par = rep("", 16),
+  input_par = rep("", 18),
+  frq = rep("bet.frq", 18),
+  output_par = rep("", 18),
   stringsAsFactors = FALSE
 )

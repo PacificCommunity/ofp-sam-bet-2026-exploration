@@ -41,6 +41,7 @@ First 5-region / 33-fishery BET input step, ending in 2021 with global CPUE.
 | `ofp-sam-2026-BET-YFT-tag-prep` | `5a4f5fb` | assign unassigned gear to PS from canneries |
 | `ofp-sam-2026-BET-YFT-age-length-build` | `a26b694` | plus group at age 40 |
 | `ofp-sam-bet-2023-diagnostic` | `81fc412` | Format tables after plotting |
+| `ofp-sam-2026-BET` | `847d036` | Revert "Fallback selftest projection par generation" |
 
 ## Controls
 

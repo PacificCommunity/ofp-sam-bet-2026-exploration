@@ -18,6 +18,7 @@ case "$phase10_11_convergence" in
 esac
 echo "PHASE 10/11 convergence criterion: $phase10_11_convergence"
 
+
 # -----------------------------------
 #  PHASE 0 - create initial par file
 # -----------------------------------

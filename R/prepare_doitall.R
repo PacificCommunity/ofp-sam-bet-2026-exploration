@@ -63,6 +63,7 @@ write_program_path_doitall <- function(from, to) {
       "fi"
     ), after = 2L)
   }
+  lines <- sub("^program_path=[$][{]PROGRAM_PATH[}]$", "program_path=${PROGRAM_PATH:-}", lines)
   lines <- sub("^([[:space:]]*)mfclo64([[:space:]])", "\\1$program_path\\2", lines)
   writeLines(lines, to, useBytes = TRUE)
   Sys.chmod(to, mode = "0755")
@@ -89,11 +90,18 @@ apply_2023_newexe_controls <- function(lines) {
       value = cpue_cv[[fishery]]
     )
   }
-  replace_one_line(
-    lines,
-    "^[[:space:]]*2[[:space:]]+94[[:space:]]+1[[:space:]]+2[[:space:]]+128[[:space:]]+10([[:space:]]|$)",
-    "  2 94 1 2 128 100  # initial Z = 1.0*M, i.e. initial F = 0"
-  )
+  old_initial_z <- "^[[:space:]]*2[[:space:]]+94[[:space:]]+1[[:space:]]+2[[:space:]]+128[[:space:]]+10([[:space:]]|$)"
+  new_initial_z <- "^[[:space:]]*2[[:space:]]+94[[:space:]]+1[[:space:]]+2[[:space:]]+128[[:space:]]+100([[:space:]]|$)"
+  if (any(grepl(old_initial_z, lines))) {
+    lines <- replace_one_line(
+      lines,
+      old_initial_z,
+      "  2 94 1 2 128 100  # initial Z = 1.0*M, i.e. initial F = 0"
+    )
+  } else if (!any(grepl(new_initial_z, lines))) {
+    stop("Expected one current-executable initial Z line in doitall.sh", call. = FALSE)
+  }
+  lines
 }
 
 apply_2023_current_baseline_tail_controls <- function(lines, fixm = FALSE) {
@@ -125,11 +133,13 @@ remove_tag_mixing_override <- function(lines) {
   lines
 }
 
-write_2023_newexe_doitall <- function(from, to, fixm = FALSE) {
+write_2023_newexe_doitall <- function(from, to, fixm = FALSE, mix_from_ini = TRUE) {
   write_program_path_doitall(from, to)
   lines <- readLines(to, warn = FALSE)
   lines <- apply_2023_newexe_controls(lines)
-  lines <- remove_tag_mixing_override(lines)
+  if (isTRUE(mix_from_ini)) {
+    lines <- remove_tag_mixing_override(lines)
+  }
   lines <- apply_phase10_11_convergence_switch(lines)
   lines <- apply_2023_current_baseline_tail_controls(lines, fixm = fixm)
   writeLines(lines, to, useBytes = TRUE)

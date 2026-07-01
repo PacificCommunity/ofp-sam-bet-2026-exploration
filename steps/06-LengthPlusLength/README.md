@@ -36,6 +36,7 @@ Data to 2021, global CPUE, adding length compositions that were not used in the 
 | `ofp-sam-2026-BET-YFT-tag-prep` | `5a4f5fb` | assign unassigned gear to PS from canneries |
 | `ofp-sam-2026-BET-YFT-age-length-build` | `a26b694` | plus group at age 40 |
 | `ofp-sam-bet-2023-diagnostic` | `81fc412` | Format tables after plotting |
+| `ofp-sam-2026-BET` | `847d036` | Revert "Fallback selftest projection par generation" |
 
 ## Controls
 

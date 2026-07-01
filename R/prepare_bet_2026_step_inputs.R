@@ -84,12 +84,38 @@ diagnostic_repo_root <- if (basename(diagnostic_mfcl_root) == "MFCL") {
   diagnostic_mfcl_root
 }
 
+bet_2026_root_env <- Sys.getenv("BET_2026_REPO_ROOT", "")
+bet_2026_root_candidates <- if (nzchar(bet_2026_root_env)) {
+  bet_2026_root_env
+} else {
+  c(
+    file.path(dirname(root), "ofp-sam-2026-BET"),
+    file.path(dirname(root), "input-repos", "ofp-sam-2026-BET")
+  )
+}
+bet_2026_root_candidate <- function(path) {
+  input_dir <- file.path(path, "mfcl", "inputs", "2023_rep")
+  if (file.exists(file.path(input_dir, "bet.ini"))) return(input_dir)
+  ""
+}
+bet_2026_rep_hits <- vapply(bet_2026_root_candidates, bet_2026_root_candidate, character(1))
+bet_2026_rep_hits <- bet_2026_rep_hits[nzchar(bet_2026_rep_hits)]
+if (!length(bet_2026_rep_hits)) {
+  stop(
+    "Could not find ofp-sam-2026-BET/mfcl/inputs/2023_rep. Set BET_2026_REPO_ROOT to the repo root.",
+    call. = FALSE
+  )
+}
+rep2023_root <- normalizePath(bet_2026_rep_hits[[1L]], winslash = "/", mustWork = TRUE)
+bet_2026_repo_root <- normalizePath(file.path(rep2023_root, "..", "..", ".."), winslash = "/", mustWork = TRUE)
+
 input_repo_roots <- c(
   "ofp-sam-2026-BET-YFT-frq-build" = file.path(input_root, "ofp-sam-2026-BET-YFT-frq-build"),
   "ofp-sam-2026-BET-YFT-build-ini" = file.path(input_root, "ofp-sam-2026-BET-YFT-build-ini"),
   "ofp-sam-2026-BET-YFT-tag-prep" = file.path(input_root, "ofp-sam-2026-BET-YFT-tag-prep"),
   "ofp-sam-2026-BET-YFT-age-length-build" = file.path(input_root, "ofp-sam-2026-BET-YFT-age-length-build"),
-  "ofp-sam-bet-2023-diagnostic" = diagnostic_repo_root
+  "ofp-sam-bet-2023-diagnostic" = diagnostic_repo_root,
+  "ofp-sam-2026-BET" = bet_2026_repo_root
 )
 
 git_value <- function(repo, args) {
@@ -262,65 +288,135 @@ write_original_diagnostic_step <- function() {
   )
 }
 
-write_current_diagnostic_step <- function(step_id, title, summary, fixm = FALSE,
-                                          legacy_aux_step = "02-NewExe") {
-  paths <- prepare_step_model_dir(step_id)
-  copy_diagnostic_model_files(paths$model_dir)
-  ini_note <- ensure_ini_1007_compatibility(
-    file.path(paths$model_dir, "bet.ini"),
-    file.path(paths$model_dir, "bet.tag")
-  )
-  if (isTRUE(fixm)) {
-    apply_fixm_m(file.path(paths$model_dir, "bet.ini"))
+rep2023_file <- function(file) {
+  file.path(rep2023_root, file)
+}
+
+copy_model_core_files <- function(from_dir, to_dir) {
+  for (file in c("bet.frq", "bet.ini", "bet.tag", "bet.age_length", "mfcl.cfg", "fishery_map.R")) {
+    copy_if_exists(file.path(from_dir, file), file.path(to_dir, file))
   }
+}
+
+write_02a_newexe_step <- function() {
+  paths <- prepare_step_model_dir("02a-NewExe")
+  copy_model_core_files(rep2023_root, paths$model_dir)
   write_generated_tag_rep_map(paths$model_dir)
   write_2023_newexe_doitall(
-    diagnostic_file("doitall.sh"),
+    rep2023_file("doitall.sh"),
     file.path(paths$model_dir, "doitall.sh"),
-    fixm = fixm
+    fixm = FALSE,
+    mix_from_ini = FALSE
   )
-  legacy_aux_dir <- file.path(root, "steps", legacy_aux_step, "model")
-  current_aux_dir <- file.path(root, "steps", step_id, "model")
-  copied <- copy_aux_if_exists(current_aux_dir, paths$model_dir, "fishery_map.R")
-  if (!isTRUE(copied)) copy_aux_if_exists(legacy_aux_dir, paths$model_dir, "fishery_map.R")
-  ini_notes <- c(
-    if (isTRUE(fixm)) paste("FixM M row applied from", fixm_age_par_source),
-    ini_note
-  )
-  ini_note_text <- paste(ini_notes[nzchar(ini_notes)], collapse = "; ")
   write_manifest(paths$step_dir, list(
-    list(role = "frq", file = "bet.frq", source = diagnostic_file("bet.frq"), note = "2023 diagnostic frequency/catch/size input"),
-    list(role = "ini", file = "bet.ini", source = diagnostic_file("bet.ini"), note = ini_note_text),
-    list(role = "tag", file = "bet.tag", source = diagnostic_file("bet.tag"), note = "2023 diagnostic tag input; tag reporting map regenerated from ini/tag"),
-    list(role = "age_length", file = "bet.age_length", source = diagnostic_file("bet.age_length"), note = "2023 diagnostic CAAL input"),
-    list(role = "doitall", file = "doitall.sh", source = diagnostic_file("doitall.sh"), note = "current-executable compatibility controls: updated initial Z and CPUE CV settings, PROGRAM_PATH wrapper, and PHASE 10/11 convergence switch")
+    list(role = "frq", file = "bet.frq", source = rep2023_file("bet.frq"), note = "2023 replication frequency/catch/size input from ofp-sam-2026-BET/mfcl/inputs/2023_rep"),
+    list(role = "ini", file = "bet.ini", source = rep2023_file("bet.ini"), note = "MFCL 1003 ini from 2023_rep; not promoted in this substep"),
+    list(role = "tag", file = "bet.tag", source = rep2023_file("bet.tag"), note = "2023 replication tag input; tag reporting map regenerated from ini/tag"),
+    list(role = "age_length", file = "bet.age_length", source = rep2023_file("bet.age_length"), note = "2023 replication CAAL input"),
+    list(role = "doitall", file = "doitall.sh", source = rep2023_file("doitall.sh"), note = "current-executable 2023_rep controls with PROGRAM_PATH wrapper, PHASE 10/11 convergence switch, and 1003 ini tag mixing override retained")
   ))
   write_readme(
     paths$step_dir,
-    title,
-    summary,
+    "02a NewExe",
+    "2023_rep inputs run with the current MFCL executable while keeping the MFCL 1003 ini.",
     c(
-      "Uses the 2023 diagnostic 9-region, 41-fishery inputs ending in 2021.",
-      "`bet.ini` is promoted from MFCL 1003 to 1007 layout for the current MFCL reader while retaining the diagnostic values.",
-      "The current-executable `doitall.sh` controls match the existing stepwise diagnostic baseline: initial Z uses `2 94 1 2 128 100`, and survey CPUE CV settings are the current BET 2023 values.",
-      if (isTRUE(fixm)) paste("Applies the FixM M-scale row from", fixm_age_par_source, "with value", fixm_age_par_value) else "Natural mortality setup remains the pre-FixM diagnostic baseline."
+      "Uses `ofp-sam-2026-BET/mfcl/inputs/2023_rep` as the source model.",
+      "Keeps `bet.ini` as version 1003 so this substep isolates the current executable and 2023_rep control script.",
+      "Retains the `-9999 1 2` doitall tag-mixing override because MFCL 1003 inputs do not contain an explicit `# tag flags` block.",
+      "Adds the usual Kflow safety wrapper: `set -eu`, PROGRAM_PATH guard, and `BET_PHASE10_11_CONVERGENCE` for PHASE 10/11."
     ),
     c(
-      "bet.frq" = "2023 diagnostic frequency/catch/size input, 9 regions, 41 fisheries, terminal year 2021",
-      "bet.ini" = paste("2023 diagnostic ini promoted for the current reader", ini_note_text),
-      "bet.tag" = "2023 diagnostic tag input",
-      "bet.age_length" = "2023 diagnostic CAAL input",
+      "bet.frq" = "`ofp-sam-2026-BET/mfcl/inputs/2023_rep/bet.frq`; 9 regions, 41 fisheries, terminal year 2021",
+      "bet.ini" = "`ofp-sam-2026-BET/mfcl/inputs/2023_rep/bet.ini`; MFCL 1003, no explicit tag flags",
+      "bet.tag" = "`ofp-sam-2026-BET/mfcl/inputs/2023_rep/bet.tag`",
+      "bet.age_length" = "`ofp-sam-2026-BET/mfcl/inputs/2023_rep/bet.age_length`",
       "input_manifest.csv" = "machine-readable source/input notes with source commits"
     ),
     c(
       "The current MFCL executable `/home/mfcl/mfclo64` is used.",
-      "The step output includes the 2023 nine-region GeoJSON asset as a display-only map asset; it does not change MFCL inputs.",
-      "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.",
-      "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders."
+      "This substep is the executable/control-script bridge before changing the ini layout.",
+      "The 2023 nine-region GeoJSON asset remains display-only; it does not change MFCL inputs."
     ),
     c(
-      "This step should continue to match the previously generated 2026 stepwise diagnostic baseline.",
-      if (isTRUE(fixm)) "No fishery, tag, CAAL, or CPUE update is intended in this step." else "FixM is intentionally isolated in the next step."
+      "Compare directly with 01-Diag2023 to isolate historical-executable versus current-executable/control effects.",
+      "Do not interpret this as a 1007 ini test; that is isolated in 02b-Ini1007."
+    ),
+    "Ready for Kflow smoke runs; full MFCL fit not run here.",
+    source_revisions = input_repo_revision_table()
+  )
+}
+
+write_diagnostic_substep <- function(step_id, title, summary, source_step,
+                                     promote_1007 = FALSE,
+                                     total_population_scalar = NA_integer_,
+                                     fixm = FALSE) {
+  paths <- prepare_step_model_dir(step_id)
+  source_model_dir <- file.path(root, "steps", source_step, "model")
+  copy_model_core_files(source_model_dir, paths$model_dir)
+  ini_notes <- character()
+  if (isTRUE(promote_1007)) {
+    ini_notes <- c(ini_notes, ensure_ini_1007_compatibility(
+      file.path(paths$model_dir, "bet.ini"),
+      file.path(paths$model_dir, "bet.tag"),
+      total_population_scalar = 25L,
+      retain_reporting_rates_during_mixing = TRUE
+    ))
+  }
+  if (!is.na(total_population_scalar)) {
+    ini_notes <- c(ini_notes, set_total_population_scalar(
+      file.path(paths$model_dir, "bet.ini"),
+      total_population_scalar
+    ))
+  }
+  if (isTRUE(fixm)) {
+    apply_fixm_m(file.path(paths$model_dir, "bet.ini"))
+    ini_notes <- c(ini_notes, paste("FixM M row applied from", fixm_age_par_source))
+  }
+  write_generated_tag_rep_map(paths$model_dir)
+  write_2023_newexe_doitall(
+    file.path(source_model_dir, "doitall.sh"),
+    file.path(paths$model_dir, "doitall.sh"),
+    fixm = fixm,
+    mix_from_ini = TRUE
+  )
+  ini_note_text <- paste(ini_notes[nzchar(ini_notes)], collapse = "; ")
+  if (!nzchar(ini_note_text)) ini_note_text <- paste0("inherits `", source_step, "` ini unchanged")
+  write_manifest(paths$step_dir, list(
+    list(role = "frq", file = "bet.frq", source = file.path("steps", source_step, "model", "bet.frq"), note = paste0("inherited from ", source_step)),
+    list(role = "ini", file = "bet.ini", source = file.path("steps", source_step, "model", "bet.ini"), note = ini_note_text),
+    list(role = "tag", file = "bet.tag", source = file.path("steps", source_step, "model", "bet.tag"), note = paste0("inherited from ", source_step, "; tag reporting map regenerated from ini/tag")),
+    list(role = "age_length", file = "bet.age_length", source = file.path("steps", source_step, "model", "bet.age_length"), note = paste0("inherited from ", source_step)),
+    list(role = "doitall", file = "doitall.sh", source = file.path("steps", source_step, "model", "doitall.sh"), note = "current-executable controls regenerated; 1007 tag flags drive mixing periods; PHASE 10/11 convergence switch retained")
+  ))
+  change_lines <- c(
+    paste0("Inherits the 2023_rep diagnostic-side model from `", source_step, "`."),
+    if (isTRUE(promote_1007)) "`bet.ini` is promoted from MFCL 1003 to 1007 while retaining the diagnostic values.",
+    if (!is.na(total_population_scalar)) paste0("Sets the total population scaling factor LN(R0) to ", as.integer(total_population_scalar), "."),
+    if (isTRUE(fixm)) paste("Applies the FixM M-scale row from", fixm_age_par_source, "with value", fixm_age_par_value),
+    if (!isTRUE(promote_1007) && is.na(total_population_scalar) && !isTRUE(fixm)) "No additional input change is applied."
+  )
+  write_readme(
+    paths$step_dir,
+    title,
+    summary,
+    change_lines[nzchar(change_lines)],
+    c(
+      "bet.frq" = paste0("`steps/", source_step, "/model/bet.frq`"),
+      "bet.ini" = paste0("`steps/", source_step, "/model/bet.ini`; ", ini_note_text),
+      "bet.tag" = paste0("`steps/", source_step, "/model/bet.tag`"),
+      "bet.age_length" = paste0("`steps/", source_step, "/model/bet.age_length`"),
+      "input_manifest.csv" = "machine-readable source/input notes with source commits"
+    ),
+    c(
+      "The current MFCL executable `/home/mfcl/mfclo64` is used.",
+      "MFCL 1007 `# tag flags` supply tag mixing periods; the inherited `-9999 1 2` doitall override is removed.",
+      "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.",
+      "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders.",
+      "The 2023 nine-region GeoJSON asset remains display-only; it does not change MFCL inputs."
+    ),
+    c(
+      paste0("Compare directly with ", source_step, " to isolate this substep's change."),
+      if (isTRUE(fixm)) "No fishery, tag, CAAL, or CPUE update is intended in this step." else "Later steps inherit this substep unless explicitly documented otherwise."
     ),
     "Ready for Kflow smoke runs; full MFCL fit not run here.",
     source_revisions = input_repo_revision_table()
@@ -328,19 +424,27 @@ write_current_diagnostic_step <- function(step_id, title, summary, fixm = FALSE,
 }
 
 write_original_diagnostic_step()
-write_current_diagnostic_step(
-  "02-NewExe",
-  "02 NewExe",
-  "2023 diagnostic inputs run with the current MFCL executable and the existing current-executable compatibility controls.",
-  fixm = FALSE,
-  legacy_aux_step = "02-NewExe"
+write_02a_newexe_step()
+write_diagnostic_substep(
+  "02b-Ini1007",
+  "02b Ini1007",
+  "02a current-executable baseline promoted from MFCL 1003 to MFCL 1007 ini layout.",
+  source_step = "02a-NewExe",
+  promote_1007 = TRUE
 )
-write_current_diagnostic_step(
+write_diagnostic_substep(
+  "02c-LnR0",
+  "02c LnR0",
+  "02b 1007 ini baseline with total population scaling factor LN(R0) set to 17.",
+  source_step = "02b-Ini1007",
+  total_population_scalar = 17L
+)
+write_diagnostic_substep(
   "03-FixM",
   "03 FixM",
-  "NewExe baseline with the FixM M-scale row applied from the 01-Diag2023 mgc=-5 final run.",
-  fixm = TRUE,
-  legacy_aux_step = "03-FixM"
+  "02c baseline with the FixM M-scale row applied from the 01-Diag2023 mgc=-5 final run.",
+  source_step = "02c-LnR0",
+  fixm = TRUE
 )
 
 old_age <- file.path(age_root, "bet.2023.new-structure.age_length")

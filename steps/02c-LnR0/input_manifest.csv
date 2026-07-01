@@ -1,0 +1,6 @@
+"role","file","source","source_commit","note"
+"frq","bet.frq","steps/02b-Ini1007/model/bet.frq","ec199ce","inherited from 02b-Ini1007"
+"ini","bet.ini","steps/02b-Ini1007/model/bet.ini","ec199ce","set total population scaling factor LN(R0) from 25 to 17"
+"tag","bet.tag","steps/02b-Ini1007/model/bet.tag","ec199ce","inherited from 02b-Ini1007; tag reporting map regenerated from ini/tag"
+"age_length","bet.age_length","steps/02b-Ini1007/model/bet.age_length","ec199ce","inherited from 02b-Ini1007"
+"doitall","doitall.sh","steps/02b-Ini1007/model/doitall.sh","ec199ce","current-executable controls regenerated; 1007 tag flags drive mixing periods; PHASE 10/11 convergence switch retained"

@@ -28,8 +28,10 @@ This file keeps the operational Kflow/local-run details out of the root README.
 | `step_id` | `enabled` | `major_step` | `substep` | `change_axis` | `tag_flags_it2` | `model_label` | `job_title` | `job_key` | `run_mode` | `mfcl_program_path` | `input_par` | `frq` | `output_par` |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `01-Diag2023` | `TRUE` | 01-Diagnostic | 01a | historical diagnostic | blank | Diag2023 | Diag2023 | `01-diag2023` | `doitall` | /home/mfcl/mfclo64_2023_diagnostic_2.2.2.0 | `blank` | `bet.frq` | `blank` |
-| `02-NewExe` | `TRUE` | 02-Executable | 02a | current MFCL executable | blank | NewExe | NewExe | `02-newexe` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `03-FixM` | `TRUE` | 03-FixM | 03a | fixed natural mortality from mgc=-5 diagnostic | blank | FixM | FixM | `03-fixm` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `02a-NewExe` | `TRUE` | 02-Executable | 02a | current MFCL executable with 1003 ini | blank | NewExe 1003 | NewExe 1003 | `02a-newexe` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `02b-Ini1007` | `TRUE` | 02-Executable | 02b | promote diagnostic ini to 1007 |  0 | Ini 1007 | Ini 1007 | `02b-ini1007` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `02c-LnR0` | `TRUE` | 02-Executable | 02c | set diagnostic LN(R0) to 17 |  0 | LN(R0) 17 | LN(R0) 17 | `02c-lnr0` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `03-FixM` | `TRUE` | 03-FixM | 03a | fixed natural mortality from mgc=-5 diagnostic after 02c |  0 | FixM | FixM | `03-fixm` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
 | `04a-NewStructure` | `TRUE` | 04-NewStructure | 04a | 5-region structure with tag_flags(it,2)=0 |  0 | New structure | New structure | `04a-newstructure` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
 | `04b-TagReportingMixing` | `TRUE` | 04-NewStructure | 04b | exclude reporting rates during tag mixing |  1 | Tag reporting mixing | Tag reporting mixing | `04b-tagreportingmixing` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
 | `05-ConvertToLength` | `TRUE` | 05-ConvertToLength | 05a | convert weight compositions to length |  1 | Convert to length | Convert to length | `05-converttolength` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
@@ -52,7 +54,9 @@ This file keeps the operational Kflow/local-run details out of the root README.
 | `step_id` | `expected_source_folder` | `status` |
 | --- | --- | --- |
 | `01-Diag2023` | `steps/01-Diag2023/model` | `exists` |
-| `02-NewExe` | `steps/02-NewExe/model` | `exists` |
+| `02a-NewExe` | `steps/02a-NewExe/model` | `exists` |
+| `02b-Ini1007` | `steps/02b-Ini1007/model` | `exists` |
+| `02c-LnR0` | `steps/02c-LnR0/model` | `exists` |
 | `03-FixM` | `steps/03-FixM/model` | `exists` |
 | `04a-NewStructure` | `steps/04a-NewStructure/model` | `exists` |
 | `04b-TagReportingMixing` | `steps/04b-TagReportingMixing/model` | `exists` |
