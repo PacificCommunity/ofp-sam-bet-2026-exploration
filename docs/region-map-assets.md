@@ -22,7 +22,7 @@ self-contained map beside each payload.
 | Steps | Region count | Output asset |
 | --- | ---: | --- |
 | `01-Diag2023` through `03-FixM` | 9 | `bet-2023-nine-region.geojson` |
-| `04-NewStructure` through `15-DataWeighting` | 5 | `bet-2026-five-region.geojson` |
+| `04a-NewStructure` through `15-DataWeighting` | 5 | `bet-2026-five-region.geojson` |
 
 ## 2023 Nine-Region Source
 

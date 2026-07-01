@@ -120,46 +120,24 @@ regional_scaling_control_notes <- function(doitall_path, n_periods, active_years
   window <- regional_scaling_period_window(flags, n_periods)
   weight <- format_flag_value(flags[["77"]])
   cv_note <- if (identical(weight, "50")) {
-    "; the inline control comment records this as approximately CV 0.1"
+    " (approximately CV 0.1)"
   } else {
     ""
   }
   c(
     paste(
-      "`bet.reg_scaling` is read by MFCL starting in PHASE 5 because",
-      paste0("`parest_flags(77)=", weight, "`; flags 77-81 configure the"),
-      "regional-scaling MVN prior."
-    ),
-    paste0(
-      "The regional-scaling penalty weight is ", weight,
-      " (`parest_flags(77)=", weight, "`)", cv_note, "."
+      "`bet.reg_scaling` starts in PHASE 5; flags 77-81 configure the",
+      paste0("regional-scaling MVN prior with weight ", weight, cv_note, ".")
     ),
     paste(
-      "The active `bet.reg_scaling` window is periods",
+      "The active prior window is periods",
       paste0(window$start, "-", window$end),
-      paste0("(", active_years, ") because the global CPUE"),
-      "covariance matrices were estimated from data fitted over 1965 through the end of 1969, the period with the highest spatial-temporal coverage."
+      paste0("(", active_years, "), derived from parest flags 79-80 for the"),
+      paste0(n_periods, "-period model.")
     ),
     paste(
-      "For the", paste0(n_periods, "-period"), "full-2024 models,",
-      paste0("`parest_flags(79)=", format_flag_value(flags[["79"]]), "`"),
-      "means",
-      paste0("`", n_periods, " - ", format_flag_value(flags[["79"]]), " + 1 = ", window$start, "`"),
-      "and",
-      paste0("`parest_flags(80)=", format_flag_value(flags[["80"]]), "`"),
-      "means",
-      paste0("`", n_periods, " - ", format_flag_value(flags[["80"]]), " = ", window$end, "`,"),
-      "so the regional-scaling prior is limited to that covariance-estimation window."
-    ),
-    paste(
-      "PHASE 1-4 retain the current CPUE_scaling setup: index fisheries",
-      "29-33 share CPUE group 29, share selectivity group 25, and keep",
-      "the 2026 index-fishery sigma settings."
-    ),
-    paste(
-      "PHASE 5 switches to Prior_reg_biomass: index CPUE groups become",
-      "29-33, fish flag 94 is set to 0, and index selectivity groups",
-      "become 25-29."
+      "PHASE 1-4 retain CPUE_scaling; PHASE 5 switches to Prior_reg_biomass",
+      "with index CPUE groups 29-33, fish flag 94 set to 0, and index selectivity groups 25-29."
     )
   )
 }

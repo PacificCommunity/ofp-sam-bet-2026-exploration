@@ -134,7 +134,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.",
     "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders."
   )
-  template_step_id <- get0("stepwise_5_region_template_step_id", ifnotfound = "04-NewStructure")
+  template_step_id <- get0("stepwise_5_region_template_step_id", ifnotfound = "04a-NewStructure")
   template_model_dir <- file.path(root, "steps", template_step_id, "model")
   copy_one(file.path(template_model_dir, "mfcl.cfg"), file.path(model_dir, "mfcl.cfg"))
   fishery_map_out <- file.path(model_dir, "fishery_map.R")

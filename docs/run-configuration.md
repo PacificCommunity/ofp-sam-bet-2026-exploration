@@ -30,7 +30,7 @@ This file keeps the operational Kflow/local-run details out of the root README.
 | `01-Diag2023` | `TRUE` | 01-Diagnostic | 01a | historical diagnostic | blank | Diag2023 | Diag2023 | `01-diag2023` | `doitall` | /home/mfcl/mfclo64_2023_diagnostic_2.2.2.0 | `blank` | `bet.frq` | `blank` |
 | `02-NewExe` | `TRUE` | 02-Executable | 02a | current MFCL executable | blank | NewExe | NewExe | `02-newexe` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
 | `03-FixM` | `TRUE` | 03-FixM | 03a | fixed natural mortality from mgc=-5 diagnostic | blank | FixM | FixM | `03-fixm` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `04-NewStructure` | `TRUE` | 04-NewStructure | 04a | 5-region structure with tag_flags(it,2)=0 |  0 | New structure | New structure | `04-newstructure` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `04a-NewStructure` | `TRUE` | 04-NewStructure | 04a | 5-region structure with tag_flags(it,2)=0 |  0 | New structure | New structure | `04a-newstructure` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
 | `04b-TagReportingMixing` | `TRUE` | 04-NewStructure | 04b | exclude reporting rates during tag mixing |  1 | Tag reporting mixing | Tag reporting mixing | `04b-tagreportingmixing` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
 | `05-ConvertToLength` | `TRUE` | 05-ConvertToLength | 05a | convert weight compositions to length |  1 | Convert to length | Convert to length | `05-converttolength` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
 | `06-LengthPlusLength` | `TRUE` | 06-LengthPlusLength | 06a | add additional length compositions |  1 | Length plus length | Length plus length | `06-lengthpluslength` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
@@ -54,7 +54,7 @@ This file keeps the operational Kflow/local-run details out of the root README.
 | `01-Diag2023` | `steps/01-Diag2023/model` | `exists` |
 | `02-NewExe` | `steps/02-NewExe/model` | `exists` |
 | `03-FixM` | `steps/03-FixM/model` | `exists` |
-| `04-NewStructure` | `steps/04-NewStructure/model` | `exists` |
+| `04a-NewStructure` | `steps/04a-NewStructure/model` | `exists` |
 | `04b-TagReportingMixing` | `steps/04b-TagReportingMixing/model` | `exists` |
 | `05-ConvertToLength` | `steps/05-ConvertToLength/model` | `exists` |
 | `06-LengthPlusLength` | `steps/06-LengthPlusLength/model` | `exists` |

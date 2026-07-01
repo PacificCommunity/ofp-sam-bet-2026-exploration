@@ -2,61 +2,66 @@
 
 New Japanese otoliths and 2026 CAAL input on the regional CPUE model.
 
-## What Changed
+## Snapshot
 
-- Uses the same regional CPUE `.frq`, 2026 `.ini`, and 2026 `.tag` as 08-RegionalCPUE.
-- Switches CAAL from `bet.2023.new-structure.age_length` to `bet.2026.age_length`.
-- The 2026 age_length file includes the new otolith data used for this step.
-- Applies FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604 to the 2026 ini.
+| Field | Value |
+| --- | --- |
+| Step folder | `steps/09-NewOtoliths/model` |
+| Status | Ready for Kflow smoke runs; full MFCL fit not run here. |
+
+## Changes
+
+| # | Change |
+| --- | --- |
+| 1 | Uses the same regional CPUE `.frq`, 2026 `.ini`, and 2026 `.tag` as 08-RegionalCPUE. |
+| 2 | Switches CAAL from `bet.2023.new-structure.age_length` to `bet.2026.age_length`. |
+| 3 | The 2026 age_length file includes the new otolith data used for this step. |
+| 4 | Applies FixM M row from 01-Diag2023 mgc=-5 final.par from Kflow job 000604 to the 2026 ini. |
 
 ## Inputs
 
-- `.frq`: `bet.2026.new-strucure.regional-cpue.wt-as-len-plus-len.frq`, full 2024 with regional CPUE
-- `.ini`: `bet.2026.ini`, FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604; filled 7 missing tag reporting-rate matrix rows before the pooled row for release groups 92-98 by matching tag program/region/year/month rows from bet.2023.new.structure.ini; normalized tag flags marker; padded existing MFCL 1007 tag flags from 91 to 98 release groups with 2 mixing periods and reporting rates excluded during mixing; padded tag shed-rate vector from 91 to 98 release groups with zero shed rates
-- `.tag`: `bet.2026.low.recaps.removed.tag`; latest tag-prep build, including canneries-based reassignment of recaptures with missing gear to purse-seine fisheries before low-recap filtering
-- `.age_length`: `bet.2026.age_length` (updated CAAL/new otoliths); set age_length effective sample size to 0.75 for 181 records
-- `.reg_scaling`: `bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions
-- `input_manifest.csv`: machine-readable source/input notes
+| File | Source / note |
+| --- | --- |
+| `.frq` | `bet.2026.new-strucure.regional-cpue.wt-as-len-plus-len.frq`, full 2024 with regional CPUE |
+| `.ini` | `bet.2026.ini`, FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604; filled 7 missing tag reporting-rate matrix rows before the pooled row for release groups 92-98 by matching tag program/region/year/month rows from bet.2023.new.structure.ini; normalized tag flags marker; padded existing MFCL 1007 tag flags from 91 to 98 release groups with 2 mixing periods and reporting rates excluded during mixing; padded tag shed-rate vector from 91 to 98 release groups with zero shed rates |
+| `.tag` | `bet.2026.low.recaps.removed.tag`; latest tag-prep build, including canneries-based reassignment of recaptures with missing gear to purse-seine fisheries before low-recap filtering |
+| `.age_length` | `bet.2026.age_length` (updated CAAL/new otoliths); set age_length effective sample size to 0.75 for 181 records |
+| `.reg_scaling` | `bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions |
+| `input_manifest.csv` | machine-readable source/input notes |
 
 ## Source Revisions
 
-- `ofp-sam-2026-BET-YFT-frq-build`: `d884ce5` - remove len comps from LL from 2023.new.structure
-- `ofp-sam-2026-BET-YFT-build-ini`: `b39cbfd` - updated ini files to reflect updated tag files
-- `ofp-sam-2026-BET-YFT-tag-prep`: `5a4f5fb` - assign unassigned gear to PS from canneries
-- `ofp-sam-2026-BET-YFT-age-length-build`: `a26b694` - plus group at age 40
-- `ofp-sam-bet-2023-diagnostic`: `81fc412` - Format tables after plotting
+| Repository | Commit | Note |
+| --- | --- | --- |
+| `ofp-sam-2026-BET-YFT-frq-build` | `d884ce5` | remove len comps from LL from 2023.new.structure |
+| `ofp-sam-2026-BET-YFT-build-ini` | `b39cbfd` | updated ini files to reflect updated tag files |
+| `ofp-sam-2026-BET-YFT-tag-prep` | `5a4f5fb` | assign unassigned gear to PS from canneries |
+| `ofp-sam-2026-BET-YFT-age-length-build` | `a26b694` | plus group at age 40 |
+| `ofp-sam-bet-2023-diagnostic` | `81fc412` | Format tables after plotting |
 
-## Control Notes
+## Controls
 
-- 08-RegionalCPUE controls retained.
-- The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period.
-- The step inherits 04b's `tag_flags(it,2)=1` treatment so reporting rates are excluded from predicted tag catches during mixing.
-- Generated `.frq` files include region locations for every fishery, including index fisheries, and MFCL 1007 `.ini` files carry explicit tag flags immediately after `# number of age classes`.
-- Generated `.ini` files also validate that `# tag flags`, `# tag shed rate`, and the five tag reporting-rate matrices match the selected tag release-group count.
-- `age_flags(128)` is kept at 100 so the current MFCL reader interprets the initial equilibrium natural-mortality multiplier as 1.0.
-- `doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.
-- PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders.
-- `bet.reg_scaling` is read by MFCL starting in PHASE 5 because `parest_flags(77)=50`; flags 77-81 configure the regional-scaling MVN prior.
-- The regional-scaling penalty weight is 50 (`parest_flags(77)=50`); the inline control comment records this as approximately CV 0.1.
-- The active `bet.reg_scaling` window is periods 53-72 (1965-1969) because the global CPUE covariance matrices were estimated from data fitted over 1965 through the end of 1969, the period with the highest spatial-temporal coverage.
-- For the 292-period full-2024 models, `parest_flags(79)=240` means `292 - 240 + 1 = 53` and `parest_flags(80)=220` means `292 - 220 = 72`, so the regional-scaling prior is limited to that covariance-estimation window.
-- PHASE 1-4 retain the current CPUE_scaling setup: index fisheries 29-33 share CPUE group 29, share selectivity group 25, and keep the 2026 index-fishery sigma settings.
-- PHASE 5 switches to Prior_reg_biomass: index CPUE groups become 29-33, fish flag 94 is set to 0, and index selectivity groups become 25-29.
+| # | Control |
+| --- | --- |
+| 1 | 08-RegionalCPUE controls retained. |
+| 2 | The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period. |
+| 3 | The step inherits 04b's `tag_flags(it,2)=1` treatment so reporting rates are excluded from predicted tag catches during mixing. |
+| 4 | `bet.reg_scaling` starts in PHASE 5; flags 77-81 configure the regional-scaling MVN prior with weight 50 (approximately CV 0.1). |
+| 5 | The active prior window is periods 53-72 (1965-1969), derived from parest flags 79-80 for the 292-period model. |
+| 6 | PHASE 1-4 retain CPUE_scaling; PHASE 5 switches to Prior_reg_biomass with index CPUE groups 29-33, fish flag 94 set to 0, and index selectivity groups 25-29. |
+| 7 | Generated safeguards cover FRQ regions, MFCL 1007 tag blocks, shed rates, `age_flags(128)`, fail-fast `doitall.sh`, and the PHASE 10/11 env switch. |
 
-## Run Note
+## Run Notes
 
-- Generated inputs repair only the `.ini` alignment where needed: tag reporting-rate matrices, explicit tag flags, and tag shed rates are matched to the selected release-group count.
-- The 2026 tag file itself is kept from the latest tag-prep `bet.2026.low.recaps.removed.tag`; this build assigns canneries-reported recaptures with missing gear to purse-seine fisheries before low-recap filtering.
-- Stepwise generation does not delete tag release or recapture rows to suppress warnings; it only repairs `.ini` alignment around the selected tag release-group count.
-- These steps inherit 04b's `tag_flags(it,2)=1` treatment, excluding reporting rates from predicted tag catches during mixing.
-- Paired Kflow checks isolated this switch in the 2026 full-data path: steps 07-DataTo2024, 08-RegionalCPUE, and 09-NewOtoliths failed when `tag_flags(it,2)=0` retained reporting rates during mixing, and completed when `tag_flags(it,2)=1` excluded them.
-- These steps use the current tuna-flow MFCL executable and the 04b-TagReportingMixing 5-region controls unless a later step explicitly changes controls.
+| # | Note |
+| --- | --- |
+| 1 | Generated inputs only repair `.ini` alignment: reporting-rate matrices, tag flags, and shed rates are matched to the selected release-group count. |
+| 2 | The latest `bet.2026.low.recaps.removed.tag` is kept; the tag build assigns missing-gear canneries recaptures to purse-seine before low-recap filtering. |
+| 3 | Steps 07-09 use `tag_flags(it,2)=1` because paired Kflow checks failed with 0 and completed with 1. |
 
-## Outstanding Checks
+## Checks
 
-- After fitting, compare CAAL likelihood and age residuals against 08-RegionalCPUE.
-- Local MFCL `-makepar` smoke can still report nonzero tag recapture timing or fishery-realization warnings; review upstream tag prep before final production runs.
-
-## Status
-
-Ready for Kflow smoke runs; full MFCL fit not run here.
+| # | Check |
+| --- | --- |
+| 1 | After fitting, compare CAAL likelihood and age residuals against 08-RegionalCPUE. |
+| 2 | Local MFCL `-makepar` smoke can still report nonzero tag recapture timing or fishery-realization warnings; review upstream tag prep before final production runs. |

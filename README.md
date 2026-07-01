@@ -4,45 +4,47 @@
   <a href="kflow.yaml"><img src="kflow-ready.svg" alt="Kflow ready task"></a>
 </p>
 
-This repository stores the BET 2026 MFCL stepwise model inputs. Each numbered
-folder under `steps/` is one model in the stepwise path, with its model folder
-and notes.
+BET 2026 MFCL stepwise model inputs. Each folder under `steps/` is a runnable
+model folder with a compact README and input manifest.
 
 ## Step Path
 
-| Step | Purpose |
-| --- | --- |
-| `01-Diag2023` | original 2023 diagnostic rerun with historical MFCL |
-| `02-NewExe` | current executable compatibility baseline |
-| `03-FixM` | FixM update at the 2023 MLE value |
-| `04-NewStructure` | 04a: 5-region / 33-fishery structure with global CPUE, `tag_flags(it,2)=0` |
-| `04b-TagReportingMixing` | 04b: exclude reporting rates during tag mixing, `tag_flags(it,2)=1` |
-| `05-ConvertToLength` | convert existing weight compositions to length |
-| `06-LengthPlusLength` | add additional length compositions |
-| `07-DataTo2024` | add data to 2024 with global CPUE |
-| `08-RegionalCPUE` | regional CPUE and regional-scaling prior |
-| `09-NewOtoliths` | updated 2026 CAAL / new otoliths |
-| `10-TagMixingKS` | release-group mixing periods from the 0.2 KS cutoff |
-| `11-TimeVaryingCV` | time-varying CPUE CV |
-| `12-OrthogonalPoly` | OPR recruitment setting selected from BET screening |
-| `13-LengthBasedSel` | length-based selectivity |
-| `14-EffortCreep` | agreed index-fishery effort creep |
-| `15-DataWeighting` | initial data-weighting run |
+| Step | Adds / isolates | Tag treatment |
+| --- | --- | --- |
+| `01-Diag2023` | 2023 diagnostic rerun with historical MFCL | historical |
+| `02-NewExe` | current executable compatibility baseline | inherited |
+| `03-FixM` | FixM update at the 2023 MLE value | inherited |
+| `04a-NewStructure` | 5-region / 33-fishery structure, global CPUE | `tag_flags(it,2)=0` |
+| `04b-TagReportingMixing` | reporting-rate treatment during tag mixing | `tag_flags(it,2)=1` |
+| `05-ConvertToLength` | existing weight comps converted to length | inherits 04b |
+| `06-LengthPlusLength` | additional length comps | inherits 04b |
+| `07-DataTo2024` | 2024 global-CPUE data | inherits 04b |
+| `08-RegionalCPUE` | regional CPUE and regional-scaling prior | inherits 04b |
+| `09-NewOtoliths` | updated 2026 CAAL / otoliths | inherits 04b |
+| `10-TagMixingKS` | release-specific mixing from KS 0.2 | release-specific, `it2=1` |
+| `11-TimeVaryingCV` | time-varying CPUE CV | release-specific, `it2=1` |
+| `12-OrthogonalPoly` | OPR recruitment setting | release-specific, `it2=1` |
+| `13-LengthBasedSel` | length-based selectivity | release-specific, `it2=1` |
+| `14-EffortCreep` | agreed index-fishery effort creep | release-specific, `it2=1` |
+| `15-DataWeighting` | first data-weighting run | release-specific, `it2=1` |
 
 ## Where To Look
 
-- `steps/<step_id>/README.md`: model-specific inputs, controls, and notes.
-- `steps/<step_id>/input_manifest.csv`: machine-readable source files and commits for generated 2026 input steps.
-- `steps/<step_id>/model/`: MFCL-ready model folder.
-- `docs/`: focused notes such as OPR, tag reporting-rate groups, region map assets, and run configuration.
-- `debugging/`: troubleshooting records and checks made while preparing the inputs.
-- `R/prepare_bet_2026_step_inputs.R`: reproducible input-generation script.
+| Path | Use |
+| --- | --- |
+| `steps/<step_id>/README.md` | short step summary, input table, controls, and checks |
+| `steps/<step_id>/input_manifest.csv` | source files, commits, and generated-input notes |
+| `steps/<step_id>/model/` | MFCL-ready model folder |
+| `docs/run-configuration.md` | Kflow/local-run settings and output layout |
+| `docs/tag-reporting-groups.md` | tag reporting-rate grouping audit |
+| `R/prepare_bet_2026_step_inputs.R` | reproducible input-generation entry point |
+| `debugging/` | troubleshooting records |
 
 ## Assessment Notes
 
-- Steps 08-15 use `bet.reg_scaling` over periods 53-72, matching the 1965-1969 global CPUE covariance-estimation window with the broadest spatial-temporal coverage.
-- Steps 14-15 apply the agreed index-fishery effort-creep scenario to fisheries 29-33: 1%/yr for 1952-1976 and 0.5%/yr for 1977-2024.
-- Steps 01-03 use the 2023 BET 9-region GeoJSON asset; steps 04-15 use the 2026 5-region asset. See [`docs/region-map-assets.md`](docs/region-map-assets.md).
-- `tag_rep_map.R` files are generated audit maps derived from `bet.ini` reporting-rate matrices and `bet.tag` release metadata; MFCL reads the `.ini`, not `tag_rep_map.R`. The reporting-rate grouping tables are in [`docs/tag-reporting-groups.md`](docs/tag-reporting-groups.md).
-
-Operational Kflow/local run details are kept in [`docs/run-configuration.md`](docs/run-configuration.md).
+| Topic | Note |
+| --- | --- |
+| Regional scaling | Steps 08-15 use `bet.reg_scaling` over periods 53-72, matching the 1965-1969 global CPUE covariance-estimation window. |
+| Effort creep | Steps 14-15 apply 1%/yr for 1952-1976 and 0.5%/yr for 1977-2024 to index fisheries 29-33. |
+| Region maps | Steps 01-03 use the 2023 9-region asset; steps 04a-15 use the 2026 5-region asset. See [`docs/region-map-assets.md`](docs/region-map-assets.md). |
+| Tag audit maps | `tag_rep_map.R` is an audit output from `.ini` and `.tag`; MFCL reads the `.ini`. See [`docs/tag-reporting-groups.md`](docs/tag-reporting-groups.md). |
