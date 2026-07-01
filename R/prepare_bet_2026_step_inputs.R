@@ -584,7 +584,7 @@ make_step(
     "04-NewStructure 5-region `doitall.sh` controls retained.",
     "The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period.",
     "Substep 07a sets `tag_flags(it,2)=1` for the 2026 tag setup so reporting rates are excluded from predicted tag catches during mixing.",
-    "This is activated because paired Kflow runs for 07-DataTo2024, 08-RegionalCPUE, and 09-NewOtoliths failed with `tag_flags(it,2)=0` and completed with `tag_flags(it,2)=1`, isolating the reporting-rate treatment during mixing as the runnable 2026 setting."
+    "This is activated because 07-DataTo2024 failed with `tag_flags(it,2)=0` and completed with `tag_flags(it,2)=1`, isolating the reporting-rate treatment during mixing as the runnable 2026 setting for this step."
   ),
   run_notes = full_2024_alignment_run_notes,
   outstanding = c("Full 2024 input behavior still needs a real MFCL fit and residual/CPUE-sigma review.")

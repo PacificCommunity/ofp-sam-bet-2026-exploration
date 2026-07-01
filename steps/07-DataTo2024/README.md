@@ -30,7 +30,7 @@ Data to 2024, global CPUE, isolating the effect of adding three years of data.
 - 04-NewStructure 5-region `doitall.sh` controls retained.
 - The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period.
 - Substep 07a sets `tag_flags(it,2)=1` for the 2026 tag setup so reporting rates are excluded from predicted tag catches during mixing.
-- This is activated because paired Kflow runs for 07-DataTo2024, 08-RegionalCPUE, and 09-NewOtoliths failed with `tag_flags(it,2)=0` and completed with `tag_flags(it,2)=1`, isolating the reporting-rate treatment during mixing as the runnable 2026 setting.
+- This is activated because 07-DataTo2024 failed with `tag_flags(it,2)=0` and completed with `tag_flags(it,2)=1`, isolating the reporting-rate treatment during mixing as the runnable 2026 setting for this step.
 - Generated `.frq` files include region locations for every fishery, including index fisheries, and MFCL 1007 `.ini` files carry explicit tag flags immediately after `# number of age classes`.
 - Generated `.ini` files also validate that `# tag flags`, `# tag shed rate`, and the five tag reporting-rate matrices match the selected tag release-group count.
 - `age_flags(128)` is kept at 100 so the current MFCL reader interprets the initial equilibrium natural-mortality multiplier as 1.0.
