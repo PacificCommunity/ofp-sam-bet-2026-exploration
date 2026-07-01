@@ -44,7 +44,7 @@ reg_scaling_source <- file.path(frq_root, "bet.2026.reg_scaling")
 reg_scaling_active_start_period <- 53L
 reg_scaling_active_end_period <- 72L
 reg_scaling_active_years <- "1965-1969"
-five_region_total_population_scalar <- 19L
+five_region_total_population_scalar <- 21L
 
 fixm_age_par_value <- "-2.54930339768360e+00"
 fixm_age_par_source <- "01-Diag2023 mgc=-5 final.par from Kflow job 000604"

@@ -10,12 +10,12 @@ First 5-region / 33-fishery BET input step, ending in 2021 with global CPUE.
 - Uses old CAAL re-assigned to the new fisheries.
 - Uses the restructured tag setup with 96 release groups.
 - Applies FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604 while retaining the 5-region `.ini` structure.
-- Sets total population scaling factor LN(R0) to 19.
+- Sets total population scaling factor LN(R0) to 21.
 
 ## Inputs
 
 - `.frq`: `bet.2023.new-structure.global-cpue.frq`; 5-region, 33-fishery structure, terminal year 2021, global CPUE
-- `.ini`: `bet.2023.new.structure.ini`; FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604 set total population scaling factor LN(R0) from 17 to 19 and explicit default tag flags inserted if needed
+- `.ini`: `bet.2023.new.structure.ini`; FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604 set total population scaling factor LN(R0) from 17 to 21 and explicit default tag flags inserted if needed
 - `.tag`: `bet.2023.new.structure-low.recaps.removed.tag`; low-recapture-removed tag input
 - `.age_length`: `bet.2023.new-structure.age_length`; old CAAL / age_length re-assigned to new fisheries; set age_length effective sample size to 0.75 for 112 records
 - `input_manifest.csv`: machine-readable source/input notes with source commits

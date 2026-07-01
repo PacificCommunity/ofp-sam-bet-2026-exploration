@@ -12,7 +12,7 @@ KS coefficient 0.2 release-group-specific tag mixing periods.
 ## Inputs
 
 - `.frq`: `bet.2026.new-strucure.regional-cpue.wt-as-len-plus-len.frq`, full 2024 with regional CPUE
-- `.ini`: `bet.2026.mix-0.2.ini`, FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604; set total population scaling factor LN(R0) from 17 to 19; raised 41 zero tag mixing periods to 1 because MFCL >=2.2.7.5 disallows 0; set tag_flags(it,2)=0 for 98 release groups so reporting rates are retained in predicted tag catches during mixing
+- `.ini`: `bet.2026.mix-0.2.ini`, FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604; set total population scaling factor LN(R0) from 17 to 21; raised 41 zero tag mixing periods to 1 because MFCL >=2.2.7.5 disallows 0; set tag_flags(it,2)=0 for 98 release groups so reporting rates are retained in predicted tag catches during mixing
 - `.tag`: `bet.2026.low.recaps.removed.tag`
 - `.age_length`: `bet.2026.age_length` (updated CAAL); set age_length effective sample size to 0.75 for 181 records
 - `.reg_scaling`: `bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions
