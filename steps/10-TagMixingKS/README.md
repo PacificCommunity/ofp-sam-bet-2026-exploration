@@ -7,12 +7,12 @@ KS coefficient 0.2 release-group-specific tag mixing periods.
 - Uses `bet.2026.mix-0.2.ini` from the ini-build repo.
 - Keeps the full 2024 regional CPUE `.frq`, 2026 tag file, and updated 2026 CAAL.
 - Applies FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604 to the mix-period ini.
-- Removes the inherited `-9999 1 2` line from `doitall.sh` so release-group-specific mixing-period values in the ini are not overwritten; `tag_flags(it,2)` is set to 0 to retain reporting rates in predicted tag catches during mixing.
+- Removes the inherited `-9999 1 2` line from `doitall.sh` so release-group-specific mixing-period values in the ini are not overwritten; `tag_flags(it,2)` is set to 1 to exclude reporting rates from predicted tag catches during mixing.
 
 ## Inputs
 
 - `.frq`: `bet.2026.new-strucure.regional-cpue.wt-as-len-plus-len.frq`, full 2024 with regional CPUE
-- `.ini`: `bet.2026.mix-0.2.ini`, FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604; set total population scaling factor LN(R0) from 17 to 21; raised 41 zero tag mixing periods to 1 because MFCL >=2.2.7.5 disallows 0; set tag_flags(it,2)=0 for 98 release groups so reporting rates are retained in predicted tag catches during mixing
+- `.ini`: `bet.2026.mix-0.2.ini`, FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604; raised 41 zero tag mixing periods to 1 because MFCL >=2.2.7.5 disallows 0
 - `.tag`: `bet.2026.low.recaps.removed.tag`
 - `.age_length`: `bet.2026.age_length` (updated CAAL); set age_length effective sample size to 0.75 for 181 records
 - `.reg_scaling`: `bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions
@@ -44,7 +44,7 @@ KS coefficient 0.2 release-group-specific tag mixing periods.
 
 ## Run Note
 
-- The mix-period ini family carries release-group-specific tag controls, so generated `doitall.sh` removes the inherited `-9999 1 2` override and lets the ini tag flags drive mixing periods while retaining reporting rates in predicted tag catches during mixing.
+- The mix-period ini family carries release-group-specific tag controls, so generated `doitall.sh` removes the inherited `-9999 1 2` override and lets the ini tag flags drive mixing periods while excluding reporting rates from predicted tag catches during mixing.
 - Generation validates that tag flags, tag shed rate, and the five tag reporting-rate matrices match the selected release-group count.
 - Zero mixing-period values in the source mix-period ini are raised to 1 because the current MFCL reader disallows 0.
 

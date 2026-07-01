@@ -82,7 +82,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
   apply_fixm_m(ini_out)
   total_population_note <- set_total_population_scalar(
     ini_out,
-    get0("five_region_total_population_scalar", ifnotfound = 21L)
+    get0("five_region_total_population_scalar", ifnotfound = 17L)
   )
   ini_tag_note <- ensure_ini_tag_flags(
     ini_out,
