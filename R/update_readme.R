@@ -144,7 +144,8 @@ defaults <- data.frame(
 )
 
 model_columns <- c(
-  "step_id", "enabled", "model_label", "job_title", "job_key",
+  "step_id", "enabled", "major_step", "substep", "change_axis", "tag_flags_it2",
+  "model_label", "job_title", "job_key",
   "run_mode", "mfcl_program_path", "input_par", "frq", "output_par"
 )
 model_rows <- stepwise_models[, intersect(model_columns, names(stepwise_models)), drop = FALSE]

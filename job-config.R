@@ -35,6 +35,77 @@ stepwise_models <- data.frame(
   ),
   enabled = rep(TRUE, 15),
 
+  # Scientific grouping for reporting/provenance. `substep` is where changes
+  # like tag_flags(it,2) are made explicit without hiding them inside a data step.
+  major_step = c(
+    "01-Diagnostic",
+    "02-Executable",
+    "03-FixM",
+    "04-NewStructure",
+    "05-ConvertToLength",
+    "06-LengthPlusLength",
+    "07-DataTo2024",
+    "08-RegionalCPUE",
+    "09-NewOtoliths",
+    "10-TagMixing",
+    "11-TimeVaryingCV",
+    "12-OrthogonalPoly",
+    "13-LengthBasedSel",
+    "14-EffortCreep",
+    "15-DataWeighting"
+  ),
+  substep = c(
+    "01a",
+    "02a",
+    "03a",
+    "04a",
+    "05a",
+    "06a",
+    "07a",
+    "08a",
+    "09a",
+    "10a",
+    "11a",
+    "12a",
+    "13a",
+    "14a",
+    "15a"
+  ),
+  change_axis = c(
+    "historical diagnostic",
+    "current MFCL executable",
+    "fixed natural mortality from mgc=-5 diagnostic",
+    "5-region structure",
+    "convert weight compositions to length",
+    "add additional length compositions",
+    "2024 data; 07a activates tag_flags(it,2)=1",
+    "regional CPUE and regional-scaling prior",
+    "new otolith/CAAL input",
+    "release-specific tag mixing periods",
+    "time-varying CPUE CV",
+    "orthogonal-polynomial recruitment",
+    "length-based selectivity",
+    "effort creep",
+    "data weighting"
+  ),
+  tag_flags_it2 = c(
+    NA,
+    NA,
+    NA,
+    0L,
+    0L,
+    0L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L
+  ),
+
   # Short model label used in logs, plots, and reports.
   model_label = c(
     "Diag2023",

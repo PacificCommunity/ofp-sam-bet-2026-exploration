@@ -760,6 +760,10 @@ for (i in seq_len(nrow(step_table))) {
   region_map_assets <- nzchar(region_map_asset_path) && file.exists(region_map_asset_path)
   summary <- data.frame(
     step_id = step_id,
+    major_step = cfg$MAJOR_STEP %||% "",
+    substep = cfg$SUBSTEP %||% "",
+    change_axis = cfg$CHANGE_AXIS %||% "",
+    tag_flags_it2 = cfg$TAG_FLAGS_IT2 %||% "",
     model_label = label,
     model_source = relative_display_path(model_source, root),
     mfcl_program_path = step_program,

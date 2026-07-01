@@ -48,7 +48,8 @@ Regional CPUE step using the 2024 regional CPUE frequency file and regional-scal
 
 - Generated inputs repair only the `.ini` alignment where needed: tag reporting-rate matrices, explicit tag flags, and tag shed rates are matched to the selected release-group count.
 - The 2026 tag file itself is kept from `bet.2026.low.recaps.removed.tag`; no tag release or recapture rows are deleted to suppress warnings.
-- These 2026 data steps keep `tag_flags(it,1)=2` in the ini for the two-quarter mixing period and set `tag_flags(it,2)=1` so reporting rates are excluded from predicted tag catches during mixing.
+- Step 07 is kept as the DataTo2024 major step; substep 07a activates `tag_flags(it,2)=1` so reporting rates are excluded from predicted tag catches during mixing.
+- Paired Kflow checks isolated this switch: the 2026 full-data runs failed when `tag_flags(it,2)=0` retained reporting rates during mixing, and completed when `tag_flags(it,2)=1` excluded them.
 - These steps use the current tuna-flow MFCL executable and the 04-NewStructure 5-region controls unless a later step explicitly changes controls.
 
 ## Outstanding Checks
