@@ -1,25 +1,25 @@
 # 03 FixM
 
-NewExe baseline with the FixM M-scale row applied at the 2023 MLE value.
+NewExe baseline with the FixM M-scale row applied from the 01-Diag2023 mgc=-5 final run.
 
 ## What Changed
 
 - Uses the 2023 diagnostic 9-region, 41-fishery inputs ending in 2021.
 - `bet.ini` is promoted from MFCL 1003 to 1007 layout for the current MFCL reader while retaining the diagnostic values.
 - The current-executable `doitall.sh` controls match the existing stepwise diagnostic baseline: initial Z uses `2 94 1 2 128 100`, and survey CPUE CV settings are the current BET 2023 values.
-- Applies the FixM M-scale row at the 2023 MLE value.
+- Applies the FixM M-scale row from 01-Diag2023 mgc=-5 final.par from Kflow job 000604 with value -2.54930339768360e+00
 
 ## Inputs
 
 - `.frq`: 2023 diagnostic frequency/catch/size input, 9 regions, 41 fisheries, terminal year 2021
-- `.ini`: 2023 diagnostic ini promoted for the current reader FixM M row applied; set ini version to 1007; inserted MFCL 1007 tag flags for 118 release groups with 2 mixing periods and reporting rates retained during mixing; inserted zero tag shed-rate vector for 118 release groups; inserted MFCL 1007 total-population scalar default 25; inserted MFCL 1007 Richards growth parameter default 0
+- `.ini`: 2023 diagnostic ini promoted for the current reader FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604; set ini version to 1007; inserted MFCL 1007 tag flags for 118 release groups with 2 mixing periods and reporting rates retained during mixing; inserted zero tag shed-rate vector for 118 release groups; inserted MFCL 1007 total-population scalar default 25; inserted MFCL 1007 Richards growth parameter default 0
 - `.tag`: 2023 diagnostic tag input
 - `.age_length`: 2023 diagnostic CAAL input
 - `input_manifest.csv`: machine-readable source/input notes with source commits
 
 ## Source Revisions
 
-- `ofp-sam-2026-BET-YFT-frq-build`: `db75a05` - updated frq files based on updated stepwise
+- `ofp-sam-2026-BET-YFT-frq-build`: `d884ce5` - remove len comps from LL from 2023.new.structure
 - `ofp-sam-2026-BET-YFT-build-ini`: `b39cbfd` - updated ini files to reflect updated tag files
 - `ofp-sam-2026-BET-YFT-tag-prep`: `f6a9e4a` - Assign unassigned fisheries
 - `ofp-sam-2026-BET-YFT-age-length-build`: `a26b694` - plus group at age 40

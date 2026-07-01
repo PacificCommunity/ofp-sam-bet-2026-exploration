@@ -85,7 +85,12 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     terminal_year = frq_chop_year
   )
   ini_shed_note <- ensure_ini_tag_shed_rates(ini_out, frq_counts$n_tag_groups)
-  ini_notes <- c("FixM M row applied", tag_rep_repair_note, ini_tag_note, ini_shed_note)
+  fixm_note <- "FixM M row applied"
+  fixm_source <- get0("fixm_age_par_source", ifnotfound = "")
+  if (nzchar(fixm_source)) {
+    fixm_note <- paste(fixm_note, "from", fixm_source)
+  }
+  ini_notes <- c(fixm_note, tag_rep_repair_note, ini_tag_note, ini_shed_note)
   ini_note <- paste(ini_notes[nzchar(ini_notes)], collapse = "; ")
   visible_ini_notes <- c(tag_rep_repair_note, ini_tag_note, ini_shed_note)
   visible_ini_notes <- visible_ini_notes[nzchar(visible_ini_notes)]
@@ -95,7 +100,15 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
       collapse = "; "
     )
   }
-  copy_one(age_source, file.path(model_dir, "bet.age_length"))
+  age_out <- file.path(model_dir, "bet.age_length")
+  copy_one(age_source, age_out)
+  age_note <- set_age_length_effective_sample_size(age_out)
+  if ("bet.age_length" %in% names(input_notes)) {
+    input_notes[["bet.age_length"]] <- paste(
+      c(input_notes[["bet.age_length"]], age_note),
+      collapse = "; "
+    )
+  }
   has_reg_scaling <- nzchar(reg_scaling_source)
   if (has_reg_scaling) {
     copy_one(reg_scaling_source, file.path(model_dir, "bet.reg_scaling"))
@@ -149,7 +162,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     list(role = "frq", file = "bet.frq", source = frq_source, note = frq_note),
     list(role = "ini", file = "bet.ini", source = ini_source, note = ini_note),
     list(role = "tag", file = "bet.tag", source = tag_source, note = "tag reporting map regenerated from ini/tag; five MFCL reporting-rate matrices parsed"),
-    list(role = "age_length", file = "bet.age_length", source = age_source, note = "CAAL input"),
+    list(role = "age_length", file = "bet.age_length", source = age_source, note = paste("CAAL input", age_note, sep = "; ")),
     list(role = "doitall", file = "doitall.sh", source = file.path("steps", template_step_id, "model", "doitall.sh"), note = paste(c(
       ifelse(mix_from_ini, "mixing override removed", paste0(template_step_id, " 5-region controls retained")),
       if (has_reg_scaling) paste0(

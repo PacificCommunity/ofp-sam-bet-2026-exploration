@@ -6,19 +6,19 @@ Data to 2021, global CPUE, adding length compositions that were not used in the 
 
 - Uses `bet.2023.new-structure.global-cpue.wt-as-len-plus-len.frq` from the frq-build repo.
 - Keeps the 04-NewStructure `.ini`, tag, and old CAAL inputs so this step isolates the additional length-composition data.
-- Applies the FixM M row through the inherited 04-NewStructure ini.
+- Applies FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604 through the inherited 04-NewStructure ini.
 
 ## Inputs
 
 - `.frq`: `bet.2023.new-structure.global-cpue.wt-as-len-plus-len.frq`; terminal year 2021, global CPUE
-- `.ini`: `steps/04-NewStructure/model/bet.ini`, FixM M row applied
+- `.ini`: `steps/04-NewStructure/model/bet.ini`, FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604
 - `.tag`: `steps/04-NewStructure/model/bet.tag`
-- `.age_length`: `bet.2023.new-structure.age_length` (old CAAL)
+- `.age_length`: `bet.2023.new-structure.age_length` (old CAAL); set age_length effective sample size to 0.75 for 112 records
 - `input_manifest.csv`: machine-readable source/input notes
 
 ## Source Revisions
 
-- `ofp-sam-2026-BET-YFT-frq-build`: `db75a05` - updated frq files based on updated stepwise
+- `ofp-sam-2026-BET-YFT-frq-build`: `d884ce5` - remove len comps from LL from 2023.new.structure
 - `ofp-sam-2026-BET-YFT-build-ini`: `b39cbfd` - updated ini files to reflect updated tag files
 - `ofp-sam-2026-BET-YFT-tag-prep`: `f6a9e4a` - Assign unassigned fisheries
 - `ofp-sam-2026-BET-YFT-age-length-build`: `a26b694` - plus group at age 40

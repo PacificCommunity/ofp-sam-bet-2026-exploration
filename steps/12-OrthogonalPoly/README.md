@@ -12,15 +12,15 @@ Orthogonal polynomial recruitment step, ensuring `2 177 0` is used.
 ## Inputs
 
 - `.frq`: `bet.2026.new-strucure.regional-cpue.wt-as-len-plus-len.frq`, full 2024 with regional CPUE
-- `.ini`: `bet.2026.mix-0.2.ini`, FixM M row applied; raised 41 zero tag mixing periods to 1 because MFCL >=2.2.7.5 disallows 0; set tag_flags(it,2)=0 for 98 release groups so reporting rates are retained in predicted tag catches during mixing
+- `.ini`: `bet.2026.mix-0.2.ini`, FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604; raised 41 zero tag mixing periods to 1 because MFCL >=2.2.7.5 disallows 0; set tag_flags(it,2)=0 for 98 release groups so reporting rates are retained in predicted tag catches during mixing
 - `.tag`: `bet.2026.low.recaps.removed.tag`
-- `.age_length`: `bet.2026.age_length` (updated CAAL)
+- `.age_length`: `bet.2026.age_length` (updated CAAL); set age_length effective sample size to 0.75 for 181 records
 - `.reg_scaling`: `bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions
 - `input_manifest.csv`: machine-readable source/input notes
 
 ## Source Revisions
 
-- `ofp-sam-2026-BET-YFT-frq-build`: `db75a05` - updated frq files based on updated stepwise
+- `ofp-sam-2026-BET-YFT-frq-build`: `d884ce5` - remove len comps from LL from 2023.new.structure
 - `ofp-sam-2026-BET-YFT-build-ini`: `b39cbfd` - updated ini files to reflect updated tag files
 - `ofp-sam-2026-BET-YFT-tag-prep`: `f6a9e4a` - Assign unassigned fisheries
 - `ofp-sam-2026-BET-YFT-age-length-build`: `a26b694` - plus group at age 40

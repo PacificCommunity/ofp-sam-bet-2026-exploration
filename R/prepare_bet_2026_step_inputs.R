@@ -45,7 +45,9 @@ reg_scaling_active_start_period <- 53L
 reg_scaling_active_end_period <- 72L
 reg_scaling_active_years <- "1965-1969"
 
-fixm_age_par_value <- "-2.54917483258212e+00"
+fixm_age_par_value <- "-2.54930339768360e+00"
+fixm_age_par_source <- "01-Diag2023 mgc=-5 final.par from Kflow job 000604"
+fixm_age_par_note <- paste("FixM M row applied from", fixm_age_par_source)
 
 diagnostic_root_env <- Sys.getenv("BET_2023_DIAGNOSTIC_ROOT", "")
 diagnostic_root_candidates <- if (nzchar(diagnostic_root_env)) {
@@ -280,7 +282,7 @@ write_current_diagnostic_step <- function(step_id, title, summary, fixm = FALSE,
   copied <- copy_aux_if_exists(current_aux_dir, paths$model_dir, "fishery_map.R")
   if (!isTRUE(copied)) copy_aux_if_exists(legacy_aux_dir, paths$model_dir, "fishery_map.R")
   ini_notes <- c(
-    if (isTRUE(fixm)) "FixM M row applied",
+    if (isTRUE(fixm)) paste("FixM M row applied from", fixm_age_par_source),
     ini_note
   )
   ini_note_text <- paste(ini_notes[nzchar(ini_notes)], collapse = "; ")
@@ -299,7 +301,7 @@ write_current_diagnostic_step <- function(step_id, title, summary, fixm = FALSE,
       "Uses the 2023 diagnostic 9-region, 41-fishery inputs ending in 2021.",
       "`bet.ini` is promoted from MFCL 1003 to 1007 layout for the current MFCL reader while retaining the diagnostic values.",
       "The current-executable `doitall.sh` controls match the existing stepwise diagnostic baseline: initial Z uses `2 94 1 2 128 100`, and survey CPUE CV settings are the current BET 2023 values.",
-      if (isTRUE(fixm)) "Applies the FixM M-scale row at the 2023 MLE value." else "Natural mortality setup remains the pre-FixM diagnostic baseline."
+      if (isTRUE(fixm)) paste("Applies the FixM M-scale row from", fixm_age_par_source, "with value", fixm_age_par_value) else "Natural mortality setup remains the pre-FixM diagnostic baseline."
     ),
     c(
       "bet.frq" = "2023 diagnostic frequency/catch/size input, 9 regions, 41 fisheries, terminal year 2021",
@@ -334,7 +336,7 @@ write_current_diagnostic_step(
 write_current_diagnostic_step(
   "03-FixM",
   "03 FixM",
-  "NewExe baseline with the FixM M-scale row applied at the 2023 MLE value.",
+  "NewExe baseline with the FixM M-scale row applied from the 01-Diag2023 mgc=-5 final run.",
   fixm = TRUE,
   legacy_aux_step = "03-FixM"
 )
@@ -384,6 +386,7 @@ copy_one(frq_new_structure_global_2021, file.path(newstructure_model_dir, "bet.f
 copy_one(regfish_ini_source, file.path(newstructure_model_dir, "bet.ini"))
 copy_one(regfish_tag_source, file.path(newstructure_model_dir, "bet.tag"))
 copy_one(old_age, file.path(newstructure_model_dir, "bet.age_length"))
+age_note_04 <- set_age_length_effective_sample_size(file.path(newstructure_model_dir, "bet.age_length"))
 copy_one(file.path(template_cache, "mfcl.cfg"), file.path(newstructure_model_dir, "mfcl.cfg"))
 copy_one(file.path(template_cache, "fishery_map.R"), file.path(newstructure_model_dir, "fishery_map.R"))
 n_normalized_04 <- normalize_frq_absent_lf_records(file.path(newstructure_model_dir, "bet.frq"))
@@ -416,7 +419,7 @@ write_manifest(newstructure_dir, list(
     role = "ini",
     file = "bet.ini",
     source = regfish_ini_source,
-    note = paste(c("FixM M row applied", ini_tag_note_04)[nzchar(c("FixM M row applied", ini_tag_note_04))], collapse = "; ")
+    note = paste(c(fixm_age_par_note, ini_tag_note_04)[nzchar(c(fixm_age_par_note, ini_tag_note_04))], collapse = "; ")
   ),
   list(
     role = "tag",
@@ -428,7 +431,7 @@ write_manifest(newstructure_dir, list(
     role = "age_length",
     file = "bet.age_length",
     source = old_age,
-    note = "old CAAL / age_length reassigned to the new fisheries"
+    note = paste("old CAAL / age_length reassigned to the new fisheries", age_note_04, sep = "; ")
   ),
   list(
     role = "doitall",
@@ -447,13 +450,13 @@ write_readme(
     "Keeps data through 2021 and uses the global CPUE setup for this structural transition.",
     "Uses old CAAL re-assigned to the new fisheries.",
     paste0("Uses the restructured tag setup with ", frq_counts_04$n_tag_groups, " release groups."),
-    "Applies FixM M row while retaining the 5-region `.ini` structure."
+    paste("Applies", fixm_age_par_note, "while retaining the 5-region `.ini` structure.")
   ),
   c(
     "bet.frq" = "`bet.2023.new-structure.global-cpue.frq`; 5-region, 33-fishery structure, terminal year 2021, global CPUE",
-    "bet.ini" = "`bet.2023.new.structure.ini`; FixM M row applied and explicit default tag flags inserted if needed",
+    "bet.ini" = paste("`bet.2023.new.structure.ini`;", fixm_age_par_note, "and explicit default tag flags inserted if needed"),
     "bet.tag" = "`bet.2023.new.structure-low.recaps.removed.tag`; low-recapture-removed tag input",
-    "bet.age_length" = "`bet.2023.new-structure.age_length`; old CAAL / age_length re-assigned to new fisheries",
+    "bet.age_length" = paste("`bet.2023.new-structure.age_length`; old CAAL / age_length re-assigned to new fisheries", age_note_04, sep = "; "),
     "input_manifest.csv" = "machine-readable source/input notes with source commits"
   ),
   c(
@@ -497,11 +500,11 @@ make_step(
   bullets = c(
     "Uses `bet.2023.new-structure.global-cpue.wt-as-len.frq` from the frq-build repo.",
     "Keeps the 04-NewStructure `.ini`, tag, and old CAAL inputs so this step isolates the weight-to-length conversion.",
-    "Applies the FixM M row through the inherited 04-NewStructure ini."
+    paste("Applies", fixm_age_par_note, "through the inherited 04-NewStructure ini.")
   ),
   input_notes = c(
     "bet.frq" = "`bet.2023.new-structure.global-cpue.wt-as-len.frq`; terminal year 2021, global CPUE",
-    "bet.ini" = "`steps/04-NewStructure/model/bet.ini`, FixM M row applied",
+    "bet.ini" = paste("`steps/04-NewStructure/model/bet.ini`,", fixm_age_par_note),
     "bet.tag" = "`steps/04-NewStructure/model/bet.tag`",
     "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
   ),
@@ -522,11 +525,11 @@ make_step(
   bullets = c(
     "Uses `bet.2023.new-structure.global-cpue.wt-as-len-plus-len.frq` from the frq-build repo.",
     "Keeps the 04-NewStructure `.ini`, tag, and old CAAL inputs so this step isolates the additional length-composition data.",
-    "Applies the FixM M row through the inherited 04-NewStructure ini."
+    paste("Applies", fixm_age_par_note, "through the inherited 04-NewStructure ini.")
   ),
   input_notes = c(
     "bet.frq" = "`bet.2023.new-structure.global-cpue.wt-as-len-plus-len.frq`; terminal year 2021, global CPUE",
-    "bet.ini" = "`steps/04-NewStructure/model/bet.ini`, FixM M row applied",
+    "bet.ini" = paste("`steps/04-NewStructure/model/bet.ini`,", fixm_age_par_note),
     "bet.tag" = "`steps/04-NewStructure/model/bet.tag`",
     "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
   ),
@@ -547,11 +550,11 @@ make_step(
     "Uses `bet.2026.new-structure.global-cpue.wt-as-len-plus-len.frq` without year chopping.",
     "Moves from the 2021 transition steps to the full 2024 frequency/catch/size series.",
     "Keeps old CAAL so the new otolith update is isolated in 09-NewOtoliths.",
-    "Uses the 2026 low-recapture-removed tag file and 2026 ini, with FixM M row applied."
+    paste0("Uses the 2026 low-recapture-removed tag file and 2026 ini, with ", fixm_age_par_note, ".")
   ),
   input_notes = c(
     "bet.frq" = "`bet.2026.new-structure.global-cpue.wt-as-len-plus-len.frq`, full 2024 with global CPUE",
-    "bet.ini" = "`bet.2026.ini`, FixM M row applied",
+    "bet.ini" = paste("`bet.2026.ini`,", fixm_age_par_note),
     "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
     "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
   ),
@@ -576,11 +579,11 @@ make_step(
     "Uses the full 2024 regional CPUE `.frq` from the frq-build repo.",
     "Adds `bet.reg_scaling` and switches to the regional-scaling prior in PHASE 5.",
     "Keeps old CAAL so the new otolith update is isolated in 09-NewOtoliths.",
-    "Uses the 2026 low-recapture-removed tag file and 2026 ini, with FixM M row applied."
+    paste0("Uses the 2026 low-recapture-removed tag file and 2026 ini, with ", fixm_age_par_note, ".")
   ),
   input_notes = c(
     "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
-    "bet.ini" = "`bet.2026.ini`, FixM M row applied",
+    "bet.ini" = paste("`bet.2026.ini`,", fixm_age_par_note),
     "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
     "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
   ),
@@ -605,11 +608,11 @@ make_step(
     "Uses the same regional CPUE `.frq`, 2026 `.ini`, and 2026 `.tag` as 08-RegionalCPUE.",
     "Switches CAAL from `bet.2023.new-structure.age_length` to `bet.2026.age_length`.",
     "The 2026 age_length file includes the new otolith data used for this step.",
-    "Applies the FixM M row to the 2026 ini."
+    paste("Applies", fixm_age_par_note, "to the 2026 ini.")
   ),
   input_notes = c(
     "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
-    "bet.ini" = "`bet.2026.ini`, FixM M row applied",
+    "bet.ini" = paste("`bet.2026.ini`,", fixm_age_par_note),
     "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
     "bet.age_length" = "`bet.2026.age_length` (updated CAAL/new otoliths)"
   ),
@@ -631,12 +634,12 @@ make_step(
   bullets = c(
     "Uses `bet.2026.mix-0.2.ini` from the ini-build repo.",
     "Keeps the full 2024 regional CPUE `.frq`, 2026 tag file, and updated 2026 CAAL.",
-    "Applies the FixM M row to the mix-period ini.",
+    paste("Applies", fixm_age_par_note, "to the mix-period ini."),
     "Removes the inherited `-9999 1 2` line from `doitall.sh` so release-group-specific mixing-period values in the ini are not overwritten; `tag_flags(it,2)` is kept at 0 to retain reporting rates in predicted tag catches."
   ),
   input_notes = c(
     "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
-    "bet.ini" = "`bet.2026.mix-0.2.ini`, FixM M row applied",
+    "bet.ini" = paste("`bet.2026.mix-0.2.ini`,", fixm_age_par_note),
     "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
     "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
   ),
@@ -666,7 +669,7 @@ make_step(
   ),
   input_notes = c(
     "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
-    "bet.ini" = "`bet.2026.mix-0.2.ini`, FixM M row applied",
+    "bet.ini" = paste("`bet.2026.mix-0.2.ini`,", fixm_age_par_note),
     "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
     "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
   ),
@@ -697,7 +700,7 @@ make_step(
   ),
   input_notes = c(
     "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
-    "bet.ini" = "`bet.2026.mix-0.2.ini`, FixM M row applied",
+    "bet.ini" = paste("`bet.2026.mix-0.2.ini`,", fixm_age_par_note),
     "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
     "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
   ),
@@ -732,7 +735,7 @@ make_step(
   ),
   input_notes = c(
     "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
-    "bet.ini" = "`bet.2026.mix-0.2.ini`, FixM M row applied",
+    "bet.ini" = paste("`bet.2026.mix-0.2.ini`,", fixm_age_par_note),
     "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
     "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
   ),
@@ -767,7 +770,7 @@ make_step(
   ),
   input_notes = c(
     "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE, with index effort creep applied"),
-    "bet.ini" = "`bet.2026.mix-0.2.ini`, FixM M row applied",
+    "bet.ini" = paste("`bet.2026.mix-0.2.ini`,", fixm_age_par_note),
     "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
     "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
   ),
@@ -806,7 +809,7 @@ make_step(
   ),
   input_notes = c(
     "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE, with index effort creep applied"),
-    "bet.ini" = "`bet.2026.mix-0.2.ini`, FixM M row applied",
+    "bet.ini" = paste("`bet.2026.mix-0.2.ini`,", fixm_age_par_note),
     "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
     "bet.age_length" = "`bet.2026.age_length` (updated CAAL)"
   ),

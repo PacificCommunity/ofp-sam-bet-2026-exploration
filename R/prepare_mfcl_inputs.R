@@ -481,6 +481,41 @@ file_eol <- function(path) {
   if (any(bytes[-length(bytes)] == 13L & bytes[-1L] == 10L)) "\r\n" else "\n"
 }
 
+set_age_length_effective_sample_size <- function(path, value = 0.75) {
+  eol <- file_eol(path)
+  lines <- readLines(path, warn = FALSE)
+  marker <- grep("^#[[:space:]]*effective sample size[[:space:]]*$", trimws(lines))
+  if (length(marker) != 1L) {
+    stop("Expected one # effective sample size marker in ", path, call. = FALSE)
+  }
+  value_i <- first_data_line_after(lines, marker)
+  values <- read_words(lines[[value_i]])
+  if (!length(values)) {
+    stop("Missing effective sample size values in ", path, call. = FALSE)
+  }
+
+  count_marker <- grep("^#[[:space:]]*num age length records[[:space:]]*$", trimws(lines))
+  if (length(count_marker) == 1L) {
+    count_i <- first_data_line_after(lines, count_marker)
+    expected <- suppressWarnings(as.integer(read_words(lines[[count_i]])[[1L]]))
+    if (is.finite(expected) && expected != length(values)) {
+      stop(
+        "Expected ", expected, " age_length effective sample sizes in ", path,
+        " but found ", length(values), ".",
+        call. = FALSE
+      )
+    }
+  }
+
+  formatted <- format(value, trim = TRUE, scientific = FALSE)
+  lines[[value_i]] <- paste(rep(formatted, length(values)), collapse = " ")
+  writeLines(lines, path, sep = eol, useBytes = TRUE)
+  paste0(
+    "set age_length effective sample size to ", formatted,
+    " for ", length(values), " records"
+  )
+}
+
 tag_group_count_from_tag <- function(path) {
   lines <- readLines(path, warn = FALSE)
   header <- grep("^[[:space:]]*[0-9]+[[:space:]]+[0-9]+[[:space:]]+[0-9]+", lines)

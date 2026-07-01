@@ -9,19 +9,19 @@ First 5-region / 33-fishery BET input step, ending in 2021 with global CPUE.
 - Keeps data through 2021 and uses the global CPUE setup for this structural transition.
 - Uses old CAAL re-assigned to the new fisheries.
 - Uses the restructured tag setup with 96 release groups.
-- Applies FixM M row while retaining the 5-region `.ini` structure.
+- Applies FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604 while retaining the 5-region `.ini` structure.
 
 ## Inputs
 
 - `.frq`: `bet.2023.new-structure.global-cpue.frq`; 5-region, 33-fishery structure, terminal year 2021, global CPUE
-- `.ini`: `bet.2023.new.structure.ini`; FixM M row applied and explicit default tag flags inserted if needed
+- `.ini`: `bet.2023.new.structure.ini`; FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604 and explicit default tag flags inserted if needed
 - `.tag`: `bet.2023.new.structure-low.recaps.removed.tag`; low-recapture-removed tag input
-- `.age_length`: `bet.2023.new-structure.age_length`; old CAAL / age_length re-assigned to new fisheries
+- `.age_length`: `bet.2023.new-structure.age_length`; old CAAL / age_length re-assigned to new fisheries; set age_length effective sample size to 0.75 for 112 records
 - `input_manifest.csv`: machine-readable source/input notes with source commits
 
 ## Source Revisions
 
-- `ofp-sam-2026-BET-YFT-frq-build`: `db75a05` - updated frq files based on updated stepwise
+- `ofp-sam-2026-BET-YFT-frq-build`: `d884ce5` - remove len comps from LL from 2023.new.structure
 - `ofp-sam-2026-BET-YFT-build-ini`: `b39cbfd` - updated ini files to reflect updated tag files
 - `ofp-sam-2026-BET-YFT-tag-prep`: `f6a9e4a` - Assign unassigned fisheries
 - `ofp-sam-2026-BET-YFT-age-length-build`: `a26b694` - plus group at age 40
