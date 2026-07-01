@@ -12,7 +12,7 @@ Data to 2024, global CPUE, isolating the effect of adding three years of data.
 ## Inputs
 
 - `.frq`: `bet.2026.new-structure.global-cpue.wt-as-len-plus-len.frq`, full 2024 with global CPUE
-- `.ini`: `bet.2026.ini`, FixM M row applied; filled 7 missing tag reporting-rate matrix rows before the pooled row for release groups 92-98 by matching tag program/region/year/month rows from bet.2023.new.structure.ini; normalized tag flags marker; padded existing MFCL 1007 tag flags from 91 to 98 release groups with 2 mixing periods and reporting rates excluded during mixing; padded tag shed-rate vector from 91 to 98 release groups with zero shed rates
+- `.ini`: `bet.2026.ini`, FixM M row applied; filled 7 missing tag reporting-rate matrix rows before the pooled row for release groups 92-98 by matching tag program/region/year/month rows from bet.2023.new.structure.ini; normalized tag flags marker; padded existing MFCL 1007 tag flags from 91 to 98 release groups with 2 mixing periods and reporting rates retained during mixing; set tag_flags(it,2)=0 for 91 release groups so reporting rates are retained in predicted tag catches during mixing; padded tag shed-rate vector from 91 to 98 release groups with zero shed rates
 - `.tag`: `bet.2026.low.recaps.removed.tag`
 - `.age_length`: `bet.2023.new-structure.age_length` (old CAAL)
 - `input_manifest.csv`: machine-readable source/input notes

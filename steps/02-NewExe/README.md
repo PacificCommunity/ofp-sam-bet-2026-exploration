@@ -12,7 +12,7 @@
 ## Inputs
 
 - `.frq`: 2023 diagnostic frequency/catch/size input, 9 regions, 41 fisheries, terminal year 2021
-- `.ini`: 2023 diagnostic ini promoted for the current reader set ini version to 1007; inserted MFCL 1007 tag flags for 118 release groups with 2 mixing periods and reporting rates excluded during mixing; inserted zero tag shed-rate vector for 118 release groups; inserted MFCL 1007 total-population scalar default 25; inserted MFCL 1007 Richards growth parameter default 0
+- `.ini`: 2023 diagnostic ini promoted for the current reader set ini version to 1007; inserted MFCL 1007 tag flags for 118 release groups with 2 mixing periods and reporting rates retained during mixing; inserted zero tag shed-rate vector for 118 release groups; inserted MFCL 1007 total-population scalar default 25; inserted MFCL 1007 Richards growth parameter default 0
 - `.tag`: 2023 diagnostic tag input
 - `.age_length`: 2023 diagnostic CAAL input
 - `input_manifest.csv`: machine-readable source/input notes with source commits

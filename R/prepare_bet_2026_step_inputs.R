@@ -480,7 +480,7 @@ full_2024_alignment_run_notes <- c(
   "These steps use the current tuna-flow MFCL executable and the 04-NewStructure 5-region controls unless a later step explicitly changes controls."
 )
 mix_period_alignment_run_notes <- c(
-  "The mix-period ini family carries release-group-specific tag controls, so generated `doitall.sh` removes the inherited `-9999 1 2` override and lets the ini tag flags drive mixing periods.",
+  "The mix-period ini family carries release-group-specific tag controls, so generated `doitall.sh` removes the inherited `-9999 1 2` override and lets the ini tag flags drive mixing periods while retaining reporting rates in predicted tag catches.",
   "Generation validates that tag flags, tag shed rate, and the five tag reporting-rate matrices match the selected release-group count.",
   "Zero mixing-period values in the source mix-period ini are raised to 1 because the current MFCL reader disallows 0."
 )
@@ -632,7 +632,7 @@ make_step(
     "Uses `bet.2026.mix-0.2.ini` from the ini-build repo.",
     "Keeps the full 2024 regional CPUE `.frq`, 2026 tag file, and updated 2026 CAAL.",
     "Applies the FixM M row to the mix-period ini.",
-    "Removes the inherited `-9999 1 2` line from `doitall.sh` so release-group-specific tag flags in the ini are not overwritten."
+    "Removes the inherited `-9999 1 2` line from `doitall.sh` so release-group-specific mixing-period values in the ini are not overwritten; `tag_flags(it,2)` is kept at 0 to retain reporting rates in predicted tag catches."
   ),
   input_notes = c(
     "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
