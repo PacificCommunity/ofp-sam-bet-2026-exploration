@@ -256,14 +256,17 @@ is_tag_flags_marker <- function(line) {
   grepl("^#[[:space:]]*tag[[:space:]]+flags[[:space:]]*$", line)
 }
 
-ini_tag_flag_row <- function(mixing_periods) {
+ini_tag_flag_row <- function(mixing_periods, retain_reporting_rates_during_mixing = TRUE) {
   # Column 2 is tag_flags(it,2): 0 keeps reporting rates in predicted tag
-  # catches during mixing periods, matching the 2023 assessment setup.
-  paste(c(as.integer(mixing_periods), 0L, rep(0L, 8L)), collapse = " ")
+  # catches during mixing periods, matching the 2023 assessment setup; 1
+  # follows MFCL 1007 sources that exclude reporting rates during mixing.
+  reporting_flag <- if (isTRUE(retain_reporting_rates_during_mixing)) 0L else 1L
+  paste(c(as.integer(mixing_periods), reporting_flag, rep(0L, 8L)), collapse = " ")
 }
 
 ensure_ini_tag_flags <- function(path, n_tag_groups, default_mixing_period = 2L,
-                                 tag_path = NULL, terminal_year = NA_integer_) {
+                                 tag_path = NULL, terminal_year = NA_integer_,
+                                 retain_reporting_rates_during_mixing = TRUE) {
   eol <- file_eol(path)
   lines <- readLines(path, warn = FALSE)
   marker <- grep("^# ini version number$", trimws(lines))
@@ -280,14 +283,19 @@ ensure_ini_tag_flags <- function(path, n_tag_groups, default_mixing_period = 2L,
       stop("Expected one # number of age classes marker in ", path, call. = FALSE)
     }
     age_value_i <- first_data_line_after(lines, age_marker)
-    flag_row <- ini_tag_flag_row(default_mixing_period)
+    flag_row <- ini_tag_flag_row(
+      default_mixing_period,
+      retain_reporting_rates_during_mixing = retain_reporting_rates_during_mixing
+    )
     flag_block <- c("# tag flags", rep(flag_row, n_tag_groups))
     lines[[version_i]] <- "1007"
     lines <- c(lines[seq_len(age_value_i)], flag_block, lines[(age_value_i + 1L):length(lines)])
     notes <- c(notes, paste0(
       "inserted MFCL 1007 tag flags for ", n_tag_groups,
       " release groups with ", default_mixing_period,
-      " mixing periods and reporting rates retained during mixing"
+      " mixing periods and reporting rates ",
+      if (isTRUE(retain_reporting_rates_during_mixing)) "retained" else "excluded",
+      " during mixing"
     ))
     tag_marker <- which(vapply(lines, is_tag_flags_marker, logical(1)))
   }
@@ -307,7 +315,10 @@ ensure_ini_tag_flags <- function(path, n_tag_groups, default_mixing_period = 2L,
   flag_idx <- flag_idx[nzchar(trimws(lines[flag_idx]))]
   if (length(flag_idx) < n_tag_groups) {
     missing_flags <- n_tag_groups - length(flag_idx)
-    flag_row <- ini_tag_flag_row(default_mixing_period)
+    flag_row <- ini_tag_flag_row(
+      default_mixing_period,
+      retain_reporting_rates_during_mixing = retain_reporting_rates_during_mixing
+    )
     insert_before <- next_comment[[1L]]
     lines <- c(
       lines[seq_len(insert_before - 1L)],
@@ -318,7 +329,9 @@ ensure_ini_tag_flags <- function(path, n_tag_groups, default_mixing_period = 2L,
       "padded existing MFCL 1007 tag flags from ", length(flag_idx),
       " to ", n_tag_groups,
       " release groups with ", default_mixing_period,
-      " mixing periods and reporting rates retained during mixing"
+      " mixing periods and reporting rates ",
+      if (isTRUE(retain_reporting_rates_during_mixing)) "retained" else "excluded",
+      " during mixing"
     ))
     tag_marker <- which(vapply(lines, is_tag_flags_marker, logical(1)))
     next_comment <- which(seq_along(lines) > tag_marker & grepl("^[[:space:]]*#", lines))
@@ -335,6 +348,7 @@ ensure_ini_tag_flags <- function(path, n_tag_groups, default_mixing_period = 2L,
 
   zero_fixed <- 0L
   reporting_rate_fixed <- 0L
+  desired_reporting_flag <- if (isTRUE(retain_reporting_rates_during_mixing)) "0" else "1"
   terminal_fixed <- integer()
   terminal_groups <- integer()
   if (!is.na(terminal_year) && !is.null(tag_path) && file.exists(tag_path)) {
@@ -356,8 +370,8 @@ ensure_ini_tag_flags <- function(path, n_tag_groups, default_mixing_period = 2L,
       words[[1L]] <- "1"
       terminal_fixed <- c(terminal_fixed, tag_group)
     }
-    if (!identical(words[[2L]], "0")) {
-      words[[2L]] <- "0"
+    if (!identical(words[[2L]], desired_reporting_flag)) {
+      words[[2L]] <- desired_reporting_flag
       reporting_rate_fixed <- reporting_rate_fixed + 1L
     }
     lines[[i]] <- paste(words, collapse = " ")
@@ -375,8 +389,10 @@ ensure_ini_tag_flags <- function(path, n_tag_groups, default_mixing_period = 2L,
   }
   if (reporting_rate_fixed) {
     notes <- c(notes, paste0(
-      "set tag_flags(it,2)=0 for ", reporting_rate_fixed,
-      " release groups so reporting rates are retained in predicted tag catches during mixing"
+      "set tag_flags(it,2)=", desired_reporting_flag, " for ", reporting_rate_fixed,
+      " release groups so reporting rates are ",
+      if (isTRUE(retain_reporting_rates_during_mixing)) "retained in" else "excluded from",
+      " predicted tag catches during mixing"
     ))
   }
   if (length(terminal_fixed)) {
@@ -530,7 +546,8 @@ tag_group_count_from_tag <- function(path) {
 }
 
 ensure_ini_1007_compatibility <- function(path, tag_path, total_population_scalar = 25L,
-                                          default_mixing_period = 2L) {
+                                          default_mixing_period = 2L,
+                                          retain_reporting_rates_during_mixing = TRUE) {
   # Bring inherited 1003-format inputs up to the fields expected by MFCL 1007.
   eol <- file_eol(path)
   lines <- readLines(path, warn = FALSE)
@@ -554,7 +571,10 @@ ensure_ini_1007_compatibility <- function(path, tag_path, total_population_scala
       stop("Expected one # number of age classes marker in ", path, call. = FALSE)
     }
     age_value_i <- first_data_line_after(lines, age_marker)
-    flag_row <- ini_tag_flag_row(default_mixing_period)
+    flag_row <- ini_tag_flag_row(
+      default_mixing_period,
+      retain_reporting_rates_during_mixing = retain_reporting_rates_during_mixing
+    )
     lines <- c(
       lines[seq_len(age_value_i)],
       "# tag flags",
@@ -564,7 +584,9 @@ ensure_ini_1007_compatibility <- function(path, tag_path, total_population_scala
     notes <- c(notes, paste0(
       "inserted MFCL 1007 tag flags for ", n_tag_groups,
       " release groups with ", default_mixing_period,
-      " mixing periods and reporting rates retained during mixing"
+      " mixing periods and reporting rates ",
+      if (isTRUE(retain_reporting_rates_during_mixing)) "retained" else "excluded",
+      " during mixing"
     ))
   }
 
@@ -586,21 +608,24 @@ ensure_ini_1007_compatibility <- function(path, tag_path, total_population_scala
     )
   }
   reporting_rate_fixed <- 0L
+  desired_reporting_flag <- if (isTRUE(retain_reporting_rates_during_mixing)) "0" else "1"
   for (i in flag_idx) {
     words <- read_words(lines[[i]])
     if (length(words) != 10L) {
       stop("Malformed tag flag row in ", path, " at line ", i, call. = FALSE)
     }
-    if (!identical(words[[2L]], "0")) {
-      words[[2L]] <- "0"
+    if (!identical(words[[2L]], desired_reporting_flag)) {
+      words[[2L]] <- desired_reporting_flag
       lines[[i]] <- paste(words, collapse = " ")
       reporting_rate_fixed <- reporting_rate_fixed + 1L
     }
   }
   if (reporting_rate_fixed) {
     notes <- c(notes, paste0(
-      "set tag_flags(it,2)=0 for ", reporting_rate_fixed,
-      " release groups so reporting rates are retained in predicted tag catches during mixing"
+      "set tag_flags(it,2)=", desired_reporting_flag, " for ", reporting_rate_fixed,
+      " release groups so reporting rates are ",
+      if (isTRUE(retain_reporting_rates_during_mixing)) "retained in" else "excluded from",
+      " predicted tag catches during mixing"
     ))
   }
 

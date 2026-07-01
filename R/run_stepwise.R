@@ -84,15 +84,24 @@ has_model_files <- function(path, input_par = "") {
   any(grepl("[.]frq$", files)) || (nzchar(input_par) && input_par %in% files)
 }
 
+canonical_par_files <- function(model_dir) {
+  list.files(model_dir, pattern = "^[0-9]+[.]par$", full.names = FALSE)
+}
+
+noncanonical_par_like_files <- function(model_dir) {
+  files <- list.files(model_dir, pattern = "[.]par[0-9]*$", full.names = FALSE)
+  setdiff(files, canonical_par_files(model_dir))
+}
+
 latest_par <- function(model_dir) {
-  pars <- list.files(model_dir, pattern = "[.]par[0-9]*$", full.names = FALSE)
+  pars <- canonical_par_files(model_dir)
   if (!length(pars)) return("")
   info <- file.info(file.path(model_dir, pars))
   pars[order(info$mtime, pars)][[length(pars)]]
 }
 
 par_number <- function(path) {
-  stem <- tools::file_path_sans_ext(basename(path))
+  stem <- sub("[.]par$", "", basename(path))
   value <- suppressWarnings(as.integer(stem))
   if (is.na(value)) NA_integer_ else value
 }
@@ -109,7 +118,7 @@ next_par_name <- function(input_par) {
 }
 
 best_par <- function(model_dir) {
-  pars <- list.files(model_dir, pattern = "[.]par[0-9]*$", full.names = FALSE)
+  pars <- canonical_par_files(model_dir)
   if (!length(pars)) return("")
   numbers <- vapply(pars, par_number, integer(1))
   if (any(!is.na(numbers))) {
@@ -156,15 +165,14 @@ run_script <- function(script, program, log_file, live_log = TRUE) {
   ), mfcl_shim, useBytes = TRUE)
   Sys.chmod(mfcl_shim, mode = "0755")
   script_env <- c(
-    sprintf("PROGRAM_PATH=%s", shQuote(program)),
-    sprintf("PATH=%s:$PATH", shQuote(mfcl_shim_dir))
+    sprintf("PROGRAM_PATH=%s", program),
+    sprintf("PATH=%s", paste(mfcl_shim_dir, Sys.getenv("PATH"), sep = .Platform$path.sep))
   )
-  command <- sprintf("set -o pipefail; %s bash %s", paste(script_env, collapse = " "), shQuote(script))
   if (isTRUE(live_log)) {
-    command <- sprintf("%s 2>&1 | tee %s >&2", command, shQuote(log_file))
-    return(system2("bash", c("-c", command), wait = TRUE))
+    command <- sprintf("set -o pipefail; bash %s 2>&1 | tee %s >&2", shQuote(script), shQuote(log_file))
+    return(system2("bash", c("-c", command), env = script_env, wait = TRUE))
   }
-  system2("bash", c("-c", command), stdout = log_file, stderr = log_file, wait = TRUE)
+  system2("bash", script, env = script_env, stdout = log_file, stderr = log_file, wait = TRUE)
 }
 
 bind_rows_fill <- function(rows) {
@@ -296,7 +304,7 @@ find_previous_job_par <- function(step_id, job_ref = "", root, work_dir) {
   roots <- par_source_roots(root, work_dir)
   if (!length(roots)) return("")
   candidates <- unlist(lapply(roots, function(path) {
-    list.files(path, pattern = "([.]par[0-9]*$|^final[.]par$)", recursive = TRUE, full.names = TRUE)
+    list.files(path, pattern = "^([0-9]+|final)[.]par$", recursive = TRUE, full.names = TRUE)
   }), use.names = FALSE)
   candidates <- unique(normalizePath(candidates[file.exists(candidates)], winslash = "/", mustWork = FALSE))
   if (!length(candidates)) return("")
@@ -336,6 +344,47 @@ stage_previous_job_par <- function(model_dir, step_id, job_ref, root, work_dir) 
   ok <- file.copy(source_par, dest, overwrite = TRUE, copy.date = TRUE)
   if (!isTRUE(ok)) stop("Could not stage previous-job.par from ", source_par, call. = FALSE)
   list(input_par = basename(dest), source_par = source_par)
+}
+
+expected_final_par_for_run <- function(run_mode, run_script_name, cfg) {
+  expected <- cfg$EXPECTED_FINAL_PAR %||% cfg$FINAL_PAR %||% ""
+  if (!nzchar(expected) && is_doitall_mode(run_mode) && identical(basename(run_script_name), "doitall.sh")) {
+    expected <- "11.par"
+  }
+  expected
+}
+
+select_final_par <- function(model_dir, step_id, run_mode, run_script_name, cfg) {
+  expected <- expected_final_par_for_run(run_mode, run_script_name, cfg)
+  if (nzchar(expected)) {
+    final_par <- file.path(model_dir, expected)
+    if (!file.exists(final_par)) {
+      canonical <- canonical_par_files(model_dir)
+      ignored <- noncanonical_par_like_files(model_dir)
+      stop(
+        "MFCL did not create expected final par ", expected, " for ", step_id,
+        ". Existing canonical par files: ",
+        if (length(canonical)) paste(canonical, collapse = ", ") else "none",
+        ". Ignored non-final par-like files: ",
+        if (length(ignored)) paste(ignored, collapse = ", ") else "none",
+        ". Check mfcl.log for the first MFCL failure.",
+        call. = FALSE
+      )
+    }
+    return(expected)
+  }
+  best <- best_par(model_dir)
+  if (!nzchar(best)) {
+    ignored <- noncanonical_par_like_files(model_dir)
+    stop(
+      "MFCL did not create a canonical final par file for ", step_id,
+      ". Ignored non-final par-like files: ",
+      if (length(ignored)) paste(ignored, collapse = ", ") else "none",
+      ".",
+      call. = FALSE
+    )
+  }
+  best
 }
 
 build_payload <- function(model_dir, step_id) {
@@ -638,7 +687,11 @@ for (i in seq_len(nrow(step_table))) {
   }, finally = setwd(old))
   if (!identical(status, 0L)) stop("MFCL failed for ", step_id, " with status ", status, call. = FALSE)
 
-  final_output_par <- if (is_doitall_mode(run_mode)) best_par(model_dir) else output_par
+  final_output_par <- if (is_doitall_mode(run_mode)) {
+    select_final_par(model_dir, step_id, run_mode, run_script_name, cfg)
+  } else {
+    output_par
+  }
   final_par <- file.path(model_dir, final_output_par)
   if (!nzchar(final_output_par) || !file.exists(final_par)) {
     stop("MFCL did not create a final par file for ", step_id, call. = FALSE)

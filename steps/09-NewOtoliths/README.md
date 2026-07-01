@@ -12,7 +12,7 @@ New Japanese otoliths and 2026 CAAL input on the regional CPUE model.
 ## Inputs
 
 - `.frq`: `bet.2026.new-strucure.regional-cpue.wt-as-len-plus-len.frq`, full 2024 with regional CPUE
-- `.ini`: `bet.2026.ini`, FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604; filled 7 missing tag reporting-rate matrix rows before the pooled row for release groups 92-98 by matching tag program/region/year/month rows from bet.2023.new.structure.ini; normalized tag flags marker; padded existing MFCL 1007 tag flags from 91 to 98 release groups with 2 mixing periods and reporting rates retained during mixing; set tag_flags(it,2)=0 for 91 release groups so reporting rates are retained in predicted tag catches during mixing; padded tag shed-rate vector from 91 to 98 release groups with zero shed rates
+- `.ini`: `bet.2026.ini`, FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604; filled 7 missing tag reporting-rate matrix rows before the pooled row for release groups 92-98 by matching tag program/region/year/month rows from bet.2023.new.structure.ini; normalized tag flags marker; padded existing MFCL 1007 tag flags from 91 to 98 release groups with 2 mixing periods and reporting rates excluded during mixing; padded tag shed-rate vector from 91 to 98 release groups with zero shed rates
 - `.tag`: `bet.2026.low.recaps.removed.tag`
 - `.age_length`: `bet.2026.age_length` (updated CAAL/new otoliths); set age_length effective sample size to 0.75 for 181 records
 - `.reg_scaling`: `bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions
@@ -29,6 +29,7 @@ New Japanese otoliths and 2026 CAAL input on the regional CPUE model.
 ## Control Notes
 
 - 08-RegionalCPUE controls retained.
+- `tag_flags(it,2)` is kept at 1 for the 2026 tag setup so reporting rates are excluded from predicted tag catches during the inherited two-quarter mixing override.
 - Generated `.frq` files include region locations for every fishery, including index fisheries, and MFCL 1007 `.ini` files carry explicit tag flags immediately after `# number of age classes`.
 - Generated `.ini` files also validate that `# tag flags`, `# tag shed rate`, and the five tag reporting-rate matrices match the selected tag release-group count.
 - `age_flags(128)` is kept at 100 so the current MFCL reader interprets the initial equilibrium natural-mortality multiplier as 1.0.
@@ -45,6 +46,7 @@ New Japanese otoliths and 2026 CAAL input on the regional CPUE model.
 
 - Generated inputs repair only the `.ini` alignment where needed: tag reporting-rate matrices, explicit tag flags, and tag shed rates are matched to the selected release-group count.
 - The 2026 tag file itself is kept from `bet.2026.low.recaps.removed.tag`; no tag release or recapture rows are deleted to suppress warnings.
+- These pre-mix 2026 data steps keep `tag_flags(it,2)=1`, following the 2026 MFCL 1007 source behavior that excludes reporting rates from predicted tag catches during the inherited two-quarter mixing override.
 - These steps use the current tuna-flow MFCL executable and the 04-NewStructure 5-region controls unless a later step explicitly changes controls.
 
 ## Outstanding Checks

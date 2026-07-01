@@ -480,6 +480,7 @@ newstructure_tag <- file.path(newstructure_model_dir, "bet.tag")
 full_2024_alignment_run_notes <- c(
   "Generated inputs repair only the `.ini` alignment where needed: tag reporting-rate matrices, explicit tag flags, and tag shed rates are matched to the selected release-group count.",
   "The 2026 tag file itself is kept from `bet.2026.low.recaps.removed.tag`; no tag release or recapture rows are deleted to suppress warnings.",
+  "These pre-mix 2026 data steps keep `tag_flags(it,2)=1`, following the 2026 MFCL 1007 source behavior that excludes reporting rates from predicted tag catches during the inherited two-quarter mixing override.",
   "These steps use the current tuna-flow MFCL executable and the 04-NewStructure 5-region controls unless a later step explicitly changes controls."
 )
 mix_period_alignment_run_notes <- c(
@@ -544,6 +545,7 @@ make_step(
   ini_source = new_ini,
   tag_source = new_tag,
   age_source = old_age,
+  retain_reporting_rates_during_mixing = FALSE,
   title = "07 DataTo2024",
   summary = "Data to 2024, global CPUE, isolating the effect of adding three years of data.",
   bullets = c(
@@ -560,7 +562,8 @@ make_step(
   ),
   control_notes = c(
     "04-NewStructure 5-region `doitall.sh` controls retained.",
-    "The all-release-group mixing period remains fixed at 2 for this pre-mix step."
+    "The all-release-group mixing period remains fixed at 2 for this pre-mix step.",
+    "`tag_flags(it,2)` is kept at 1 for the 2026 tag setup so reporting rates are excluded from predicted tag catches during that inherited mixing override."
   ),
   run_notes = full_2024_alignment_run_notes,
   outstanding = c("Full 2024 input behavior still needs a real MFCL fit and residual/CPUE-sigma review.")
@@ -573,6 +576,7 @@ make_step(
   tag_source = new_tag,
   age_source = old_age,
   reg_scaling_source = reg_scaling_source,
+  retain_reporting_rates_during_mixing = FALSE,
   title = "08 RegionalCPUE",
   summary = "Regional CPUE step using the 2024 regional CPUE frequency file and regional-scaling prior.",
   bullets = c(
@@ -589,7 +593,8 @@ make_step(
   ),
   control_notes = c(
     "04-NewStructure 5-region `doitall.sh` controls retained until PHASE 5.",
-    "PHASE 5 switches index CPUE/selectivity grouping for the regional-scaling prior."
+    "PHASE 5 switches index CPUE/selectivity grouping for the regional-scaling prior.",
+    "`tag_flags(it,2)` is kept at 1 for the 2026 tag setup so reporting rates are excluded from predicted tag catches during the inherited two-quarter mixing override."
   ),
   run_notes = full_2024_alignment_run_notes,
   outstanding = c("Evaluate and test different regional CPUE prior values after this runnable baseline fit.")
@@ -602,6 +607,7 @@ make_step(
   tag_source = new_tag,
   age_source = new_age,
   reg_scaling_source = reg_scaling_source,
+  retain_reporting_rates_during_mixing = FALSE,
   title = "09 NewOtoliths",
   summary = "New Japanese otoliths and 2026 CAAL input on the regional CPUE model.",
   bullets = c(
@@ -616,7 +622,10 @@ make_step(
     "bet.tag" = "`bet.2026.low.recaps.removed.tag`",
     "bet.age_length" = "`bet.2026.age_length` (updated CAAL/new otoliths)"
   ),
-  control_notes = c("08-RegionalCPUE controls retained."),
+  control_notes = c(
+    "08-RegionalCPUE controls retained.",
+    "`tag_flags(it,2)` is kept at 1 for the 2026 tag setup so reporting rates are excluded from predicted tag catches during the inherited two-quarter mixing override."
+  ),
   run_notes = full_2024_alignment_run_notes,
   outstanding = c("After fitting, compare CAAL likelihood and age residuals against 08-RegionalCPUE.")
 )
