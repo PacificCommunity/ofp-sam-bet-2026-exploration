@@ -43,7 +43,7 @@ Length-based selectivity test after the OPR step.
 
 ## Run Note
 
-- The mix-period ini family carries release-group-specific tag controls, so generated `doitall.sh` removes the inherited `-9999 1 2` override and lets the ini tag flags drive mixing periods while retaining reporting rates in predicted tag catches.
+- The mix-period ini family carries release-group-specific tag controls, so generated `doitall.sh` removes the inherited `-9999 1 2` override and lets the ini tag flags drive mixing periods while retaining reporting rates in predicted tag catches during mixing.
 - Generation validates that tag flags, tag shed rate, and the five tag reporting-rate matrices match the selected release-group count.
 - Zero mixing-period values in the source mix-period ini are raised to 1 because the current MFCL reader disallows 0.
 - The step-specific change after OPR is limited to fish flag 26: `doitall.sh` sets `-999 26 3`.

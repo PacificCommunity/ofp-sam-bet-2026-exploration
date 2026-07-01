@@ -403,7 +403,8 @@ ini_tag_note_04 <- ensure_ini_tag_flags(
 write_generated_tag_rep_map(newstructure_model_dir)
 write_doitall(
   file.path(template_cache, "doitall.sh"),
-  file.path(newstructure_model_dir, "doitall.sh")
+  file.path(newstructure_model_dir, "doitall.sh"),
+  mix_from_ini = TRUE
 )
 write_manifest(newstructure_dir, list(
   list(
@@ -437,7 +438,7 @@ write_manifest(newstructure_dir, list(
     role = "doitall",
     file = "doitall.sh",
     source = file.path("steps", basename(dirname(template_model_dir)), "model", "doitall.sh"),
-    note = "5-region controls retained and made fail-fast for Kflow"
+    note = "5-region controls retained; tag mixing periods read from MFCL 1007 ini tag flags; made fail-fast for Kflow"
   )
 ))
 write_readme(
@@ -462,6 +463,7 @@ write_readme(
   c(
     "This step becomes the 5-region control template for steps 05-15.",
     "Generated `.frq` files include region locations for every fishery, including index fisheries.",
+    "MFCL 1007 `# tag flags` supply tag mixing periods directly; the inherited `-9999 1 2` doitall override is removed.",
     "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.",
     "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders."
   ),
@@ -480,11 +482,11 @@ newstructure_tag <- file.path(newstructure_model_dir, "bet.tag")
 full_2024_alignment_run_notes <- c(
   "Generated inputs repair only the `.ini` alignment where needed: tag reporting-rate matrices, explicit tag flags, and tag shed rates are matched to the selected release-group count.",
   "The 2026 tag file itself is kept from `bet.2026.low.recaps.removed.tag`; no tag release or recapture rows are deleted to suppress warnings.",
-  "These pre-mix 2026 data steps keep `tag_flags(it,2)=1`, following the 2026 MFCL 1007 source behavior that excludes reporting rates from predicted tag catches during the inherited two-quarter mixing override.",
+  "These 2026 data steps keep `tag_flags(it,1)=2` in the ini for the two-quarter mixing period and set `tag_flags(it,2)=0` so reporting rates remain in predicted tag catches during mixing.",
   "These steps use the current tuna-flow MFCL executable and the 04-NewStructure 5-region controls unless a later step explicitly changes controls."
 )
 mix_period_alignment_run_notes <- c(
-  "The mix-period ini family carries release-group-specific tag controls, so generated `doitall.sh` removes the inherited `-9999 1 2` override and lets the ini tag flags drive mixing periods while retaining reporting rates in predicted tag catches.",
+  "The mix-period ini family carries release-group-specific tag controls, so generated `doitall.sh` removes the inherited `-9999 1 2` override and lets the ini tag flags drive mixing periods while retaining reporting rates in predicted tag catches during mixing.",
   "Generation validates that tag flags, tag shed rate, and the five tag reporting-rate matrices match the selected release-group count.",
   "Zero mixing-period values in the source mix-period ini are raised to 1 because the current MFCL reader disallows 0."
 )
@@ -545,7 +547,7 @@ make_step(
   ini_source = new_ini,
   tag_source = new_tag,
   age_source = old_age,
-  retain_reporting_rates_during_mixing = FALSE,
+  mix_from_ini = TRUE,
   title = "07 DataTo2024",
   summary = "Data to 2024, global CPUE, isolating the effect of adding three years of data.",
   bullets = c(
@@ -562,8 +564,8 @@ make_step(
   ),
   control_notes = c(
     "04-NewStructure 5-region `doitall.sh` controls retained.",
-    "The all-release-group mixing period remains fixed at 2 for this pre-mix step.",
-    "`tag_flags(it,2)` is kept at 1 for the 2026 tag setup so reporting rates are excluded from predicted tag catches during that inherited mixing override."
+    "The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period.",
+    "`tag_flags(it,2)` is set to 0 for the 2026 tag setup so reporting rates are retained in predicted tag catches during mixing."
   ),
   run_notes = full_2024_alignment_run_notes,
   outstanding = c("Full 2024 input behavior still needs a real MFCL fit and residual/CPUE-sigma review.")
@@ -576,7 +578,7 @@ make_step(
   tag_source = new_tag,
   age_source = old_age,
   reg_scaling_source = reg_scaling_source,
-  retain_reporting_rates_during_mixing = FALSE,
+  mix_from_ini = TRUE,
   title = "08 RegionalCPUE",
   summary = "Regional CPUE step using the 2024 regional CPUE frequency file and regional-scaling prior.",
   bullets = c(
@@ -594,7 +596,8 @@ make_step(
   control_notes = c(
     "04-NewStructure 5-region `doitall.sh` controls retained until PHASE 5.",
     "PHASE 5 switches index CPUE/selectivity grouping for the regional-scaling prior.",
-    "`tag_flags(it,2)` is kept at 1 for the 2026 tag setup so reporting rates are excluded from predicted tag catches during the inherited two-quarter mixing override."
+    "The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period.",
+    "`tag_flags(it,2)` is set to 0 for the 2026 tag setup so reporting rates are retained in predicted tag catches during mixing."
   ),
   run_notes = full_2024_alignment_run_notes,
   outstanding = c("Evaluate and test different regional CPUE prior values after this runnable baseline fit.")
@@ -607,7 +610,7 @@ make_step(
   tag_source = new_tag,
   age_source = new_age,
   reg_scaling_source = reg_scaling_source,
-  retain_reporting_rates_during_mixing = FALSE,
+  mix_from_ini = TRUE,
   title = "09 NewOtoliths",
   summary = "New Japanese otoliths and 2026 CAAL input on the regional CPUE model.",
   bullets = c(
@@ -624,7 +627,8 @@ make_step(
   ),
   control_notes = c(
     "08-RegionalCPUE controls retained.",
-    "`tag_flags(it,2)` is kept at 1 for the 2026 tag setup so reporting rates are excluded from predicted tag catches during the inherited two-quarter mixing override."
+    "The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period.",
+    "`tag_flags(it,2)` is set to 0 for the 2026 tag setup so reporting rates are retained in predicted tag catches during mixing."
   ),
   run_notes = full_2024_alignment_run_notes,
   outstanding = c("After fitting, compare CAAL likelihood and age residuals against 08-RegionalCPUE.")
@@ -644,7 +648,7 @@ make_step(
     "Uses `bet.2026.mix-0.2.ini` from the ini-build repo.",
     "Keeps the full 2024 regional CPUE `.frq`, 2026 tag file, and updated 2026 CAAL.",
     paste("Applies", fixm_age_par_note, "to the mix-period ini."),
-    "Removes the inherited `-9999 1 2` line from `doitall.sh` so release-group-specific mixing-period values in the ini are not overwritten; `tag_flags(it,2)` is kept at 0 to retain reporting rates in predicted tag catches."
+    "Removes the inherited `-9999 1 2` line from `doitall.sh` so release-group-specific mixing-period values in the ini are not overwritten; `tag_flags(it,2)` is set to 0 to retain reporting rates in predicted tag catches during mixing."
   ),
   input_notes = c(
     "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),

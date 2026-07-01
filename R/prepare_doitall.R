@@ -116,10 +116,20 @@ apply_2023_current_baseline_tail_controls <- function(lines, fixm = FALSE) {
   lines
 }
 
+remove_tag_mixing_override <- function(lines) {
+  target <- grep("-9999 1 2", lines, fixed = TRUE)
+  if (length(target)) {
+    lines[[target[[1]]]] <-
+      "# Mixing periods are read from bet.ini tag flags for this step."
+  }
+  lines
+}
+
 write_2023_newexe_doitall <- function(from, to, fixm = FALSE) {
   write_program_path_doitall(from, to)
   lines <- readLines(to, warn = FALSE)
   lines <- apply_2023_newexe_controls(lines)
+  lines <- remove_tag_mixing_override(lines)
   lines <- apply_phase10_11_convergence_switch(lines)
   lines <- apply_2023_current_baseline_tail_controls(lines, fixm = fixm)
   writeLines(lines, to, useBytes = TRUE)
@@ -395,11 +405,7 @@ write_doitall <- function(from, to, mix_from_ini = FALSE,
   }
   lines <- apply_phase10_11_convergence_switch(lines)
   if (isTRUE(mix_from_ini)) {
-    target <- grep("-9999 1 2", lines, fixed = TRUE)
-    if (length(target)) {
-      lines[[target[[1]]]] <-
-        "# Mixing periods are read from bet.ini tag flags for this step."
-    }
+    lines <- remove_tag_mixing_override(lines)
   }
   if (isTRUE(size_based_selectivity)) {
     lines <- apply_size_based_selectivity(lines)

@@ -7,7 +7,7 @@ KS coefficient 0.2 release-group-specific tag mixing periods.
 - Uses `bet.2026.mix-0.2.ini` from the ini-build repo.
 - Keeps the full 2024 regional CPUE `.frq`, 2026 tag file, and updated 2026 CAAL.
 - Applies FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604 to the mix-period ini.
-- Removes the inherited `-9999 1 2` line from `doitall.sh` so release-group-specific mixing-period values in the ini are not overwritten; `tag_flags(it,2)` is kept at 0 to retain reporting rates in predicted tag catches.
+- Removes the inherited `-9999 1 2` line from `doitall.sh` so release-group-specific mixing-period values in the ini are not overwritten; `tag_flags(it,2)` is set to 0 to retain reporting rates in predicted tag catches during mixing.
 
 ## Inputs
 
@@ -44,7 +44,7 @@ KS coefficient 0.2 release-group-specific tag mixing periods.
 
 ## Run Note
 
-- The mix-period ini family carries release-group-specific tag controls, so generated `doitall.sh` removes the inherited `-9999 1 2` override and lets the ini tag flags drive mixing periods while retaining reporting rates in predicted tag catches.
+- The mix-period ini family carries release-group-specific tag controls, so generated `doitall.sh` removes the inherited `-9999 1 2` override and lets the ini tag flags drive mixing periods while retaining reporting rates in predicted tag catches during mixing.
 - Generation validates that tag flags, tag shed rate, and the five tag reporting-rate matrices match the selected release-group count.
 - Zero mixing-period values in the source mix-period ini are raised to 1 because the current MFCL reader disallows 0.
 

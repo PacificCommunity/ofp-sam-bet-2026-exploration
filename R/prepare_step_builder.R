@@ -1,7 +1,8 @@
 ## Constructor for generated BET 2026 step folders.
 
 make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
-                      frq_chop_year = NA_integer_, mix_from_ini = FALSE,
+                      frq_chop_year = NA_integer_, mix_from_ini = TRUE,
+                      force_tag_mixing_period = NA_integer_,
                       retain_reporting_rates_during_mixing = TRUE,
                       frq_tag_groups = NA_integer_,
                       frq_transform = NULL, index_cpue_source = "",
@@ -84,7 +85,8 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     frq_counts$n_tag_groups,
     tag_path = tag_out,
     terminal_year = frq_chop_year,
-    retain_reporting_rates_during_mixing = retain_reporting_rates_during_mixing
+    retain_reporting_rates_during_mixing = retain_reporting_rates_during_mixing,
+    force_mixing_period = force_tag_mixing_period
   )
   ini_shed_note <- ensure_ini_tag_shed_rates(ini_out, frq_counts$n_tag_groups)
   fixm_note <- "FixM M row applied"

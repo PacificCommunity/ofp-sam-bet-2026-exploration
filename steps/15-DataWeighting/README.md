@@ -44,7 +44,7 @@ Initial selective data-weighting step after the effort-creep model.
 
 ## Run Note
 
-- The mix-period ini family carries release-group-specific tag controls, so generated `doitall.sh` removes the inherited `-9999 1 2` override and lets the ini tag flags drive mixing periods while retaining reporting rates in predicted tag catches.
+- The mix-period ini family carries release-group-specific tag controls, so generated `doitall.sh` removes the inherited `-9999 1 2` override and lets the ini tag flags drive mixing periods while retaining reporting rates in predicted tag catches during mixing.
 - Generation validates that tag flags, tag shed rate, and the five tag reporting-rate matrices match the selected release-group count.
 - Zero mixing-period values in the source mix-period ini are raised to 1 because the current MFCL reader disallows 0.
 - The implemented data-weighting change is the existing runnable control path: global LF/WF sample-size divisors are changed from 20 to 40.

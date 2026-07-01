@@ -266,7 +266,8 @@ ini_tag_flag_row <- function(mixing_periods, retain_reporting_rates_during_mixin
 
 ensure_ini_tag_flags <- function(path, n_tag_groups, default_mixing_period = 2L,
                                  tag_path = NULL, terminal_year = NA_integer_,
-                                 retain_reporting_rates_during_mixing = TRUE) {
+                                 retain_reporting_rates_during_mixing = TRUE,
+                                 force_mixing_period = NA_integer_) {
   eol <- file_eol(path)
   lines <- readLines(path, warn = FALSE)
   marker <- grep("^# ini version number$", trimws(lines))
@@ -347,8 +348,14 @@ ensure_ini_tag_flags <- function(path, n_tag_groups, default_mixing_period = 2L,
   }
 
   zero_fixed <- 0L
+  forced_mixing_fixed <- 0L
   reporting_rate_fixed <- 0L
   desired_reporting_flag <- if (isTRUE(retain_reporting_rates_during_mixing)) "0" else "1"
+  desired_mixing_period <- if (is.na(force_mixing_period)) {
+    NA_character_
+  } else {
+    as.character(as.integer(force_mixing_period))
+  }
   terminal_fixed <- integer()
   terminal_groups <- integer()
   if (!is.na(terminal_year) && !is.null(tag_path) && file.exists(tag_path)) {
@@ -362,7 +369,10 @@ ensure_ini_tag_flags <- function(path, n_tag_groups, default_mixing_period = 2L,
       stop("Malformed tag flag row in ", path, " at line ", i, call. = FALSE)
     }
     tag_group <- i - tag_marker
-    if (as.integer(words[[1L]]) < 1L) {
+    if (!is.na(desired_mixing_period) && !identical(words[[1L]], desired_mixing_period)) {
+      words[[1L]] <- desired_mixing_period
+      forced_mixing_fixed <- forced_mixing_fixed + 1L
+    } else if (as.integer(words[[1L]]) < 1L) {
       words[[1L]] <- "1"
       zero_fixed <- zero_fixed + 1L
     }
@@ -385,6 +395,13 @@ ensure_ini_tag_flags <- function(path, n_tag_groups, default_mixing_period = 2L,
     notes <- c(notes, paste0(
       "raised ", zero_fixed,
       " zero tag mixing periods to 1 because MFCL >=2.2.7.5 disallows 0"
+    ))
+  }
+  if (forced_mixing_fixed) {
+    notes <- c(notes, paste0(
+      "set tag_flags(it,1)=", desired_mixing_period, " for ",
+      forced_mixing_fixed,
+      " release groups so all tag release groups use the same mixing period"
     ))
   }
   if (reporting_rate_fixed) {
