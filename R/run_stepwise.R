@@ -165,14 +165,19 @@ run_script <- function(script, program, log_file, live_log = TRUE) {
   ), mfcl_shim, useBytes = TRUE)
   Sys.chmod(mfcl_shim, mode = "0755")
   script_env <- c(
-    sprintf("PROGRAM_PATH=%s", program),
-    sprintf("PATH=%s", paste(mfcl_shim_dir, Sys.getenv("PATH"), sep = .Platform$path.sep))
+    PROGRAM_PATH = program,
+    PATH = paste(mfcl_shim_dir, Sys.getenv("PATH"), sep = .Platform$path.sep)
   )
+  env_assign <- paste(
+    sprintf("%s=%s", names(script_env), shQuote(unname(script_env))),
+    collapse = " "
+  )
+  command <- sprintf("set -o pipefail; %s bash %s", env_assign, shQuote(script))
   if (isTRUE(live_log)) {
-    command <- sprintf("set -o pipefail; bash %s 2>&1 | tee %s >&2", shQuote(script), shQuote(log_file))
-    return(system2("bash", c("-c", command), env = script_env, wait = TRUE))
+    command <- sprintf("%s 2>&1 | tee %s >&2", command, shQuote(log_file))
+    return(system2("bash", c("-c", command), wait = TRUE))
   }
-  system2("bash", script, env = script_env, stdout = log_file, stderr = log_file, wait = TRUE)
+  system2("bash", c("-c", command), stdout = log_file, stderr = log_file, wait = TRUE)
 }
 
 bind_rows_fill <- function(rows) {
