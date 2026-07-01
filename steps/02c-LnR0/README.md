@@ -13,7 +13,7 @@
 
 | # | Change |
 | --- | --- |
-| 1 | Inherits the 2023_rep diagnostic-side model from `02b-Ini1007`. |
+| 1 | Inherits the diagnostic-side 2023 assessment replication model from `02b-Ini1007`. |
 | 2 | Sets the total population scaling factor LN(R0) to 17. |
 
 ## Inputs

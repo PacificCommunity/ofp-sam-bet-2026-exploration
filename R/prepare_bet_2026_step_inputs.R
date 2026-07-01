@@ -309,27 +309,27 @@ write_02a_newexe_step <- function() {
     mix_from_ini = FALSE
   )
   write_manifest(paths$step_dir, list(
-    list(role = "frq", file = "bet.frq", source = rep2023_file("bet.frq"), note = "2023 replication frequency/catch/size input from ofp-sam-2026-BET/mfcl/inputs/2023_rep"),
-    list(role = "ini", file = "bet.ini", source = rep2023_file("bet.ini"), note = "MFCL 1003 ini from 2023_rep; not promoted in this substep"),
+    list(role = "frq", file = "bet.frq", source = rep2023_file("bet.frq"), note = "2023 assessment replication frequency/catch/size input"),
+    list(role = "ini", file = "bet.ini", source = rep2023_file("bet.ini"), note = "MFCL 1003 ini from the 2023 assessment replication input set; not promoted in this substep"),
     list(role = "tag", file = "bet.tag", source = rep2023_file("bet.tag"), note = "2023 replication tag input; tag reporting map regenerated from ini/tag"),
     list(role = "age_length", file = "bet.age_length", source = rep2023_file("bet.age_length"), note = "2023 replication CAAL input"),
-    list(role = "doitall", file = "doitall.sh", source = rep2023_file("doitall.sh"), note = "current-executable 2023_rep controls with PROGRAM_PATH wrapper, PHASE 10/11 convergence switch, and 1003 ini tag mixing override retained")
+    list(role = "doitall", file = "doitall.sh", source = rep2023_file("doitall.sh"), note = "2023 assessment replication controls adapted for the current executable with PROGRAM_PATH wrapper, PHASE 10/11 convergence switch, and 1003 ini tag mixing override retained")
   ))
   write_readme(
     paths$step_dir,
     "02a NewExe",
-    "2023_rep inputs run with the current MFCL executable while keeping the MFCL 1003 ini.",
+    "2023 assessment replication inputs run with the current MFCL executable while keeping the MFCL 1003 ini.",
     c(
-      "Uses `ofp-sam-2026-BET/mfcl/inputs/2023_rep` as the source model.",
-      "Keeps `bet.ini` as version 1003 so this substep isolates the current executable and 2023_rep control script.",
+      "Uses the archived 2023 assessment replication input set as the source model (`ofp-sam-2026-BET/mfcl/inputs/2023_rep`).",
+      "Keeps `bet.ini` as version 1003 so this substep isolates the current executable and the original 2023 control script.",
       "Retains the `-9999 1 2` doitall tag-mixing override because MFCL 1003 inputs do not contain an explicit `# tag flags` block.",
       "Adds the usual Kflow safety wrapper: `set -eu`, PROGRAM_PATH guard, and `BET_PHASE10_11_CONVERGENCE` for PHASE 10/11."
     ),
     c(
-      "bet.frq" = "`ofp-sam-2026-BET/mfcl/inputs/2023_rep/bet.frq`; 9 regions, 41 fisheries, terminal year 2021",
-      "bet.ini" = "`ofp-sam-2026-BET/mfcl/inputs/2023_rep/bet.ini`; MFCL 1003, no explicit tag flags",
-      "bet.tag" = "`ofp-sam-2026-BET/mfcl/inputs/2023_rep/bet.tag`",
-      "bet.age_length" = "`ofp-sam-2026-BET/mfcl/inputs/2023_rep/bet.age_length`",
+      "bet.frq" = "2023 assessment replication `.frq`; 9 regions, 41 fisheries, terminal year 2021",
+      "bet.ini" = "2023 assessment replication `.ini`; MFCL 1003, no explicit tag flags",
+      "bet.tag" = "2023 assessment replication `.tag`",
+      "bet.age_length" = "2023 assessment replication `.age_length`",
       "input_manifest.csv" = "machine-readable source/input notes with source commits"
     ),
     c(
@@ -389,7 +389,7 @@ write_diagnostic_substep <- function(step_id, title, summary, source_step,
     list(role = "doitall", file = "doitall.sh", source = file.path("steps", source_step, "model", "doitall.sh"), note = "current-executable controls regenerated; 1007 tag flags drive mixing periods; PHASE 10/11 convergence switch retained")
   ))
   change_lines <- c(
-    paste0("Inherits the 2023_rep diagnostic-side model from `", source_step, "`."),
+    paste0("Inherits the diagnostic-side 2023 assessment replication model from `", source_step, "`."),
     if (isTRUE(promote_1007)) "`bet.ini` is promoted from MFCL 1003 to 1007 while retaining the diagnostic values.",
     if (!is.na(total_population_scalar)) paste0("Sets the total population scaling factor LN(R0) to ", as.integer(total_population_scalar), "."),
     if (isTRUE(fixm)) paste("Applies the FixM M-scale row from", fixm_age_par_source, "with value", fixm_age_par_value),

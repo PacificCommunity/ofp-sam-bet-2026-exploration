@@ -145,24 +145,24 @@ stepwise_models <- data.frame(
 
   # Title shown in the Kflow job list.
   job_title = c(
-    "Diag2023",
-    "NewExe 1003",
-    "Ini 1007",
-    "LN(R0) 17",
-    "FixM",
-    "New structure",
-    "Tag reporting mixing",
-    "Convert to length",
-    "Length plus length",
-    "Data to 2024",
-    "Regional CPUE",
-    "New otoliths",
-    "Tag mixing KS",
-    "Time-varying CV",
-    "Orthogonal polynomial",
-    "Length-based selectivity",
-    "Effort creep",
-    "Data weighting"
+    "01 Diag2023",
+    "02a NewExe 1003",
+    "02b Ini 1007",
+    "02c LN(R0) 17",
+    "03 FixM",
+    "04a New structure",
+    "04b Tag reporting mixing",
+    "05 Convert to length",
+    "06 Length plus length",
+    "07 Data to 2024",
+    "08 Regional CPUE",
+    "09 New otoliths",
+    "10 Tag mixing KS",
+    "11 Time-varying CV",
+    "12 Orthogonal polynomial",
+    "13 Length-based selectivity",
+    "14 Effort creep",
+    "15 Data weighting"
   ),
 
   # Stable key used by Kflow dependency links and selectors.

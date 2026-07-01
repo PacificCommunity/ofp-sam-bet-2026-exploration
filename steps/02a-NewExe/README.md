@@ -1,6 +1,6 @@
 # 02a NewExe
 
-2023_rep inputs run with the current MFCL executable while keeping the MFCL 1003 ini.
+2023 assessment replication inputs run with the current MFCL executable while keeping the MFCL 1003 ini.
 
 ## Snapshot
 
@@ -13,8 +13,8 @@
 
 | # | Change |
 | --- | --- |
-| 1 | Uses `ofp-sam-2026-BET/mfcl/inputs/2023_rep` as the source model. |
-| 2 | Keeps `bet.ini` as version 1003 so this substep isolates the current executable and 2023_rep control script. |
+| 1 | Uses the archived 2023 assessment replication input set as the source model (`ofp-sam-2026-BET/mfcl/inputs/2023_rep`). |
+| 2 | Keeps `bet.ini` as version 1003 so this substep isolates the current executable and the original 2023 control script. |
 | 3 | Retains the `-9999 1 2` doitall tag-mixing override because MFCL 1003 inputs do not contain an explicit `# tag flags` block. |
 | 4 | Adds the usual Kflow safety wrapper: `set -eu`, PROGRAM_PATH guard, and `BET_PHASE10_11_CONVERGENCE` for PHASE 10/11. |
 
@@ -22,10 +22,10 @@
 
 | File | Source / note |
 | --- | --- |
-| `.frq` | `ofp-sam-2026-BET/mfcl/inputs/2023_rep/bet.frq`; 9 regions, 41 fisheries, terminal year 2021 |
-| `.ini` | `ofp-sam-2026-BET/mfcl/inputs/2023_rep/bet.ini`; MFCL 1003, no explicit tag flags |
-| `.tag` | `ofp-sam-2026-BET/mfcl/inputs/2023_rep/bet.tag` |
-| `.age_length` | `ofp-sam-2026-BET/mfcl/inputs/2023_rep/bet.age_length` |
+| `.frq` | 2023 assessment replication `.frq`; 9 regions, 41 fisheries, terminal year 2021 |
+| `.ini` | 2023 assessment replication `.ini`; MFCL 1003, no explicit tag flags |
+| `.tag` | 2023 assessment replication `.tag` |
+| `.age_length` | 2023 assessment replication `.age_length` |
 | `input_manifest.csv` | machine-readable source/input notes with source commits |
 
 ## Source Revisions

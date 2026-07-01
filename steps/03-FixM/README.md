@@ -13,7 +13,7 @@
 
 | # | Change |
 | --- | --- |
-| 1 | Inherits the 2023_rep diagnostic-side model from `02c-LnR0`. |
+| 1 | Inherits the diagnostic-side 2023 assessment replication model from `02c-LnR0`. |
 | 2 | Applies the FixM M-scale row from 01-Diag2023 mgc=-5 final.par from Kflow job 000604 with value -2.54930339768360e+00 |
 
 ## Inputs

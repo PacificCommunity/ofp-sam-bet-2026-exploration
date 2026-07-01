@@ -13,7 +13,7 @@
 
 | # | Change |
 | --- | --- |
-| 1 | Inherits the 2023_rep diagnostic-side model from `02a-NewExe`. |
+| 1 | Inherits the diagnostic-side 2023 assessment replication model from `02a-NewExe`. |
 | 2 | `bet.ini` is promoted from MFCL 1003 to 1007 while retaining the diagnostic values. |
 
 ## Inputs

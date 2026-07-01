@@ -27,24 +27,24 @@ This file keeps the operational Kflow/local-run details out of the root README.
 
 | `step_id` | `enabled` | `major_step` | `substep` | `change_axis` | `tag_flags_it2` | `model_label` | `job_title` | `job_key` | `run_mode` | `mfcl_program_path` | `input_par` | `frq` | `output_par` |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `01-Diag2023` | `TRUE` | 01-Diagnostic | 01a | historical diagnostic | blank | Diag2023 | Diag2023 | `01-diag2023` | `doitall` | /home/mfcl/mfclo64_2023_diagnostic_2.2.2.0 | `blank` | `bet.frq` | `blank` |
-| `02a-NewExe` | `TRUE` | 02-Executable | 02a | current MFCL executable with 1003 ini | blank | NewExe 1003 | NewExe 1003 | `02a-newexe` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `02b-Ini1007` | `TRUE` | 02-Executable | 02b | promote diagnostic ini to 1007 |  0 | Ini 1007 | Ini 1007 | `02b-ini1007` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `02c-LnR0` | `TRUE` | 02-Executable | 02c | set diagnostic LN(R0) to 17 |  0 | LN(R0) 17 | LN(R0) 17 | `02c-lnr0` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `03-FixM` | `TRUE` | 03-FixM | 03a | fixed natural mortality from mgc=-5 diagnostic after 02c |  0 | FixM | FixM | `03-fixm` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `04a-NewStructure` | `TRUE` | 04-NewStructure | 04a | 5-region structure with tag_flags(it,2)=0 |  0 | New structure | New structure | `04a-newstructure` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `04b-TagReportingMixing` | `TRUE` | 04-NewStructure | 04b | exclude reporting rates during tag mixing |  1 | Tag reporting mixing | Tag reporting mixing | `04b-tagreportingmixing` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `05-ConvertToLength` | `TRUE` | 05-ConvertToLength | 05a | convert weight compositions to length |  1 | Convert to length | Convert to length | `05-converttolength` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `06-LengthPlusLength` | `TRUE` | 06-LengthPlusLength | 06a | add additional length compositions |  1 | Length plus length | Length plus length | `06-lengthpluslength` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `07-DataTo2024` | `TRUE` | 07-DataTo2024 | 07a | 2024 data inheriting 04b tag_flags(it,2)=1 |  1 | Data to 2024 | Data to 2024 | `07-datato2024` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `08-RegionalCPUE` | `TRUE` | 08-RegionalCPUE | 08a | regional CPUE and regional-scaling prior |  1 | Regional CPUE | Regional CPUE | `08-regionalcpue` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `09-NewOtoliths` | `TRUE` | 09-NewOtoliths | 09a | new otolith/CAAL input |  1 | New otoliths | New otoliths | `09-newotoliths` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `10-TagMixingKS` | `TRUE` | 10-TagMixing | 10a | release-specific tag mixing periods |  1 | Tag mixing KS | Tag mixing KS | `10-tagmixingks` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `11-TimeVaryingCV` | `TRUE` | 11-TimeVaryingCV | 11a | time-varying CPUE CV |  1 | Time-varying CV | Time-varying CV | `11-timevaryingcv` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `12-OrthogonalPoly` | `TRUE` | 12-OrthogonalPoly | 12a | orthogonal-polynomial recruitment |  1 | Orthogonal polynomial | Orthogonal polynomial | `12-orthogonalpoly` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `13-LengthBasedSel` | `TRUE` | 13-LengthBasedSel | 13a | length-based selectivity |  1 | Length-based selectivity | Length-based selectivity | `13-lengthbasedsel` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `14-EffortCreep` | `TRUE` | 14-EffortCreep | 14a | effort creep |  1 | Effort creep | Effort creep | `14-effortcreep` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `15-DataWeighting` | `TRUE` | 15-DataWeighting | 15a | data weighting |  1 | Data weighting | Data weighting | `15-dataweighting` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `01-Diag2023` | `TRUE` | 01-Diagnostic | 01a | historical diagnostic | blank | Diag2023 | 01 Diag2023 | `01-diag2023` | `doitall` | /home/mfcl/mfclo64_2023_diagnostic_2.2.2.0 | `blank` | `bet.frq` | `blank` |
+| `02a-NewExe` | `TRUE` | 02-Executable | 02a | current MFCL executable with 1003 ini | blank | NewExe 1003 | 02a NewExe 1003 | `02a-newexe` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `02b-Ini1007` | `TRUE` | 02-Executable | 02b | promote diagnostic ini to 1007 |  0 | Ini 1007 | 02b Ini 1007 | `02b-ini1007` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `02c-LnR0` | `TRUE` | 02-Executable | 02c | set diagnostic LN(R0) to 17 |  0 | LN(R0) 17 | 02c LN(R0) 17 | `02c-lnr0` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `03-FixM` | `TRUE` | 03-FixM | 03a | fixed natural mortality from mgc=-5 diagnostic after 02c |  0 | FixM | 03 FixM | `03-fixm` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `04a-NewStructure` | `TRUE` | 04-NewStructure | 04a | 5-region structure with tag_flags(it,2)=0 |  0 | New structure | 04a New structure | `04a-newstructure` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `04b-TagReportingMixing` | `TRUE` | 04-NewStructure | 04b | exclude reporting rates during tag mixing |  1 | Tag reporting mixing | 04b Tag reporting mixing | `04b-tagreportingmixing` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `05-ConvertToLength` | `TRUE` | 05-ConvertToLength | 05a | convert weight compositions to length |  1 | Convert to length | 05 Convert to length | `05-converttolength` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `06-LengthPlusLength` | `TRUE` | 06-LengthPlusLength | 06a | add additional length compositions |  1 | Length plus length | 06 Length plus length | `06-lengthpluslength` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `07-DataTo2024` | `TRUE` | 07-DataTo2024 | 07a | 2024 data inheriting 04b tag_flags(it,2)=1 |  1 | Data to 2024 | 07 Data to 2024 | `07-datato2024` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `08-RegionalCPUE` | `TRUE` | 08-RegionalCPUE | 08a | regional CPUE and regional-scaling prior |  1 | Regional CPUE | 08 Regional CPUE | `08-regionalcpue` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `09-NewOtoliths` | `TRUE` | 09-NewOtoliths | 09a | new otolith/CAAL input |  1 | New otoliths | 09 New otoliths | `09-newotoliths` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `10-TagMixingKS` | `TRUE` | 10-TagMixing | 10a | release-specific tag mixing periods |  1 | Tag mixing KS | 10 Tag mixing KS | `10-tagmixingks` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `11-TimeVaryingCV` | `TRUE` | 11-TimeVaryingCV | 11a | time-varying CPUE CV |  1 | Time-varying CV | 11 Time-varying CV | `11-timevaryingcv` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `12-OrthogonalPoly` | `TRUE` | 12-OrthogonalPoly | 12a | orthogonal-polynomial recruitment |  1 | Orthogonal polynomial | 12 Orthogonal polynomial | `12-orthogonalpoly` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `13-LengthBasedSel` | `TRUE` | 13-LengthBasedSel | 13a | length-based selectivity |  1 | Length-based selectivity | 13 Length-based selectivity | `13-lengthbasedsel` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `14-EffortCreep` | `TRUE` | 14-EffortCreep | 14a | effort creep |  1 | Effort creep | 14 Effort creep | `14-effortcreep` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `15-DataWeighting` | `TRUE` | 15-DataWeighting | 15a | data weighting |  1 | Data weighting | 15 Data weighting | `15-dataweighting` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
 
 
 ## Folder Checks
