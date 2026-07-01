@@ -15,7 +15,7 @@ traced without guessing.
 
 | Model | Major step | What changes | Input baseline | Tag setting |
 | --- | --- | --- | --- | --- |
-| `01-Diag2023` | Diagnostic anchor | Reruns the 2023 diagnostic with the historical MFCL executable. | Archived 2023 diagnostic model. | Historical controls. |
+| `01-Diag2023` | Diagnostic anchor | Reruns the 2023 diagnostic with the historical MFCL executable. | Archived 2023 diagnostic model. | Historical diagnostic `doitall.sh` controls. |
 | `02a-NewExe` | Executable bridge | Runs the archived 2023 assessment replication inputs with the current MFCL executable. | 2023 assessment replication input set; MFCL 1003 ini. | `doitall` sets two-quarter mixing with `-9999 1 2`. |
 | `02b-Ini1007` | Executable bridge | Converts the 02a ini layout from MFCL 1003 to MFCL 1007. | 02a. | `tag_flags(it,2)=0`. |
 | `02c-LnR0` | Executable bridge | Sets diagnostic total population scale `LN(R0)` to 17. | 02b. | Inherits 02b. |
