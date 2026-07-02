@@ -49,15 +49,21 @@ traced without guessing.
 | MFCL 1007 ini | Newer ini layout with explicit `# tag flags`, tag shed rates, and reporting-rate matrix sections. |
 | `BET_PHASE10_11_CONVERGENCE` | Run-time convergence knob used by Kflow/local runs. Set `-3` for quick checks or `-5` for stricter production reruns; it applies to every selected step/substep. |
 
-## Source Inputs And Local Edits
+## Source Inputs And Generated Edits
 
-| File | Source repo | Stepwise edit |
+These model folders are generated from source input repos, then checked and
+edited by `R/prepare_bet_2026_step_inputs.R`. The exact per-step source file and
+edit note is in `steps/<step_id>/input_manifest.csv`.
+
+| File | Source repo | Generated edits |
 | --- | --- | --- |
-| `.tag` | `ofp-sam-2026-BET-YFT-tag-prep` | Steps 07-15 copy `BET/bet.2026.low.recaps.removed.tag` unchanged. |
-| `.ini` for 07-09 | `ofp-sam-2026-BET-YFT-build-ini/BET/bet.2026.ini` | Aligns tag sections to the 98-release `.tag`: pads tag flags, RR matrices, and shed rates; sets `tag_flags(it,2)=0`; applies the fishery 19 RR repair. |
-| `.ini` for 10-15 | `ofp-sam-2026-BET-YFT-build-ini/BET/ini.mix-period/bet.2026.mix-0.2.ini` | Keeps release-specific mixing, sets `tag_flags(it,2)=0`, raises zero mixing periods to 1 for current MFCL, and applies the fishery 19 RR repair. |
-| `.frq` | `ofp-sam-2026-BET-YFT-frq-build` | Uses the selected step input; later steps add regional CPUE, data weighting, or effort creep as listed in each manifest. |
-| `.age_length` | `ofp-sam-2026-BET-YFT-age-length-build` | Sets effective sample size to 0.75. |
+| `.tag` | `ofp-sam-2026-BET-YFT-tag-prep` | Steps 07-15 copy `BET/bet.2026.low.recaps.removed.tag` unchanged. `tag_rep_map.R` is only an audit file. |
+| `.ini`, common 04-15 | `ofp-sam-2026-BET-YFT-build-ini` | Applies the FixM M row, keeps `LN(R0)=17`, normalizes tag-control rows, and checks tag shed/RR dimensions against the selected `.tag`. |
+| `.ini`, 07-09 | `BET/bet.2026.ini` plus RR blocks from `BET/ini.mix-period/bet.2026.mix-0.2.ini` | Pads tag/RR/shed sections from 91 to 98 release groups, sets `tag_flags(it,2)=0`, and repairs fishery 19 RR cells. |
+| `.ini`, 10-15 | `BET/ini.mix-period/bet.2026.mix-0.2.ini` | Keeps release-specific mixing, sets `tag_flags(it,2)=0`, raises source zero mixing periods to 1, and repairs fishery 19 RR cells. |
+| `.frq` | `ofp-sam-2026-BET-YFT-frq-build` | Usually copied from the selected step source, then normalized for MFCL-ready headers/locations when needed; steps 14-15 apply effort creep. |
+| `.age_length` | `ofp-sam-2026-BET-YFT-age-length-build` | Steps 04-15 set effective sample size to 0.75. |
+| `bet.reg_scaling` | `ofp-sam-2026-BET-YFT-frq-build` | Steps 08-15 copy the regional-scaling matrix. |
 
 ## Where To Look
 

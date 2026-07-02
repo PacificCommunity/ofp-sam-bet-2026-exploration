@@ -48,7 +48,11 @@ For `07`-`09`, the selected 2026 tag file has 98 release groups while the source
 missing release rows by matching `(program, region, year, month)` from the
 previous new-structure ini, then keeps the pooled row last.
 
-## Local Changes To Source Inputs
+## Generated Changes To Tag Inputs
+
+The `.tag` file is copied unchanged for steps 07-15. The changes below are
+edits to generated `bet.ini` files so MFCL sees tag controls and RR matrices
+that match the selected `.tag`.
 
 | Scope | Source | Change in generated `bet.ini` |
 | --- | --- | --- |
