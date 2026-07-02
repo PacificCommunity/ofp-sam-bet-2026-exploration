@@ -57,13 +57,14 @@ edit note is in `steps/<step_id>/input_manifest.csv`.
 
 | File | Source repo | Generated edits |
 | --- | --- | --- |
-| `.tag` | `ofp-sam-2026-BET-YFT-tag-prep` | Steps 07-15 copy `BET/bet.2026.low.recaps.removed.tag` unchanged. `tag_rep_map.R` is only an audit file. |
-| `.ini`, common 04-15 | `ofp-sam-2026-BET-YFT-build-ini` | Applies the FixM M row, keeps `LN(R0)=17`, normalizes tag-control rows, and checks tag shed/RR dimensions against the selected `.tag`. |
-| `.ini`, 07-09 | `BET/bet.2026.ini` plus RR blocks from `BET/ini.mix-period/bet.2026.mix-0.2.ini` | Pads tag/RR/shed sections from 91 to 98 release groups, sets `tag_flags(it,2)=0`, and repairs fishery 19 RR cells. |
-| `.ini`, 10-15 | `BET/ini.mix-period/bet.2026.mix-0.2.ini` | Keeps release-specific mixing, sets `tag_flags(it,2)=0`, raises source zero mixing periods to 1, and repairs fishery 19 RR cells. |
-| `.frq` | `ofp-sam-2026-BET-YFT-frq-build` | Usually copied from the selected step source, then normalized for MFCL-ready headers/locations when needed; steps 14-15 apply effort creep. |
-| `.age_length` | `ofp-sam-2026-BET-YFT-age-length-build` | Steps 04-15 set effective sample size to 0.75. |
-| `bet.reg_scaling` | `ofp-sam-2026-BET-YFT-frq-build` | Steps 08-15 copy the regional-scaling matrix. |
+| `.frq` | `ofp-sam-2026-BET-YFT-frq-build` | Copied exactly except steps 14-15, where index-fishery effort creep is applied. |
+| `.tag` | `ofp-sam-2026-BET-YFT-tag-prep` | Copied exactly. `tag_rep_map.R` is only an audit file. |
+| `.age_length` | `ofp-sam-2026-BET-YFT-age-length-build` | Records copied from source; steps 04-15 change effective sample size from `1` to `0.75`. |
+| `.ini` | `ofp-sam-2026-BET-YFT-build-ini` and archived diagnostic inputs | Step-specific generated edits apply `LN(R0)`, FixM, tag/RR alignment, and MFCL-reader compatibility checks. |
+| `bet.reg_scaling` | `ofp-sam-2026-BET-YFT-frq-build` | Copied exactly for steps 08-15. |
+
+For the exact source-vs-generated comparison, see
+[`docs/input-source-audit.md`](docs/input-source-audit.md).
 
 ## Where To Look
 
@@ -73,6 +74,7 @@ edit note is in `steps/<step_id>/input_manifest.csv`.
 | `steps/<step_id>/input_manifest.csv` | source files, commits, and generated-input notes |
 | `steps/<step_id>/model/` | MFCL-ready model folder |
 | `docs/run-configuration.md` | Kflow/local-run settings and output layout |
+| `docs/input-source-audit.md` | concise source-vs-generated input comparison |
 | `docs/tag-reporting-groups.md` | short guide to MFCL tag reporting-rate inputs |
 | `R/prepare_bet_2026_step_inputs.R` | reproducible input-generation entry point |
 | `debugging/` | troubleshooting records |
