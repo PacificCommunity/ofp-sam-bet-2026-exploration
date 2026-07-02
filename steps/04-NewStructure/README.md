@@ -31,6 +31,15 @@ First 5-region / 33-fishery BET input step, ending in 2021 with global CPUE.
 | `.age_length` | `bet.2023.new-structure.age_length`; old CAAL / age_length re-assigned to new fisheries; set age_length effective sample size to 0.75 for 112 records |
 | `input_manifest.csv` | machine-readable source/input notes with source commits |
 
+## Generated Input Changes
+
+| Scope | Generated change | Unchanged |
+| --- | --- | --- |
+| `.frq` | No generated edit beyond source validation. | 2023 new-structure global-CPUE source records. |
+| `.ini` | Applies the fixed-M row and normalizes the tag-flags marker. | `LN(R0)=17`, tag grouping, and `tag_flags(it,2)=0` from the source ini. |
+| `.tag` | No generated edit. | 2023 new-structure low-recapture-removed source file. |
+| `.age_length` | Changes effective sample size from `1` to `0.75`. | CAAL records themselves. |
+
 ## Source Revisions
 
 | Repository | Commit | Note |

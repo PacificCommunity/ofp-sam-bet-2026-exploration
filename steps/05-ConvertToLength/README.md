@@ -27,6 +27,15 @@ Data to 2021, global CPUE, converting existing weight compositions to length.
 | `.age_length` | `bet.2023.new-structure.age_length` (old CAAL); set age_length effective sample size to 0.75 for 112 records |
 | `input_manifest.csv` | machine-readable source/input notes |
 
+## Generated Input Changes
+
+| Scope | Generated change | Unchanged |
+| --- | --- | --- |
+| `.frq` | Uses the selected length-composition source file; no extra generated edit. | Catch, effort, and composition records from the selected source. |
+| `.ini` | Inherits the generated 04 `.ini` with fixed M and 5-region tag controls. | All other 04-NewStructure ini controls. |
+| `.tag` | No generated edit. | 04-NewStructure source tag file. |
+| `.age_length` | Changes effective sample size from `1` to `0.75`. | CAAL records themselves. |
+
 ## Source Revisions
 
 | Repository | Commit | Note |

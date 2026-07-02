@@ -66,27 +66,11 @@ edit note is in `steps/<step_id>/input_manifest.csv`.
 For the exact source-vs-generated comparison, see
 [`docs/input-source-audit.md`](docs/input-source-audit.md).
 
-## Generated Input Changes
-
-This is the short audit view for the generated MFCL inputs.
-
-| Scope | What changes from source | What stays unchanged |
-| --- | --- | --- |
-| `01`, `02a` ini | Nothing. | Historical/replication `.ini` files are unchanged from source. |
-| `02b` ini | Promotes MFCL 1003 to 1007 by adding explicit tag flags, shed rates, `LN(R0)=25`, and Richards growth default `0`. | Data files and 2023 tag grouping. |
-| `02c` ini | Changes only `LN(R0)` from `25` to `17`. | All other `02b` controls. |
-| `03` onward ini | Uses the fixed-M row from the `01` diagnostic `mgc=-5` final par. | Other step-specific structure unless listed below. |
-| `07-09` ini | Pads 2026 tag/RR/shed blocks from 91 to 98 release groups, copies RR matrices from `mix-0.2`, sets `tag_flags(it,2)=0`, and repairs fishery 19 RR cells. | Two-quarter tag mixing for all release groups. |
-| `10-15` ini | Uses release-specific mixing from `mix-0.2`, sets `tag_flags(it,2)=0`, raises source zero mixing periods to `1`, and repairs fishery 19 RR cells. | Positive release-specific mixing values. |
-| `.tag` | Nothing. | Selected source `.tag` files are copied exactly. |
-| `.age_length` | Effective sample size changes from `1` to `0.75` in steps 04-15. | CAAL records themselves. |
-| `.frq` | Steps 14-15 apply effort creep to index fisheries 29-33. | Steps 01-13 `.frq`; catch and size-composition records. |
-
 ## Where To Look
 
 | Path | Use |
 | --- | --- |
-| `steps/<step_id>/README.md` | short step summary, input table, controls, and checks |
+| `steps/<step_id>/README.md` | short step summary, generated input changes, controls, and checks |
 | `steps/<step_id>/input_manifest.csv` | source files, commits, and generated-input notes |
 | `steps/<step_id>/model/` | MFCL-ready model folder |
 | `docs/run-configuration.md` | Kflow/local-run settings and output layout |

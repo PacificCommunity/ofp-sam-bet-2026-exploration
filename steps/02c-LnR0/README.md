@@ -26,6 +26,13 @@
 | `.age_length` | `steps/02b-Ini1007/model/bet.age_length` |
 | `input_manifest.csv` | machine-readable source/input notes with source commits |
 
+## Generated Input Changes
+
+| Scope | Generated change | Unchanged |
+| --- | --- | --- |
+| `.ini` | Changes only `LN(R0)` to `17`. | All other `02b-Ini1007` ini controls. |
+| `.frq/.tag/.age_length` | No generated edit. | Inherited from `02b-Ini1007`. |
+
 ## Source Revisions
 
 | Repository | Commit | Note |

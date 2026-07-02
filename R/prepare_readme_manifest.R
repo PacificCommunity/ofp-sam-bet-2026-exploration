@@ -58,6 +58,16 @@ numbered_table <- function(values, value_name) {
   out
 }
 
+input_change_table <- function(scope, generated_change, unchanged) {
+  data.frame(
+    Scope = scope,
+    `Generated change` = generated_change,
+    `Unchanged` = unchanged,
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+}
+
 named_table <- function(values, key_name, value_name, code_keys = TRUE) {
   out <- data.frame(names(values), unname(values), check.names = FALSE, stringsAsFactors = FALSE)
   names(out) <- c(key_name, value_name)
@@ -86,9 +96,20 @@ compact_control_notes <- function(notes) {
 write_readme <- function(step_dir, title, summary, bullets, inputs, controls,
                          outstanding = character(), status,
                          run_notes = character(),
+                         input_changes = NULL,
                          source_revisions = NULL) {
   inputs <- setNames(inputs, readme_input_label(names(inputs)))
   controls <- compact_control_notes(controls)
+  input_change_lines <- if (is.data.frame(input_changes) && nrow(input_changes)) {
+    c(
+      "",
+      "## Generated Input Changes",
+      "",
+      readme_table(input_changes, code_columns = "Scope")
+    )
+  } else {
+    character()
+  }
   source_revision_lines <- if (is.data.frame(source_revisions) && nrow(source_revisions)) {
     c(
       "",
@@ -143,6 +164,7 @@ write_readme <- function(step_dir, title, summary, bullets, inputs, controls,
     "## Inputs",
     "",
     readme_table(named_table(inputs, "File", "Source / note"), code_columns = "File"),
+    input_change_lines,
     source_revision_lines,
     "",
     "## Controls",

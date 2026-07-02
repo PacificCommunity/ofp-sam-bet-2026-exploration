@@ -26,6 +26,13 @@
 | `.age_length` | `steps/02a-NewExe/model/bet.age_length` |
 | `input_manifest.csv` | machine-readable source/input notes with source commits |
 
+## Generated Input Changes
+
+| Scope | Generated change | Unchanged |
+| --- | --- | --- |
+| `.ini` | Promotes MFCL 1003 to 1007 by adding tag flags, tag shed rates, `LN(R0)=25`, and Richards growth default `0`. | Diagnostic data values and tag grouping. |
+| `.frq/.tag/.age_length` | No generated edit. | Inherited from `02a-NewExe`. |
+
 ## Source Revisions
 
 | Repository | Commit | Note |

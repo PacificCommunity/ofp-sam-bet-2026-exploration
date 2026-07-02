@@ -284,6 +284,11 @@ write_original_diagnostic_step <- function() {
       "Apart from the PHASE 10/11 convergence switch, failures will reflect the original diagnostic control sequence."
     ),
     "Ready for Kflow with the tuna-flow image that includes the historical 2023 diagnostic MFCL executable.",
+    input_changes = input_change_table(
+      c(".frq", ".ini", ".tag", ".age_length"),
+      c("No generated edit.", "No generated edit.", "No generated edit.", "No generated edit."),
+      c("Original 2023 diagnostic source file.", "Original 2023 diagnostic format.", "Original 2023 diagnostic source file.", "Original 2023 diagnostic source file.")
+    ),
     source_revisions = input_repo_revision_table()
   )
 }
@@ -342,6 +347,11 @@ write_02a_newexe_step <- function() {
       "Do not interpret this as a 1007 ini test; that is isolated in 02b-Ini1007."
     ),
     "Ready for Kflow smoke runs; full MFCL fit not run here.",
+    input_changes = input_change_table(
+      c(".ini", ".frq", ".tag", ".age_length"),
+      c("No generated input edit; MFCL 1003 layout is retained.", "No generated edit.", "No generated edit.", "No generated edit."),
+      c("2023 replication ini values.", "2023 replication source file.", "2023 replication source file.", "2023 replication source file.")
+    ),
     source_revisions = input_repo_revision_table()
   )
 }
@@ -381,6 +391,31 @@ write_diagnostic_substep <- function(step_id, title, summary, source_step,
   )
   ini_note_text <- paste(ini_notes[nzchar(ini_notes)], collapse = "; ")
   if (!nzchar(ini_note_text)) ini_note_text <- paste0("inherits `", source_step, "` ini unchanged")
+  diagnostic_input_changes <- if (isTRUE(promote_1007)) {
+    input_change_table(
+      c(".ini", ".frq/.tag/.age_length"),
+      c("Promotes MFCL 1003 to 1007 by adding tag flags, tag shed rates, `LN(R0)=25`, and Richards growth default `0`.", "No generated edit."),
+      c("Diagnostic data values and tag grouping.", paste0("Inherited from `", source_step, "`."))
+    )
+  } else if (!is.na(total_population_scalar)) {
+    input_change_table(
+      c(".ini", ".frq/.tag/.age_length"),
+      c(paste0("Changes only `LN(R0)` to `", as.integer(total_population_scalar), "`."), "No generated edit."),
+      c(paste0("All other `", source_step, "` ini controls."), paste0("Inherited from `", source_step, "`."))
+    )
+  } else if (isTRUE(fixm)) {
+    input_change_table(
+      c(".ini", ".frq/.tag/.age_length"),
+      c("Applies the fixed-M row from the 01 diagnostic `mgc=-5` final par.", "No generated edit."),
+      c(paste0("All other `", source_step, "` ini controls."), paste0("Inherited from `", source_step, "`."))
+    )
+  } else {
+    input_change_table(
+      c(".ini", ".frq/.tag/.age_length"),
+      c("No generated edit.", "No generated edit."),
+      c(paste0("Inherited from `", source_step, "`."), paste0("Inherited from `", source_step, "`."))
+    )
+  }
   write_manifest(paths$step_dir, list(
     list(role = "frq", file = "bet.frq", source = file.path("steps", source_step, "model", "bet.frq"), note = paste0("inherited from ", source_step)),
     list(role = "ini", file = "bet.ini", source = file.path("steps", source_step, "model", "bet.ini"), note = ini_note_text),
@@ -419,6 +454,7 @@ write_diagnostic_substep <- function(step_id, title, summary, source_step,
       if (isTRUE(fixm)) "No fishery, tag, CAAL, or CPUE update is intended in this step." else "Later steps inherit this substep unless explicitly documented otherwise."
     ),
     "Ready for Kflow smoke runs; full MFCL fit not run here.",
+    input_changes = diagnostic_input_changes,
     source_revisions = input_repo_revision_table()
   )
 }
@@ -593,6 +629,21 @@ write_readme(
     "The `.frq` region-location line must contain all 33 fisheries: 28 extraction fisheries followed by index fishery regions 1-5."
   ),
   "Ready for Kflow smoke runs; full MFCL fit not run here.",
+  input_changes = input_change_table(
+    c(".frq", ".ini", ".tag", ".age_length"),
+    c(
+      "No generated edit beyond source validation.",
+      "Applies the fixed-M row and normalizes the tag-flags marker.",
+      "No generated edit.",
+      "Changes effective sample size from `1` to `0.75`."
+    ),
+    c(
+      "2023 new-structure global-CPUE source records.",
+      "`LN(R0)=17`, tag grouping, and `tag_flags(it,2)=0` from the source ini.",
+      "2023 new-structure low-recapture-removed source file.",
+      "CAAL records themselves."
+    )
+  ),
   source_revisions = input_repo_revision_table()
 )
 
@@ -628,6 +679,86 @@ mix_period_alignment_run_notes <- c(
   fishery19_reporting_rate_note
 )
 
+input_changes_05_06 <- input_change_table(
+  c(".frq", ".ini", ".tag", ".age_length"),
+  c(
+    "Uses the selected length-composition source file; no extra generated edit.",
+    "Inherits the generated 04 `.ini` with fixed M and 5-region tag controls.",
+    "No generated edit.",
+    "Changes effective sample size from `1` to `0.75`."
+  ),
+  c(
+    "Catch, effort, and composition records from the selected source.",
+    "All other 04-NewStructure ini controls.",
+    "04-NewStructure source tag file.",
+    "CAAL records themselves."
+  )
+)
+
+input_changes_07_08 <- input_change_table(
+  c(".frq", ".ini", ".tag", ".age_length"),
+  c(
+    "No generated edit; full 2024 source is used.",
+    "Pads 2026 tag/RR/shed blocks from 91 to 98 release groups, copies RR matrices from `mix-0.2`, sets `tag_flags(it,2)=0`, applies fixed M, and repairs fishery 19 RR cells.",
+    "No generated edit.",
+    "Changes effective sample size from `1` to `0.75`."
+  ),
+  c(
+    "Catch, effort, CPUE, and composition records from the selected source.",
+    "Two-quarter tag mixing for all release groups.",
+    "2026 low-recapture-removed source tag file.",
+    "Old CAAL records themselves."
+  )
+)
+
+input_changes_09 <- input_change_table(
+  c(".frq", ".ini", ".tag", ".age_length"),
+  c(
+    "No generated edit; full 2024 regional-CPUE source is used.",
+    "Pads 2026 tag/RR/shed blocks from 91 to 98 release groups, copies RR matrices from `mix-0.2`, sets `tag_flags(it,2)=0`, applies fixed M, and repairs fishery 19 RR cells.",
+    "No generated edit.",
+    "Switches to the 2026 CAAL source and changes effective sample size from `1` to `0.75`."
+  ),
+  c(
+    "Catch, effort, CPUE, and composition records from the selected source.",
+    "Two-quarter tag mixing for all release groups.",
+    "2026 low-recapture-removed source tag file.",
+    "2026 CAAL records themselves."
+  )
+)
+
+input_changes_mix_period <- input_change_table(
+  c(".frq", ".ini", ".tag", ".age_length"),
+  c(
+    "No generated edit; full 2024 regional-CPUE source is used.",
+    "Uses release-specific mixing from `mix-0.2`, sets `tag_flags(it,2)=0`, raises source zero mixing periods to `1`, applies fixed M, and repairs fishery 19 RR cells.",
+    "No generated edit.",
+    "Changes effective sample size from `1` to `0.75`."
+  ),
+  c(
+    "Catch, effort, CPUE, and composition records from the selected source.",
+    "Positive release-specific mixing values and RR matrix structure.",
+    "2026 low-recapture-removed source tag file.",
+    "2026 CAAL records themselves."
+  )
+)
+
+input_changes_effort_creep <- input_change_table(
+  c(".frq", ".ini", ".tag", ".age_length"),
+  c(
+    "Applies effort creep to positive effort values for index fisheries 29-33.",
+    "Uses release-specific mixing from `mix-0.2`, sets `tag_flags(it,2)=0`, raises source zero mixing periods to `1`, applies fixed M, and repairs fishery 19 RR cells.",
+    "No generated edit.",
+    "Changes effective sample size from `1` to `0.75`."
+  ),
+  c(
+    "Catch and size-composition records.",
+    "Positive release-specific mixing values and RR matrix structure.",
+    "2026 low-recapture-removed source tag file.",
+    "2026 CAAL records themselves."
+  )
+)
+
 make_step(
   step_id = "05-ConvertToLength",
   frq_source = frq_convert_length_2021,
@@ -652,6 +783,7 @@ make_step(
   control_notes = c(
     "04-NewStructure 5-region `doitall.sh` controls retained."
   ),
+  input_changes = input_changes_05_06,
   run_notes = c("Compare directly with 04-NewStructure to isolate the effect of converting existing weight compositions to length."),
   outstanding = c("Review fit impacts before deciding whether any size-composition weighting needs adjustment at this stage.")
 )
@@ -680,6 +812,7 @@ make_step(
   control_notes = c(
     "04-NewStructure 5-region `doitall.sh` controls retained."
   ),
+  input_changes = input_changes_05_06,
   run_notes = c("Compare directly with 05-ConvertToLength to isolate the extra length-composition records."),
   outstanding = c("Review fit impacts before deciding whether length-composition weighting needs adjustment.")
 )
@@ -713,6 +846,7 @@ make_step(
     "The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period.",
     "The 2026 reporting-rate matrix is copied from `bet.2026.mix-0.2.ini` before final alignment checks."
   ),
+  input_changes = input_changes_07_08,
   run_notes = full_2024_alignment_run_notes,
   outstanding = c("Full 2024 input behavior still needs a real MFCL fit and residual/CPUE-sigma review.")
 )
@@ -748,6 +882,7 @@ make_step(
     "The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period.",
     "The 2026 reporting-rate matrix is copied from `bet.2026.mix-0.2.ini` before final alignment checks."
   ),
+  input_changes = input_changes_07_08,
   run_notes = full_2024_alignment_run_notes,
   outstanding = c("Evaluate and test different regional CPUE prior values after this runnable baseline fit.")
 )
@@ -782,6 +917,7 @@ make_step(
     "The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period.",
     "The 2026 reporting-rate matrix is copied from `bet.2026.mix-0.2.ini` before final alignment checks."
   ),
+  input_changes = input_changes_09,
   run_notes = full_2024_alignment_run_notes,
   outstanding = c("After fitting, compare CAAL likelihood and age residuals against 08-RegionalCPUE.")
 )
@@ -814,6 +950,7 @@ make_step(
     "The all-release-group mixing-period override is removed.",
     "All other 08-RegionalCPUE fishery, tag recapture, selectivity, and regional-scaling controls are retained."
   ),
+  input_changes = input_changes_mix_period,
   run_notes = mix_period_alignment_run_notes,
   outstanding = c("After fitting, inspect tag residuals and release-group behavior before tuning tag-reporting assumptions further.")
 )
@@ -846,6 +983,7 @@ make_step(
     "The all-release-group mixing-period override remains removed.",
     "Index fisheries 29-33 have fish flag 66 set to 1 for time-varying CPUE CV."
   ),
+  input_changes = input_changes_mix_period,
   run_notes = mix_period_alignment_run_notes,
   outstanding = c("After fitting, compare CPUE residuals and estimated CV behavior against 10-TagMixingKS.")
 )
@@ -885,6 +1023,7 @@ make_step(
     mix_period_alignment_run_notes,
     "The OPR transfer follows the BET 4R screening rank-1 AIC setting `69-01-50-50`."
   ),
+  input_changes = input_changes_mix_period,
   outstanding = c("After fitting, confirm the 5-region model behaves consistently with the 4R BET OPR screening result.")
 )
 
@@ -920,6 +1059,7 @@ make_step(
     mix_period_alignment_run_notes,
     "The step-specific change after OPR is limited to fish flag 26: `doitall.sh` sets `-999 26 3`."
   ),
+  input_changes = input_changes_mix_period,
   outstanding = c("Confirm with the modelling group whether BET should keep the same flag-26 setting after the test fit.")
 )
 
@@ -957,6 +1097,7 @@ make_step(
     mix_period_alignment_run_notes,
     "The effort-creep `.frq` is generated from the full 2024 regional CPUE source by changing only positive effort values for index fisheries 29-33."
   ),
+  input_changes = input_changes_effort_creep,
   outstanding = c("After fitting, review index residuals and implied CPUE scaling against 13-LengthBasedSel.")
 )
 
@@ -999,6 +1140,7 @@ make_step(
     mix_period_alignment_run_notes,
     "The implemented data-weighting change is the existing runnable control path: global LF/WF sample-size divisors are changed from 20 to 40."
   ),
+  input_changes = input_changes_effort_creep,
   outstanding = c(
     "This is a first runnable weighting scenario; targeted weighting by small-catch strata can be refined after diagnostics.",
     "Review likelihood and composition residuals before treating this as the final tuned weighting scheme."

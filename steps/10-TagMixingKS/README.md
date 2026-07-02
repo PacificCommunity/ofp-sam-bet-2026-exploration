@@ -29,6 +29,15 @@ KS coefficient 0.2 release-group-specific tag mixing periods.
 | `.reg_scaling` | `bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions |
 | `input_manifest.csv` | machine-readable source/input notes |
 
+## Generated Input Changes
+
+| Scope | Generated change | Unchanged |
+| --- | --- | --- |
+| `.frq` | No generated edit; full 2024 regional-CPUE source is used. | Catch, effort, CPUE, and composition records from the selected source. |
+| `.ini` | Uses release-specific mixing from `mix-0.2`, sets `tag_flags(it,2)=0`, raises source zero mixing periods to `1`, applies fixed M, and repairs fishery 19 RR cells. | Positive release-specific mixing values and RR matrix structure. |
+| `.tag` | No generated edit. | 2026 low-recapture-removed source tag file. |
+| `.age_length` | Changes effective sample size from `1` to `0.75`. | 2026 CAAL records themselves. |
+
 ## Source Revisions
 
 | Repository | Commit | Note |

@@ -29,6 +29,15 @@ Original BET 2023 diagnostic model rerun with the historical MFCL executable.
 | `.age_length` | original 2023 diagnostic CAAL input |
 | `input_manifest.csv` | machine-readable source/input notes with source commits |
 
+## Generated Input Changes
+
+| Scope | Generated change | Unchanged |
+| --- | --- | --- |
+| `.frq` | No generated edit. | Original 2023 diagnostic source file. |
+| `.ini` | No generated edit. | Original 2023 diagnostic format. |
+| `.tag` | No generated edit. | Original 2023 diagnostic source file. |
+| `.age_length` | No generated edit. | Original 2023 diagnostic source file. |
+
 ## Source Revisions
 
 | Repository | Commit | Note |

@@ -26,6 +26,13 @@
 | `.age_length` | `steps/02c-LnR0/model/bet.age_length` |
 | `input_manifest.csv` | machine-readable source/input notes with source commits |
 
+## Generated Input Changes
+
+| Scope | Generated change | Unchanged |
+| --- | --- | --- |
+| `.ini` | Applies the fixed-M row from the 01 diagnostic `mgc=-5` final par. | All other `02c-LnR0` ini controls. |
+| `.frq/.tag/.age_length` | No generated edit. | Inherited from `02c-LnR0`. |
+
 ## Source Revisions
 
 | Repository | Commit | Note |

@@ -28,6 +28,15 @@ Initial selective data-weighting step after the effort-creep model.
 | `.reg_scaling` | `bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions |
 | `input_manifest.csv` | machine-readable source/input notes |
 
+## Generated Input Changes
+
+| Scope | Generated change | Unchanged |
+| --- | --- | --- |
+| `.frq` | Applies effort creep to positive effort values for index fisheries 29-33. | Catch and size-composition records. |
+| `.ini` | Uses release-specific mixing from `mix-0.2`, sets `tag_flags(it,2)=0`, raises source zero mixing periods to `1`, applies fixed M, and repairs fishery 19 RR cells. | Positive release-specific mixing values and RR matrix structure. |
+| `.tag` | No generated edit. | 2026 low-recapture-removed source tag file. |
+| `.age_length` | Changes effective sample size from `1` to `0.75`. | 2026 CAAL records themselves. |
+
 ## Source Revisions
 
 | Repository | Commit | Note |

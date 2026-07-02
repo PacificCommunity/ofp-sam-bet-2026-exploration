@@ -28,6 +28,15 @@
 | `.age_length` | 2023 assessment replication `.age_length` |
 | `input_manifest.csv` | machine-readable source/input notes with source commits |
 
+## Generated Input Changes
+
+| Scope | Generated change | Unchanged |
+| --- | --- | --- |
+| `.ini` | No generated input edit; MFCL 1003 layout is retained. | 2023 replication ini values. |
+| `.frq` | No generated edit. | 2023 replication source file. |
+| `.tag` | No generated edit. | 2023 replication source file. |
+| `.age_length` | No generated edit. | 2023 replication source file. |
+
 ## Source Revisions
 
 | Repository | Commit | Note |

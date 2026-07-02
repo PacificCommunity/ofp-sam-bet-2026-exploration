@@ -11,6 +11,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
                       doitall_edits = list(),
                       reg_scaling_source = "",
                       title, summary, bullets, input_notes, control_notes,
+                      input_changes = NULL,
                       run_notes = character(),
                       outstanding = character(),
                       status = "Ready for Kflow smoke runs; full MFCL fit not run here.") {
@@ -259,6 +260,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     outstanding = outstanding,
     status = status,
     run_notes = run_notes,
+    input_changes = input_changes,
     source_revisions = input_repo_revision_table()
   )
 }

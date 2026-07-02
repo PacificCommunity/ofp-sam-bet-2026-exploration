@@ -29,6 +29,15 @@ New Japanese otoliths and 2026 CAAL input on the regional CPUE model.
 | `.reg_scaling` | `bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions |
 | `input_manifest.csv` | machine-readable source/input notes |
 
+## Generated Input Changes
+
+| Scope | Generated change | Unchanged |
+| --- | --- | --- |
+| `.frq` | No generated edit; full 2024 regional-CPUE source is used. | Catch, effort, CPUE, and composition records from the selected source. |
+| `.ini` | Pads 2026 tag/RR/shed blocks from 91 to 98 release groups, copies RR matrices from `mix-0.2`, sets `tag_flags(it,2)=0`, applies fixed M, and repairs fishery 19 RR cells. | Two-quarter tag mixing for all release groups. |
+| `.tag` | No generated edit. | 2026 low-recapture-removed source tag file. |
+| `.age_length` | Switches to the 2026 CAAL source and changes effective sample size from `1` to `0.75`. | 2026 CAAL records themselves. |
+
 ## Source Revisions
 
 | Repository | Commit | Note |

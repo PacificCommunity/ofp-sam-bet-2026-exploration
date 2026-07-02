@@ -3,4 +3,4 @@
 "ini","bet.ini","input-repos/ofp-sam-2026-BET-YFT-build-ini/BET/bet.2023.new.structure.ini","0443d39","FixM M row applied from the 01-Diag2023 mgc=-5 diagnostic final par; normalized tag flags marker"
 "tag","bet.tag","input-repos/ofp-sam-2026-BET-YFT-tag-prep/BET/bet.2023.new.structure-low.recaps.removed.tag","5a4f5fb","low-recapture-removed 2023 new-structure tag input; tag reporting map regenerated from ini/tag"
 "age_length","bet.age_length","input-repos/ofp-sam-2026-BET-YFT-age-length-build/BET/bet.2023.new-structure.age_length","a26b694","old CAAL / age_length reassigned to the new fisheries; set age_length effective sample size to 0.75 for 112 records"
-"doitall","doitall.sh","steps/04-NewStructure/model/doitall.sh","76c9225","5-region controls retained; tag mixing periods read from MFCL 1007 ini tag flags; made fail-fast for Kflow"
+"doitall","doitall.sh","steps/04-NewStructure/model/doitall.sh","50285ca","5-region controls retained; tag mixing periods read from MFCL 1007 ini tag flags; made fail-fast for Kflow"
