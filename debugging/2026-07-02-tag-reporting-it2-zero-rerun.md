@@ -74,4 +74,12 @@ cells before deciding whether `it2=1` is scientifically required for 07-09.
 
 ## Kflow Rerun
 
-Pending submission after regenerating the step folders.
+Submitted after regenerating the step folders and pushing commit `c9f4b2e`.
+Downstream result/report triggers were disabled so this is only a model-run
+test of the updated reporting-rate matrix with `tag_flags(it,2)=0`.
+
+| Step | Kflow job | Cluster | Status at submit |
+| --- | ---: | ---: | --- |
+| 07-DataTo2024 | 1044 | 24533 | running |
+| 08-RegionalCPUE | 1046 | 24535 | running |
+| 09-NewOtoliths | 1047 | 24536 | running |
