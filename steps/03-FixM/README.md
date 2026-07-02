@@ -14,14 +14,14 @@
 | # | Change |
 | --- | --- |
 | 1 | Inherits the diagnostic-side 2023 assessment replication model from `02c-LnR0`. |
-| 2 | Applies the FixM M-scale row from 01-Diag2023 mgc=-5 final.par from Kflow job 000604 with value -2.54930339768360e+00 |
+| 2 | Applies the FixM M-scale row from the 01-Diag2023 mgc=-5 diagnostic final par with value -2.54930339768360e+00 |
 
 ## Inputs
 
 | File | Source / note |
 | --- | --- |
 | `.frq` | `steps/02c-LnR0/model/bet.frq` |
-| `.ini` | `steps/02c-LnR0/model/bet.ini`; FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604 |
+| `.ini` | `steps/02c-LnR0/model/bet.ini`; FixM M row applied from the 01-Diag2023 mgc=-5 diagnostic final par |
 | `.tag` | `steps/02c-LnR0/model/bet.tag` |
 | `.age_length` | `steps/02c-LnR0/model/bet.age_length` |
 | `input_manifest.csv` | machine-readable source/input notes with source commits |
@@ -41,7 +41,7 @@
 
 | # | Control |
 | --- | --- |
-| 1 | The current MFCL executable `/home/mfcl/mfclo64` is used. |
+| 1 | The current MFCL executable configured by the runtime is used. |
 | 2 | MFCL 1007 `# tag flags` supply tag mixing periods; the inherited `-9999 1 2` doitall override is removed. |
 | 3 | The 2023 nine-region GeoJSON asset remains display-only; it does not change MFCL inputs. |
 | 4 | Generated safeguards cover FRQ regions, MFCL 1007 tag blocks, shed rates, `age_flags(128)`, fail-fast `doitall.sh`, and the PHASE 10/11 env switch. |

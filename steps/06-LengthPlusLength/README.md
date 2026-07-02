@@ -15,14 +15,14 @@ Data to 2021, global CPUE, adding length compositions that were not used in the 
 | --- | --- |
 | 1 | Uses `bet.2023.new-structure.global-cpue.wt-as-len-plus-len.frq` from the frq-build repo. |
 | 2 | Keeps the 04-NewStructure `.ini`, tag, and old CAAL inputs so this step isolates the additional length-composition data. |
-| 3 | Applies FixM M row from 01-Diag2023 mgc=-5 final.par from Kflow job 000604 through the inherited 04-NewStructure ini. |
+| 3 | Applies FixM M row from the 01-Diag2023 mgc=-5 diagnostic final par through the inherited 04-NewStructure ini. |
 
 ## Inputs
 
 | File | Source / note |
 | --- | --- |
 | `.frq` | `bet.2023.new-structure.global-cpue.wt-as-len-plus-len.frq`; terminal year 2021, global CPUE |
-| `.ini` | `steps/04-NewStructure/model/bet.ini`, FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604 |
+| `.ini` | `steps/04-NewStructure/model/bet.ini`, FixM M row applied from the 01-Diag2023 mgc=-5 diagnostic final par |
 | `.tag` | `steps/04-NewStructure/model/bet.tag` |
 | `.age_length` | `bet.2023.new-structure.age_length` (old CAAL); set age_length effective sample size to 0.75 for 112 records |
 | `input_manifest.csv` | machine-readable source/input notes |

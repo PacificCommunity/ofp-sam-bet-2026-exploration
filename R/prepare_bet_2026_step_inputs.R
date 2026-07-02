@@ -47,7 +47,7 @@ reg_scaling_active_years <- "1965-1969"
 five_region_total_population_scalar <- 17L
 
 fixm_age_par_value <- "-2.54930339768360e+00"
-fixm_age_par_source <- "01-Diag2023 mgc=-5 final.par from Kflow job 000604"
+fixm_age_par_source <- "the 01-Diag2023 mgc=-5 diagnostic final par"
 fixm_age_par_note <- paste("FixM M row applied from", fixm_age_par_source)
 fixm_age_par_display <- paste("FixM M row from", fixm_age_par_source)
 
@@ -263,7 +263,7 @@ write_original_diagnostic_step <- function() {
       "Copies the 2023 diagnostic `MFCL` model files without changing the model inputs.",
       "`bet.ini` remains in its original 2023 diagnostic format for the historical `mfclo64` reader.",
       "`doitall.sh` keeps the historical diagnostic control sequence while allowing `BET_PHASE10_11_CONVERGENCE` to set PHASE 10/11 convergence from Kflow.",
-      "The runner supplies a temporary `mfclo64` PATH shim pointing to `/home/mfcl/mfclo64_2023_diagnostic_2.2.2.0`.",
+      "The runner resolves `mfclo64` to the historical 2023 diagnostic MFCL executable for this step.",
       "This step is the direct reproducibility anchor before moving to the current executable."
     ),
     c(
@@ -333,7 +333,7 @@ write_02a_newexe_step <- function() {
       "input_manifest.csv" = "machine-readable source/input notes with source commits"
     ),
     c(
-      "The current MFCL executable `/home/mfcl/mfclo64` is used.",
+      "The current MFCL executable configured by the runtime is used.",
       "This substep is the executable/control-script bridge before changing the ini layout.",
       "The 2023 nine-region GeoJSON asset remains display-only; it does not change MFCL inputs."
     ),
@@ -408,7 +408,7 @@ write_diagnostic_substep <- function(step_id, title, summary, source_step,
       "input_manifest.csv" = "machine-readable source/input notes with source commits"
     ),
     c(
-      "The current MFCL executable `/home/mfcl/mfclo64` is used.",
+      "The current MFCL executable configured by the runtime is used.",
       "MFCL 1007 `# tag flags` supply tag mixing periods; the inherited `-9999 1 2` doitall override is removed.",
       "`doitall.sh` uses `set -eu`, so a failed MFCL phase fails the Kflow job instead of continuing with missing `.par` files.",
       "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders.",

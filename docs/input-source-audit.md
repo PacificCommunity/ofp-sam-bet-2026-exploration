@@ -10,7 +10,7 @@ copied as-is and what is intentionally changed in the generated model folders?
 | `.frq` | Yes for steps 01-13. | Steps 14-15 change only index-fishery effort values for effort creep. |
 | `.tag` | Yes for all steps. | None. `tag_rep_map.R` is an audit file, not an MFCL input. |
 | `.age_length` | Records are copied from source. | Steps 04-15 set effective sample size from `1` to `0.75`. |
-| `.ini` | 01 and 02a are source-exact. Later steps are generated from source baselines. | MFCL 1007 conversion, `LN(R0)`, FixM, tag/RR alignment, and current-reader compatibility edits. |
+| `.ini` | 01 and 02a are unchanged from source. Later steps are generated from source baselines. | MFCL 1007 conversion, `LN(R0)`, FixM, tag/RR alignment, and current-reader compatibility edits. |
 | `bet.reg_scaling` | Yes for steps 08-15. | None. |
 
 ## Source Repos Checked

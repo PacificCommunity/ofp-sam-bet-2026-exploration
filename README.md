@@ -72,7 +72,7 @@ This is the short audit view for the generated MFCL inputs.
 
 | Scope | What changes from source | What stays unchanged |
 | --- | --- | --- |
-| `01`, `02a` ini | Nothing. | Historical/replication `.ini` files are kept source-exact. |
+| `01`, `02a` ini | Nothing. | Historical/replication `.ini` files are unchanged from source. |
 | `02b` ini | Promotes MFCL 1003 to 1007 by adding explicit tag flags, shed rates, `LN(R0)=25`, and Richards growth default `0`. | Data files and 2023 tag grouping. |
 | `02c` ini | Changes only `LN(R0)` from `25` to `17`. | All other `02b` controls. |
 | `03` onward ini | Uses the fixed-M row from the `01` diagnostic `mgc=-5` final par. | Other step-specific structure unless listed below. |

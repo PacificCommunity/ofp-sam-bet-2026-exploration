@@ -43,7 +43,7 @@
 
 | # | Control |
 | --- | --- |
-| 1 | The current MFCL executable `/home/mfcl/mfclo64` is used. |
+| 1 | The current MFCL executable configured by the runtime is used. |
 | 2 | This substep is the executable/control-script bridge before changing the ini layout. |
 | 3 | The 2023 nine-region GeoJSON asset remains display-only; it does not change MFCL inputs. |
 

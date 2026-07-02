@@ -41,7 +41,7 @@
 
 | # | Control |
 | --- | --- |
-| 1 | The current MFCL executable `/home/mfcl/mfclo64` is used. |
+| 1 | The current MFCL executable configured by the runtime is used. |
 | 2 | MFCL 1007 `# tag flags` supply tag mixing periods; the inherited `-9999 1 2` doitall override is removed. |
 | 3 | The 2023 nine-region GeoJSON asset remains display-only; it does not change MFCL inputs. |
 | 4 | Generated safeguards cover FRQ regions, MFCL 1007 tag blocks, shed rates, `age_flags(128)`, fail-fast `doitall.sh`, and the PHASE 10/11 env switch. |

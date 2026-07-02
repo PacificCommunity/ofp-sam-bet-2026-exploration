@@ -16,7 +16,7 @@ Original BET 2023 diagnostic model rerun with the historical MFCL executable.
 | 1 | Copies the 2023 diagnostic `MFCL` model files without changing the model inputs. |
 | 2 | `bet.ini` remains in its original 2023 diagnostic format for the historical `mfclo64` reader. |
 | 3 | `doitall.sh` keeps the historical diagnostic control sequence while allowing `BET_PHASE10_11_CONVERGENCE` to set PHASE 10/11 convergence from Kflow. |
-| 4 | The runner supplies a temporary `mfclo64` PATH shim pointing to `/home/mfcl/mfclo64_2023_diagnostic_2.2.2.0`. |
+| 4 | The runner resolves `mfclo64` to the historical 2023 diagnostic MFCL executable for this step. |
 | 5 | This step is the direct reproducibility anchor before moving to the current executable. |
 
 ## Inputs
