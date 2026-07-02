@@ -48,5 +48,26 @@ For `07`-`09`, the selected 2026 tag file has 98 release groups while the source
 missing release rows by matching `(program, region, year, month)` from the
 previous new-structure ini, then keeps the pooled row last.
 
+## Local Changes To Source Inputs
+
+| Scope | Source | Change in generated `bet.ini` |
+| --- | --- | --- |
+| `.tag`, steps 07-15 | `bet.2026.low.recaps.removed.tag` | Copied unchanged from the tag-prep repo. |
+| Tag flags, steps 07-09 | `bet.2026.ini` | Rows padded from 91 to 98; column 2 `tag_flags(it,2)` set from `1` to `0`. |
+| RR matrices, steps 07-09 | `bet.2026.mix-0.2.ini` | Five RR blocks copied into the 07-09 `.ini`, then kept at 99 rows. |
+| Tag flags, steps 10-15 | `bet.2026.mix-0.2.ini` | Column 2 `tag_flags(it,2)` set from `1` to `0`. |
+| Mixing periods, steps 10-15 | `bet.2026.mix-0.2.ini` | Source `0` mixing periods are raised to `1` for groups `16-18`, `43`, `46`, and `59-95`. |
+| Fishery 19 RR, steps 07-15 | Generated `.ini` | Release groups `19`, `20`, `21`, `31`, `35`, and `40` copy fishery 21 settings into fishery 19. |
+
+Fishery 19 repair cells:
+
+| Block | Cell change |
+| --- | --- |
+| `# tag fish rep` | `0 -> 0.5` |
+| `# tag fish rep group flags` | `16 -> 15` |
+| `# tag_fish_rep active flags` | `0 -> 1` |
+| `# tag_fish_rep target` | `0 -> 50` |
+| `# tag_fish_rep penalty` | `0 -> 1` |
+
 The full cell-by-cell audit remains in each model folder as
 `steps/<step_id>/model/tag_rep_map.R`.

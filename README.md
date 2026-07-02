@@ -49,6 +49,16 @@ traced without guessing.
 | MFCL 1007 ini | Newer ini layout with explicit `# tag flags`, tag shed rates, and reporting-rate matrix sections. |
 | `BET_PHASE10_11_CONVERGENCE` | Run-time convergence knob used by Kflow/local runs. Set `-3` for quick checks or `-5` for stricter production reruns; it applies to every selected step/substep. |
 
+## Source Inputs And Local Edits
+
+| File | Source repo | Stepwise edit |
+| --- | --- | --- |
+| `.tag` | `ofp-sam-2026-BET-YFT-tag-prep` | Steps 07-15 copy `BET/bet.2026.low.recaps.removed.tag` unchanged. |
+| `.ini` for 07-09 | `ofp-sam-2026-BET-YFT-build-ini/BET/bet.2026.ini` | Aligns tag sections to the 98-release `.tag`: pads tag flags, RR matrices, and shed rates; sets `tag_flags(it,2)=0`; applies the fishery 19 RR repair. |
+| `.ini` for 10-15 | `ofp-sam-2026-BET-YFT-build-ini/BET/ini.mix-period/bet.2026.mix-0.2.ini` | Keeps release-specific mixing, sets `tag_flags(it,2)=0`, raises zero mixing periods to 1 for current MFCL, and applies the fishery 19 RR repair. |
+| `.frq` | `ofp-sam-2026-BET-YFT-frq-build` | Uses the selected step input; later steps add regional CPUE, data weighting, or effort creep as listed in each manifest. |
+| `.age_length` | `ofp-sam-2026-BET-YFT-age-length-build` | Sets effective sample size to 0.75. |
+
 ## Where To Look
 
 | Path | Use |
