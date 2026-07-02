@@ -5,6 +5,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
                       force_tag_mixing_period = NA_integer_,
                       retain_reporting_rates_during_mixing = TRUE,
                       tag_reporting_source = "",
+                      tag_reporting_cell_repairs = list(),
                       frq_tag_groups = NA_integer_,
                       frq_transform = NULL, index_cpue_source = "",
                       doitall_edits = list(),
@@ -84,6 +85,22 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
   if (nzchar(tag_reporting_source)) {
     tag_reporting_note <- copy_tag_reporting_matrices(ini_out, tag_reporting_source)
   }
+  tag_reporting_cell_notes <- character()
+  if (length(tag_reporting_cell_repairs)) {
+    for (repair in tag_reporting_cell_repairs) {
+      tag_reporting_cell_notes <- c(
+        tag_reporting_cell_notes,
+        repair_positive_tag_recapture_reporting_rates(
+          ini_out,
+          tag_out,
+          target_fishery = repair$target_fishery,
+          source_fishery = repair$source_fishery
+        )
+      )
+    }
+    tag_reporting_cell_notes <- tag_reporting_cell_notes[nzchar(tag_reporting_cell_notes)]
+  }
+  validate_positive_tag_recapture_reporting_rates(ini_out, tag_out)
   apply_fixm_m(ini_out)
   total_population_note <- set_total_population_scalar(
     ini_out,
@@ -108,6 +125,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     total_population_note,
     tag_rep_repair_note,
     tag_reporting_note,
+    tag_reporting_cell_notes,
     ini_tag_note,
     ini_shed_note
   )
@@ -116,6 +134,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     total_population_note,
     tag_rep_repair_note,
     tag_reporting_note,
+    tag_reporting_cell_notes,
     ini_tag_note,
     ini_shed_note
   )

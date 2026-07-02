@@ -119,7 +119,7 @@ input_repo_roots <- c(
 )
 
 git_value <- function(repo, args) {
-  if (!dir.exists(file.path(repo, ".git"))) return("")
+  if (!file.exists(file.path(repo, ".git"))) return("")
   value <- tryCatch(
     system2("git", c("-C", repo, args), stdout = TRUE, stderr = NULL),
     error = function(e) character()
@@ -606,15 +606,26 @@ latest_2026_tag_note <- paste(
   "fisheries before low-recap filtering"
 )
 
+fishery19_reporting_rate_repair <- list(list(
+  target_fishery = 19L,
+  source_fishery = 21L
+))
+fishery19_reporting_rate_note <- paste(
+  "Positive fishery 19 tag recaptures with inactive zero reporting-rate cells",
+  "are assigned the matching fishery 21 reporting-rate settings."
+)
+
 full_2024_alignment_run_notes <- c(
   "Generated inputs only repair `.ini` alignment: reporting-rate matrices, tag flags, and shed rates are matched to the selected release-group count.",
   "The latest `bet.2026.low.recaps.removed.tag` is kept; the tag build assigns missing-gear canneries recaptures to purse-seine before low-recap filtering.",
-  "The 2026 reporting-rate matrix is copied from the mix-period ini source before Kflow runs."
+  "The 2026 reporting-rate matrix is copied from the mix-period ini source before Kflow runs.",
+  fishery19_reporting_rate_note
 )
 mix_period_alignment_run_notes <- c(
   "The latest `bet.2026.low.recaps.removed.tag` is kept, including the canneries missing-gear reassignment.",
   "Release-specific mixing periods come from the mix-period `.ini`; generated `doitall.sh` removes the inherited `-9999 1 2` override.",
-  "Generation validates tag-control dimensions, shed rates, and reporting-rate matrices; source zero mixing periods are raised to 1 for the current MFCL reader."
+  "Generation validates tag-control dimensions, shed rates, and reporting-rate matrices; source zero mixing periods are raised to 1 for the current MFCL reader.",
+  fishery19_reporting_rate_note
 )
 
 make_step(
@@ -682,6 +693,7 @@ make_step(
   mix_from_ini = TRUE,
   retain_reporting_rates_during_mixing = TRUE,
   tag_reporting_source = mix_ini,
+  tag_reporting_cell_repairs = fishery19_reporting_rate_repair,
   title = "07 DataTo2024",
   summary = "Data to 2024, global CPUE, isolating the effect of adding three years of data.",
   bullets = c(
@@ -715,6 +727,7 @@ make_step(
   mix_from_ini = TRUE,
   retain_reporting_rates_during_mixing = TRUE,
   tag_reporting_source = mix_ini,
+  tag_reporting_cell_repairs = fishery19_reporting_rate_repair,
   title = "08 RegionalCPUE",
   summary = "Regional CPUE step using the 2024 regional CPUE frequency file and regional-scaling prior.",
   bullets = c(
@@ -749,6 +762,7 @@ make_step(
   mix_from_ini = TRUE,
   retain_reporting_rates_during_mixing = TRUE,
   tag_reporting_source = mix_ini,
+  tag_reporting_cell_repairs = fishery19_reporting_rate_repair,
   title = "09 NewOtoliths",
   summary = "New Japanese otoliths and 2026 CAAL input on the regional CPUE model.",
   bullets = c(
@@ -781,6 +795,7 @@ make_step(
   reg_scaling_source = reg_scaling_source,
   mix_from_ini = TRUE,
   retain_reporting_rates_during_mixing = TRUE,
+  tag_reporting_cell_repairs = fishery19_reporting_rate_repair,
   title = "10 TagMixingKS",
   summary = "KS coefficient 0.2 release-group-specific tag mixing periods.",
   bullets = c(
@@ -812,6 +827,7 @@ make_step(
   reg_scaling_source = reg_scaling_source,
   mix_from_ini = TRUE,
   retain_reporting_rates_during_mixing = TRUE,
+  tag_reporting_cell_repairs = fishery19_reporting_rate_repair,
   doitall_edits = list(time_varying_cv = TRUE),
   title = "11 TimeVaryingCV",
   summary = "Enable time-varying CPUE CV for the regional index fisheries.",
@@ -843,6 +859,7 @@ make_step(
   reg_scaling_source = reg_scaling_source,
   mix_from_ini = TRUE,
   retain_reporting_rates_during_mixing = TRUE,
+  tag_reporting_cell_repairs = fishery19_reporting_rate_repair,
   doitall_edits = list(time_varying_cv = TRUE, opr = TRUE),
   title = "12 OrthogonalPoly",
   summary = "Orthogonal polynomial recruitment step, ensuring `2 177 0` is used.",
@@ -880,6 +897,7 @@ make_step(
   reg_scaling_source = reg_scaling_source,
   mix_from_ini = TRUE,
   retain_reporting_rates_during_mixing = TRUE,
+  tag_reporting_cell_repairs = fishery19_reporting_rate_repair,
   doitall_edits = list(time_varying_cv = TRUE, opr = TRUE, size_based_selectivity = TRUE),
   title = "13 LengthBasedSel",
   summary = "Length-based selectivity test after the OPR step.",
@@ -915,6 +933,7 @@ make_step(
   frq_transform = "effort_creep",
   mix_from_ini = TRUE,
   retain_reporting_rates_during_mixing = TRUE,
+  tag_reporting_cell_repairs = fishery19_reporting_rate_repair,
   doitall_edits = list(time_varying_cv = TRUE, opr = TRUE, size_based_selectivity = TRUE),
   title = "14 EffortCreep",
   summary = "Apply the lower effort-creep level in the diagnostic model path.",
@@ -951,6 +970,7 @@ make_step(
   frq_transform = "effort_creep",
   mix_from_ini = TRUE,
   retain_reporting_rates_during_mixing = TRUE,
+  tag_reporting_cell_repairs = fishery19_reporting_rate_repair,
   doitall_edits = list(
     time_varying_cv = TRUE,
     opr = TRUE,

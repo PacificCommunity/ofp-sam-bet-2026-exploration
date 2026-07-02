@@ -306,6 +306,213 @@ copy_tag_reporting_matrices <- function(path, source_ini) {
   )
 }
 
+tag_recapture_table <- function(path) {
+  lines <- readLines(path, warn = FALSE)
+  release_header <- grep("#[[:space:]]+[0-9]+ - RELEASE REGION", lines)
+  if (!length(release_header)) {
+    stop("Could not find tag release blocks in ", path, call. = FALSE)
+  }
+
+  out <- list()
+  out_i <- 0L
+  for (h_i in seq_along(release_header)) {
+    start <- release_header[[h_i]]
+    end <- if (h_i < length(release_header)) release_header[[h_i + 1L]] - 1L else length(lines)
+    title <- trimws(sub("^#[[:space:]]*", "", lines[[start]]))
+    release_group <- as.integer(sub("^([0-9]+).*", "\\1", title))
+    rec_marker <- grep(
+      "^#[[:space:]]*LENGTH RELEASE[[:space:]]+FISHERY[[:space:]]+RECAP YEAR",
+      lines[start:end]
+    )
+    if (!length(rec_marker)) next
+    rec_start <- start + rec_marker[[1L]]
+    if (rec_start > end) next
+    candidates <- lines[rec_start:end]
+    candidates <- candidates[nzchar(trimws(candidates))]
+    candidates <- candidates[!startsWith(trimws(candidates), "#")]
+    if (!length(candidates)) next
+    for (line in candidates) {
+      words <- read_words(line)
+      if (length(words) < 5L) next
+      values <- suppressWarnings(as.integer(words[1:5]))
+      if (anyNA(values)) next
+      out_i <- out_i + 1L
+      out[[out_i]] <- data.frame(
+        release_group = release_group,
+        release_length = values[[1L]],
+        recap_fishery = values[[2L]],
+        recap_year = values[[3L]],
+        recap_month = values[[4L]],
+        recap_number = values[[5L]],
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+
+  if (!length(out)) {
+    return(data.frame(
+      release_group = integer(),
+      release_length = integer(),
+      recap_fishery = integer(),
+      recap_year = integer(),
+      recap_month = integer(),
+      recap_number = integer(),
+      stringsAsFactors = FALSE
+    ))
+  }
+  do.call(rbind, out)
+}
+
+repair_positive_tag_recapture_reporting_rates <- function(path, tag_path,
+                                                          target_fishery,
+                                                          source_fishery) {
+  # If a tag file contains positive recaptures for a fishery, the matching
+  # reporting-rate cells in the ini must not be left as inactive zero cells.
+  # This targeted repair is used for BET 2026 canneries recaptures assigned to
+  # fishery 19, borrowing the matching purse-seine fishery 21 RR setup.
+  markers <- c(
+    rep = "# tag fish rep",
+    group = "# tag fish rep group flags",
+    active = "# tag_fish_rep active flags",
+    target = "# tag_fish_rep target",
+    penalty = "# tag_fish_rep penalty"
+  )
+  target_fishery <- as.integer(target_fishery)
+  source_fishery <- as.integer(source_fishery)
+  if (!is.finite(target_fishery) || !is.finite(source_fishery) ||
+      target_fishery < 1L || source_fishery < 1L) {
+    stop("target_fishery and source_fishery must be positive integers", call. = FALSE)
+  }
+
+  recaps <- tag_recapture_table(tag_path)
+  affected <- sort(unique(recaps$release_group[
+    recaps$recap_fishery == target_fishery & recaps$recap_number > 0L
+  ]))
+  if (!length(affected)) return(invisible(""))
+
+  lines <- readLines(path, warn = FALSE)
+  row_idx <- lapply(markers, function(marker) ini_matrix_row_indices(lines, marker))
+  row_counts <- vapply(row_idx, length, integer(1))
+  if (length(unique(row_counts)) != 1L) {
+    stop(
+      "Tag reporting-rate matrices have inconsistent row counts in ",
+      path, ": ", paste(paste(markers, row_counts, sep = "="), collapse = ", "),
+      call. = FALSE
+    )
+  }
+  if (max(affected) > row_counts[[1L]]) {
+    stop(
+      "Positive tag recaptures refer to release group ", max(affected),
+      " but reporting-rate matrices in ", path, " have only ",
+      row_counts[[1L]], " rows.",
+      call. = FALSE
+    )
+  }
+
+  rows <- lapply(row_idx, function(idx) strsplit(trimws(lines[idx]), "[[:space:]]+"))
+  widths <- vapply(rows, function(x) unique(lengths(x)), integer(1))
+  if (any(widths < max(target_fishery, source_fishery))) {
+    stop(
+      "Reporting-rate matrices in ", path, " do not include fishery ",
+      max(target_fishery, source_fishery), ".",
+      call. = FALSE
+    )
+  }
+
+  value_at <- function(marker_name, release_group, fishery) {
+    suppressWarnings(as.numeric(rows[[marker_name]][[release_group]][[fishery]]))
+  }
+  needs_repair <- affected[vapply(affected, function(g) {
+    any(c(
+      value_at("rep", g, target_fishery) == 0,
+      value_at("active", g, target_fishery) == 0,
+      value_at("target", g, target_fishery) == 0,
+      value_at("penalty", g, target_fishery) == 0
+    ), na.rm = TRUE)
+  }, logical(1))]
+  if (!length(needs_repair)) return(invisible(""))
+
+  bad_source <- needs_repair[vapply(needs_repair, function(g) {
+    any(c(
+      value_at("rep", g, source_fishery) == 0,
+      value_at("active", g, source_fishery) == 0,
+      value_at("target", g, source_fishery) == 0,
+      value_at("penalty", g, source_fishery) == 0
+    ), na.rm = TRUE)
+  }, logical(1))]
+  if (length(bad_source)) {
+    stop(
+      "Cannot repair fishery ", target_fishery,
+      " reporting rates from fishery ", source_fishery,
+      " because the source cells are incomplete for release group(s) ",
+      compact_ints(bad_source), ".",
+      call. = FALSE
+    )
+  }
+
+  for (marker_name in names(markers)) {
+    for (g in needs_repair) {
+      rows[[marker_name]][[g]][[target_fishery]] <-
+        rows[[marker_name]][[g]][[source_fishery]]
+    }
+    lines[row_idx[[marker_name]]] <- vapply(
+      rows[[marker_name]],
+      paste,
+      collapse = " ",
+      character(1)
+    )
+  }
+
+  writeLines(lines, path, sep = file_eol(path), useBytes = TRUE)
+  paste0(
+    "filled fishery ", target_fishery,
+    " reporting-rate cells for positive tag recaptures from fishery ",
+    source_fishery,
+    " settings in release groups ", compact_ints(needs_repair)
+  )
+}
+
+validate_positive_tag_recapture_reporting_rates <- function(path, tag_path) {
+  recaps <- tag_recapture_table(tag_path)
+  recaps <- recaps[recaps$recap_number > 0L, , drop = FALSE]
+  if (!nrow(recaps)) return(invisible(""))
+
+  rep <- extract_ini_matrix(path, "# tag fish rep")
+  active <- extract_ini_matrix(path, "# tag_fish_rep active flags")
+  target <- extract_ini_matrix(path, "# tag_fish_rep target")
+  penalty <- extract_ini_matrix(path, "# tag_fish_rep penalty")
+  dims <- vapply(list(rep, active, target, penalty), function(x) paste(dim(x), collapse = "x"), character(1))
+  if (length(unique(dims)) != 1L) {
+    stop("Tag reporting-rate matrices have inconsistent dimensions in ", path, call. = FALSE)
+  }
+  outside <- recaps$release_group > nrow(rep) | recaps$recap_fishery > ncol(rep)
+  if (any(outside)) {
+    first <- recaps[which(outside)[[1L]], , drop = FALSE]
+    stop(
+      "Positive tag recapture references release group ", first$release_group,
+      " / fishery ", first$recap_fishery,
+      " outside reporting-rate matrix dimensions in ", path, ".",
+      call. = FALSE
+    )
+  }
+
+  idx <- cbind(recaps$release_group, recaps$recap_fishery)
+  incomplete <- rep[idx] == 0 | active[idx] == 0 | target[idx] == 0 | penalty[idx] == 0
+  if (any(incomplete)) {
+    bad <- unique(recaps[incomplete, c("release_group", "recap_fishery")])
+    first <- bad$release_group[[1L]]
+    first_fishery <- bad$recap_fishery[[1L]]
+    stop(
+      "Positive tag recaptures have incomplete reporting-rate cells in ",
+      path, ". First release group/fishery: ", first, "/", first_fishery,
+      ". All affected pairs: ",
+      paste(paste(bad$release_group, bad$recap_fishery, sep = "/"), collapse = ", "),
+      call. = FALSE
+    )
+  }
+  invisible("")
+}
+
 is_tag_flags_marker <- function(line) {
   grepl("^#[[:space:]]*tag[[:space:]]+flags[[:space:]]*$", line)
 }

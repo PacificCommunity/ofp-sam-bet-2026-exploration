@@ -23,7 +23,7 @@ Data to 2024, global CPUE, isolating the effect of adding three years of data.
 | File | Source / note |
 | --- | --- |
 | `.frq` | `bet.2026.new-structure.global-cpue.wt-as-len-plus-len.frq`, full 2024 with global CPUE |
-| `.ini` | `bet.2026.ini` with tag reporting-rate matrices from `bet.2026.mix-0.2.ini`; two-quarter tag mixing retained, FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604; filled 7 missing tag reporting-rate matrix rows before the pooled row for release groups 92-98 by matching tag program/region/year/month rows from bet.2023.new.structure.ini; copied 5 tag reporting-rate matrix block(s) from bet.2026.mix-0.2.ini without changing tag_flags; normalized tag flags marker; padded existing MFCL 1007 tag-control rows from 91 to 98 release groups with 2 mixing periods; normalized MFCL 1007 tag-control rows for 91 release groups; padded tag shed-rate vector from 91 to 98 release groups with zero shed rates |
+| `.ini` | `bet.2026.ini` with tag reporting-rate matrices from `bet.2026.mix-0.2.ini`; two-quarter tag mixing retained, FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604; filled 7 missing tag reporting-rate matrix rows before the pooled row for release groups 92-98 by matching tag program/region/year/month rows from bet.2023.new.structure.ini; copied 5 tag reporting-rate matrix block(s) from bet.2026.mix-0.2.ini without changing tag_flags; filled fishery 19 reporting-rate cells for positive tag recaptures from fishery 21 settings in release groups 19-21,31,35,40; normalized tag flags marker; padded existing MFCL 1007 tag-control rows from 91 to 98 release groups with 2 mixing periods; normalized MFCL 1007 tag-control rows for 91 release groups; padded tag shed-rate vector from 91 to 98 release groups with zero shed rates |
 | `.tag` | `bet.2026.low.recaps.removed.tag`; latest tag-prep build, including canneries-based reassignment of recaptures with missing gear to purse-seine fisheries before low-recap filtering |
 | `.age_length` | `bet.2023.new-structure.age_length` (old CAAL); set age_length effective sample size to 0.75 for 112 records |
 | `input_manifest.csv` | machine-readable source/input notes |
@@ -55,6 +55,7 @@ Data to 2024, global CPUE, isolating the effect of adding three years of data.
 | 1 | Generated inputs only repair `.ini` alignment: reporting-rate matrices, tag flags, and shed rates are matched to the selected release-group count. |
 | 2 | The latest `bet.2026.low.recaps.removed.tag` is kept; the tag build assigns missing-gear canneries recaptures to purse-seine before low-recap filtering. |
 | 3 | The 2026 reporting-rate matrix is copied from the mix-period ini source before Kflow runs. |
+| 4 | Positive fishery 19 tag recaptures with inactive zero reporting-rate cells are assigned the matching fishery 21 reporting-rate settings. |
 
 ## Checks
 
