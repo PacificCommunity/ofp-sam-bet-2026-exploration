@@ -36,16 +36,27 @@ copied as-is and what is intentionally changed in the generated model folders?
 
 ## INI Edits
 
-| Steps | Source baseline | Generated difference |
-| --- | --- | --- |
-| 01 | 2023 diagnostic `bet.ini` | None; historical diagnostic format is retained. |
-| 02a | Archived 2023 replication `bet.ini` | None; MFCL 1003 layout is retained. |
-| 02b | 02a generated input | Promotes the diagnostic ini to MFCL 1007 layout. |
-| 02c | 02b generated input | Sets `LN(R0)` to `17`. |
-| 03 | 02c generated input | Applies fixed natural mortality from the 01 diagnostic `mgc=-5` final par. |
-| 04-06 | `BET/bet.2023.new.structure.ini` | Applies the same FixM row and normalizes generated tag-control formatting. `LN(R0)` remains `17`. |
-| 07-09 | `BET/bet.2026.ini` plus RR blocks from `BET/ini.mix-period/bet.2026.mix-0.2.ini` | Pads tag/RR/shed sections from 91 to 98 release groups, keeps two-quarter mixing, sets `tag_flags(it,2)=0`, applies FixM, and repairs fishery 19 RR cells. |
-| 10-15 | `BET/ini.mix-period/bet.2026.mix-0.2.ini` | Keeps release-specific mixing, sets `tag_flags(it,2)=0`, applies FixM, repairs fishery 19 RR cells, and raises source zero mixing periods to 1 for the current MFCL reader. |
+| Steps | Source baseline | Generated `.ini` edits | Why |
+| --- | --- | --- | --- |
+| 01 | 2023 diagnostic `bet.ini` | No edit. | Keeps the historical diagnostic input exactly as run in 2023. |
+| 02a | Archived 2023 replication `bet.ini` | No edit. The ini remains MFCL 1003 format. | Isolates the current executable effect before changing the ini layout. |
+| 02b | 02a generated input | Sets ini version to `1007`; inserts 118 `# tag flags` rows with two-quarter mixing and `tag_flags(it,2)=0`; inserts a zero tag-shed vector; inserts MFCL 1007 defaults for `LN(R0)=25` and Richards growth parameter `0`. | Converts the 2023 replication ini into a current-reader layout without changing the assessment data. |
+| 02c | 02b generated input | Changes `# Total population scaling factor (LN(R0))` from `25` to `17`. | Restores the diagnostic-scale initial value selected for this stepwise path. |
+| 03 | 02c generated input | Replaces the `# age_pars` natural-mortality row with the fixed-M row from the 01 diagnostic `mgc=-5` final par. | Carries the chosen diagnostic M estimate into later current-executable runs. |
+| 04-06 | `BET/bet.2023.new.structure.ini` | Applies the same FixM row and normalizes the `# tag flags` marker/format. Source already has 96 tag groups, two-quarter mixing, and `tag_flags(it,2)=0`; `LN(R0)` remains `17`. | Moves to the 5-region structure while keeping the intended tag treatment and fixed M. |
+| 07-09 | `BET/bet.2026.ini`, plus RR blocks from `BET/ini.mix-period/bet.2026.mix-0.2.ini` | Applies FixM; copies the five RR matrix blocks from the mix-period ini; pads tag flags, RR matrices, and tag-shed rates from 91 to 98 release groups; sets all `tag_flags(it,2)` from source `1` to generated `0`; repairs fishery 19 RR cells. Mixing remains two quarters for all 98 groups. | Aligns the 2026 tag file with the 2026 ini/RR shape while keeping the 2023-style RR treatment during mixing. |
+| 10-15 | `BET/ini.mix-period/bet.2026.mix-0.2.ini` | Applies FixM; keeps release-specific mixing where positive; sets all `tag_flags(it,2)` from source `1` to generated `0`; raises 41 source zero mixing periods to `1`; repairs fishery 19 RR cells. | Uses release-specific mixing from the KS build but avoids zero-period values that the current MFCL reader rejects. |
+
+Current tag-flag check:
+
+| File | Release rows | Mixing-period column | `tag_flags(it,2)` column |
+| --- | ---: | --- | --- |
+| Source `bet.2023.new.structure.ini` | 96 | all `2` | all `0` |
+| Generated step 04 ini | 96 | all `2` | all `0` |
+| Source `bet.2026.ini` | 91 | all `2` | all `1` |
+| Generated step 07 ini | 98 | all `2` | all `0` |
+| Source `bet.2026.mix-0.2.ini` | 98 | `0`, `1`, `2`, `3`, `4` release-specific values | all `1` |
+| Generated step 10 ini | 98 | source `0` values raised to `1`; other values retained | all `0` |
 
 Fishery 19 RR repair applies only where positive fishery 19 recaptures had
 inactive zero RR cells: release groups `19`, `20`, `21`, `31`, `35`, and `40`.
