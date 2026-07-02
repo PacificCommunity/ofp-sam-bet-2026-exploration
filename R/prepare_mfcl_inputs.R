@@ -252,6 +252,60 @@ repair_tag_reporting_matrices <- function(path, tag_path,
   )
 }
 
+copy_tag_reporting_matrices <- function(path, source_ini) {
+  # Copy only the reporting-rate matrices, leaving tag flags and all other
+  # controls in the target ini unchanged.
+  markers <- c(
+    "# tag fish rep",
+    "# tag fish rep group flags",
+    "# tag_fish_rep active flags",
+    "# tag_fish_rep target",
+    "# tag_fish_rep penalty"
+  )
+  if (!nzchar(source_ini) || !file.exists(source_ini)) {
+    stop("Missing tag reporting-rate source ini: ", source_ini, call. = FALSE)
+  }
+
+  lines <- readLines(path, warn = FALSE)
+  source_lines <- readLines(source_ini, warn = FALSE)
+  changed <- character()
+  for (marker in markers) {
+    row_idx <- ini_matrix_row_indices(lines, marker)
+    source_row_idx <- ini_matrix_row_indices(source_lines, marker)
+    rows <- lines[row_idx]
+    source_rows <- source_lines[source_row_idx]
+    if (length(rows) != length(source_rows)) {
+      stop(
+        "Cannot copy ", marker, " from ", source_ini, " to ", path,
+        ": row counts differ (", length(source_rows), " vs ", length(rows), ").",
+        call. = FALSE
+      )
+    }
+    target_widths <- unique(lengths(strsplit(trimws(rows), "[[:space:]]+")))
+    source_widths <- unique(lengths(strsplit(trimws(source_rows), "[[:space:]]+")))
+    if (length(target_widths) != 1L || length(source_widths) != 1L ||
+        !identical(target_widths[[1L]], source_widths[[1L]])) {
+      stop(
+        "Cannot copy ", marker, " from ", source_ini, " to ", path,
+        ": matrix widths differ.",
+        call. = FALSE
+      )
+    }
+    if (!identical(trimws(rows), trimws(source_rows))) {
+      lines[row_idx] <- source_rows
+      changed <- c(changed, marker)
+    }
+  }
+
+  if (!length(changed)) return(invisible(""))
+  writeLines(lines, path, sep = file_eol(path), useBytes = TRUE)
+  paste0(
+    "copied ", length(changed),
+    " tag reporting-rate matrix block(s) from ", basename(source_ini),
+    " without changing tag_flags"
+  )
+}
+
 is_tag_flags_marker <- function(line) {
   grepl("^#[[:space:]]*tag[[:space:]]+flags[[:space:]]*$", line)
 }

@@ -630,7 +630,7 @@ make_step(
   ),
   run_notes = c(
     "Compare directly with 04a-NewStructure to isolate the effect of excluding reporting rates during tag mixing periods.",
-    "This substep is the inherited tag-treatment baseline for steps 05-15."
+    "This substep is the inherited tag-treatment baseline for steps 05-06 and 10-15; steps 07-09 are a separate `it2=0` rerun with the updated 2026 reporting-rate matrix."
   ),
   outstanding = c("After fitting, compare the tag likelihood and early time-at-liberty residuals against 04a-NewStructure.")
 )
@@ -649,7 +649,7 @@ latest_2026_tag_note <- paste(
 full_2024_alignment_run_notes <- c(
   "Generated inputs only repair `.ini` alignment: reporting-rate matrices, tag flags, and shed rates are matched to the selected release-group count.",
   "The latest `bet.2026.low.recaps.removed.tag` is kept; the tag build assigns missing-gear canneries recaptures to purse-seine before low-recap filtering.",
-  "Steps 07-09 use `tag_flags(it,2)=1` because paired Kflow checks failed with 0 and completed with 1."
+  "Steps 07-09 are rerun with `tag_flags(it,2)=0` after copying the updated 2026 reporting-rate matrix from `bet.2026.mix-0.2.ini`."
 )
 mix_period_alignment_run_notes <- c(
   "The latest `bet.2026.low.recaps.removed.tag` is kept, including the canneries missing-gear reassignment.",
@@ -722,26 +722,28 @@ make_step(
   tag_source = new_tag,
   age_source = old_age,
   mix_from_ini = TRUE,
-  retain_reporting_rates_during_mixing = FALSE,
+  retain_reporting_rates_during_mixing = TRUE,
+  tag_reporting_source = mix_ini,
   title = "07 DataTo2024",
   summary = "Data to 2024, global CPUE, isolating the effect of adding three years of data.",
   bullets = c(
     "Uses `bet.2026.new-structure.global-cpue.wt-as-len-plus-len.frq` without year chopping.",
     "Moves from the 2021 transition steps to the full 2024 frequency/catch/size series.",
     "Keeps old CAAL so the new otolith update is isolated in 09-NewOtoliths.",
-    paste0("Uses the 2026 low-recapture-removed tag file and 2026 ini, with ", fixm_age_par_display, ".")
+    paste0("Uses the 2026 low-recapture-removed tag file and 2026 reporting-rate matrix, with ", fixm_age_par_display, "."),
+    "This diagnostic rerun keeps reporting rates active during tag mixing to test the updated 2026 reporting-rate matrix."
   ),
   input_notes = c(
     "bet.frq" = "`bet.2026.new-structure.global-cpue.wt-as-len-plus-len.frq`, full 2024 with global CPUE",
-    "bet.ini" = paste("`bet.2026.ini`,", fixm_age_par_note),
+    "bet.ini" = paste("`bet.2026.ini` with tag reporting-rate matrices from `bet.2026.mix-0.2.ini`; two-quarter tag mixing retained,", fixm_age_par_note),
     "bet.tag" = latest_2026_tag_note,
     "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
   ),
   control_notes = c(
     "04b-TagReportingMixing 5-region `doitall.sh` controls retained.",
     "The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period.",
-    "This step inherits 04b's `tag_flags(it,2)=1` treatment so reporting rates are excluded from predicted tag catches during mixing.",
-    "The inherited setting is retained because 07-DataTo2024 failed with `tag_flags(it,2)=0` and completed with `tag_flags(it,2)=1`, isolating the reporting-rate treatment during mixing as the runnable 2026 setting for this path."
+    "This diagnostic rerun sets `tag_flags(it,2)=0` so reporting rates are retained in predicted tag catches during mixing.",
+    "The 2026 reporting-rate matrix is copied from `bet.2026.mix-0.2.ini` before setting tag flags, avoiding the stale zero-RR cells that caused the earlier `it2=0` failure."
   ),
   run_notes = full_2024_alignment_run_notes,
   outstanding = c("Full 2024 input behavior still needs a real MFCL fit and residual/CPUE-sigma review.")
@@ -755,18 +757,20 @@ make_step(
   age_source = old_age,
   reg_scaling_source = reg_scaling_source,
   mix_from_ini = TRUE,
-  retain_reporting_rates_during_mixing = FALSE,
+  retain_reporting_rates_during_mixing = TRUE,
+  tag_reporting_source = mix_ini,
   title = "08 RegionalCPUE",
   summary = "Regional CPUE step using the 2024 regional CPUE frequency file and regional-scaling prior.",
   bullets = c(
     "Uses the full 2024 regional CPUE `.frq` from the frq-build repo.",
     "Adds `bet.reg_scaling` and switches to the regional-scaling prior in PHASE 5.",
     "Keeps old CAAL so the new otolith update is isolated in 09-NewOtoliths.",
-    paste0("Uses the 2026 low-recapture-removed tag file and 2026 ini, with ", fixm_age_par_display, ".")
+    paste0("Uses the 2026 low-recapture-removed tag file and 2026 reporting-rate matrix, with ", fixm_age_par_display, "."),
+    "Keeps reporting rates active during tag mixing to match the 07 diagnostic rerun."
   ),
   input_notes = c(
     "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
-    "bet.ini" = paste("`bet.2026.ini`,", fixm_age_par_note),
+    "bet.ini" = paste("`bet.2026.ini` with tag reporting-rate matrices from `bet.2026.mix-0.2.ini`; two-quarter tag mixing retained,", fixm_age_par_note),
     "bet.tag" = latest_2026_tag_note,
     "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
   ),
@@ -774,7 +778,8 @@ make_step(
     "04b-TagReportingMixing 5-region `doitall.sh` controls retained until PHASE 5.",
     "PHASE 5 switches index CPUE/selectivity grouping for the regional-scaling prior.",
     "The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period.",
-    "The step inherits 04b's `tag_flags(it,2)=1` treatment so reporting rates are excluded from predicted tag catches during mixing."
+    "This diagnostic rerun sets `tag_flags(it,2)=0` so reporting rates are retained in predicted tag catches during mixing.",
+    "The 2026 reporting-rate matrix is copied from `bet.2026.mix-0.2.ini` before setting tag flags."
   ),
   run_notes = full_2024_alignment_run_notes,
   outstanding = c("Evaluate and test different regional CPUE prior values after this runnable baseline fit.")
@@ -788,25 +793,27 @@ make_step(
   age_source = new_age,
   reg_scaling_source = reg_scaling_source,
   mix_from_ini = TRUE,
-  retain_reporting_rates_during_mixing = FALSE,
+  retain_reporting_rates_during_mixing = TRUE,
+  tag_reporting_source = mix_ini,
   title = "09 NewOtoliths",
   summary = "New Japanese otoliths and 2026 CAAL input on the regional CPUE model.",
   bullets = c(
-    "Uses the same regional CPUE `.frq`, 2026 `.ini`, and 2026 `.tag` as 08-RegionalCPUE.",
+    "Uses the same regional CPUE `.frq`, 2026 reporting-rate matrix, and 2026 `.tag` as 08-RegionalCPUE.",
     "Switches CAAL from `bet.2023.new-structure.age_length` to `bet.2026.age_length`.",
     "The 2026 age_length file includes the new otolith data used for this step.",
     paste("Applies", fixm_age_par_display, "to the 2026 ini.")
   ),
   input_notes = c(
     "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
-    "bet.ini" = paste("`bet.2026.ini`,", fixm_age_par_note),
+    "bet.ini" = paste("`bet.2026.ini` with tag reporting-rate matrices from `bet.2026.mix-0.2.ini`; two-quarter tag mixing retained,", fixm_age_par_note),
     "bet.tag" = latest_2026_tag_note,
     "bet.age_length" = "`bet.2026.age_length` (updated CAAL/new otoliths)"
   ),
   control_notes = c(
     "08-RegionalCPUE controls retained.",
     "The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period.",
-    "The step inherits 04b's `tag_flags(it,2)=1` treatment so reporting rates are excluded from predicted tag catches during mixing."
+    "This diagnostic rerun sets `tag_flags(it,2)=0` so reporting rates are retained in predicted tag catches during mixing.",
+    "The 2026 reporting-rate matrix is copied from `bet.2026.mix-0.2.ini` before setting tag flags."
   ),
   run_notes = full_2024_alignment_run_notes,
   outstanding = c("After fitting, compare CAAL likelihood and age residuals against 08-RegionalCPUE.")

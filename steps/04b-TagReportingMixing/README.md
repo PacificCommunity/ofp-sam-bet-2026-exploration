@@ -54,7 +54,7 @@
 | # | Note |
 | --- | --- |
 | 1 | Compare directly with 04a-NewStructure to isolate the effect of excluding reporting rates during tag mixing periods. |
-| 2 | This substep is the inherited tag-treatment baseline for steps 05-15. |
+| 2 | This substep is the inherited tag-treatment baseline for steps 05-06 and 10-15; steps 07-09 are a separate `it2=0` rerun with the updated 2026 reporting-rate matrix. |
 
 ## Checks
 

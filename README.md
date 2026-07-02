@@ -24,9 +24,9 @@ traced without guessing.
 | `04b-TagReportingMixing` | New structure | Turns on the reporting-rate treatment during tag mixing. | 04a. | `tag_flags(it,2)=1`. |
 | `05-ConvertToLength` | Size data | Converts existing weight compositions to length. | 04b. | Inherits 04b. |
 | `06-LengthPlusLength` | Size data | Adds the extra length compositions. | 04b. | Inherits 04b. |
-| `07-DataTo2024` | Data update | Extends the global-CPUE input to 2024. | 04b. | Inherits 04b. |
-| `08-RegionalCPUE` | CPUE update | Adds regional CPUE and the regional-scaling prior. | 07. | Inherits 04b. |
-| `09-NewOtoliths` | Age data | Adds the updated 2026 CAAL / otolith input. | 08. | Inherits 04b. |
+| `07-DataTo2024` | Data update | Extends the global-CPUE input to 2024. | 04b. | Updated 2026 RR matrix, `tag_flags(it,2)=0`. |
+| `08-RegionalCPUE` | CPUE update | Adds regional CPUE and the regional-scaling prior. | 07. | Updated 2026 RR matrix, `tag_flags(it,2)=0`. |
+| `09-NewOtoliths` | Age data | Adds the updated 2026 CAAL / otolith input. | 08. | Updated 2026 RR matrix, `tag_flags(it,2)=0`. |
 | `10-TagMixingKS` | Tag mixing | Uses release-specific mixing periods from the KS 0.2 build. | 09. | Release-specific, `it2=1`. |
 | `11-TimeVaryingCV` | CPUE CV | Adds time-varying CPUE CV. | 10. | Release-specific, `it2=1`. |
 | `12-OrthogonalPoly` | Recruitment | Applies the orthogonal-polynomial recruitment setting. | 11. | Release-specific, `it2=1`. |

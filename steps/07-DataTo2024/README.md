@@ -16,14 +16,15 @@ Data to 2024, global CPUE, isolating the effect of adding three years of data.
 | 1 | Uses `bet.2026.new-structure.global-cpue.wt-as-len-plus-len.frq` without year chopping. |
 | 2 | Moves from the 2021 transition steps to the full 2024 frequency/catch/size series. |
 | 3 | Keeps old CAAL so the new otolith update is isolated in 09-NewOtoliths. |
-| 4 | Uses the 2026 low-recapture-removed tag file and 2026 ini, with FixM M row from 01-Diag2023 mgc=-5 final.par from Kflow job 000604. |
+| 4 | Uses the 2026 low-recapture-removed tag file and 2026 reporting-rate matrix, with FixM M row from 01-Diag2023 mgc=-5 final.par from Kflow job 000604. |
+| 5 | This diagnostic rerun keeps reporting rates active during tag mixing to test the updated 2026 reporting-rate matrix. |
 
 ## Inputs
 
 | File | Source / note |
 | --- | --- |
 | `.frq` | `bet.2026.new-structure.global-cpue.wt-as-len-plus-len.frq`, full 2024 with global CPUE |
-| `.ini` | `bet.2026.ini`, FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604; filled 7 missing tag reporting-rate matrix rows before the pooled row for release groups 92-98 by matching tag program/region/year/month rows from bet.2023.new.structure.ini; normalized tag flags marker; padded existing MFCL 1007 tag flags from 91 to 98 release groups with 2 mixing periods and reporting rates excluded during mixing; padded tag shed-rate vector from 91 to 98 release groups with zero shed rates |
+| `.ini` | `bet.2026.ini` with tag reporting-rate matrices from `bet.2026.mix-0.2.ini`; two-quarter tag mixing retained, FixM M row applied from 01-Diag2023 mgc=-5 final.par from Kflow job 000604; filled 7 missing tag reporting-rate matrix rows before the pooled row for release groups 92-98 by matching tag program/region/year/month rows from bet.2023.new.structure.ini; copied 5 tag reporting-rate matrix block(s) from bet.2026.mix-0.2.ini without changing tag_flags; normalized tag flags marker; padded existing MFCL 1007 tag flags from 91 to 98 release groups with 2 mixing periods and reporting rates retained during mixing; set tag_flags(it,2)=0 for 91 release groups so reporting rates are retained in predicted tag catches during mixing; padded tag shed-rate vector from 91 to 98 release groups with zero shed rates |
 | `.tag` | `bet.2026.low.recaps.removed.tag`; latest tag-prep build, including canneries-based reassignment of recaptures with missing gear to purse-seine fisheries before low-recap filtering |
 | `.age_length` | `bet.2023.new-structure.age_length` (old CAAL); set age_length effective sample size to 0.75 for 112 records |
 | `input_manifest.csv` | machine-readable source/input notes |
@@ -45,8 +46,8 @@ Data to 2024, global CPUE, isolating the effect of adding three years of data.
 | --- | --- |
 | 1 | 04b-TagReportingMixing 5-region `doitall.sh` controls retained. |
 | 2 | The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period. |
-| 3 | This step inherits 04b's `tag_flags(it,2)=1` treatment so reporting rates are excluded from predicted tag catches during mixing. |
-| 4 | The inherited setting is retained because 07-DataTo2024 failed with `tag_flags(it,2)=0` and completed with `tag_flags(it,2)=1`, isolating the reporting-rate treatment during mixing as the runnable 2026 setting for this path. |
+| 3 | This diagnostic rerun sets `tag_flags(it,2)=0` so reporting rates are retained in predicted tag catches during mixing. |
+| 4 | The 2026 reporting-rate matrix is copied from `bet.2026.mix-0.2.ini` before setting tag flags, avoiding the stale zero-RR cells that caused the earlier `it2=0` failure. |
 | 5 | Generated safeguards cover FRQ regions, MFCL 1007 tag blocks, shed rates, `age_flags(128)`, fail-fast `doitall.sh`, and the PHASE 10/11 env switch. |
 
 ## Run Notes
@@ -55,7 +56,7 @@ Data to 2024, global CPUE, isolating the effect of adding three years of data.
 | --- | --- |
 | 1 | Generated inputs only repair `.ini` alignment: reporting-rate matrices, tag flags, and shed rates are matched to the selected release-group count. |
 | 2 | The latest `bet.2026.low.recaps.removed.tag` is kept; the tag build assigns missing-gear canneries recaptures to purse-seine before low-recap filtering. |
-| 3 | Steps 07-09 use `tag_flags(it,2)=1` because paired Kflow checks failed with 0 and completed with 1. |
+| 3 | Steps 07-09 are rerun with `tag_flags(it,2)=0` after copying the updated 2026 reporting-rate matrix from `bet.2026.mix-0.2.ini`. |
 
 ## Checks
 

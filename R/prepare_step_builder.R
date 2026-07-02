@@ -4,6 +4,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
                       frq_chop_year = NA_integer_, mix_from_ini = TRUE,
                       force_tag_mixing_period = NA_integer_,
                       retain_reporting_rates_during_mixing = TRUE,
+                      tag_reporting_source = "",
                       frq_tag_groups = NA_integer_,
                       frq_transform = NULL, index_cpue_source = "",
                       doitall_edits = list(),
@@ -79,6 +80,10 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     reference_ini = if (exists("regfish_ini_source")) regfish_ini_source else "",
     reference_tag = if (exists("regfish_tag_source")) regfish_tag_source else ""
   )
+  tag_reporting_note <- ""
+  if (nzchar(tag_reporting_source)) {
+    tag_reporting_note <- copy_tag_reporting_matrices(ini_out, tag_reporting_source)
+  }
   apply_fixm_m(ini_out)
   total_population_note <- set_total_population_scalar(
     ini_out,
@@ -98,9 +103,22 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
   if (nzchar(fixm_source)) {
     fixm_note <- paste(fixm_note, "from", fixm_source)
   }
-  ini_notes <- c(fixm_note, total_population_note, tag_rep_repair_note, ini_tag_note, ini_shed_note)
+  ini_notes <- c(
+    fixm_note,
+    total_population_note,
+    tag_rep_repair_note,
+    tag_reporting_note,
+    ini_tag_note,
+    ini_shed_note
+  )
   ini_note <- paste(ini_notes[nzchar(ini_notes)], collapse = "; ")
-  visible_ini_notes <- c(total_population_note, tag_rep_repair_note, ini_tag_note, ini_shed_note)
+  visible_ini_notes <- c(
+    total_population_note,
+    tag_rep_repair_note,
+    tag_reporting_note,
+    ini_tag_note,
+    ini_shed_note
+  )
   visible_ini_notes <- visible_ini_notes[nzchar(visible_ini_notes)]
   if (length(visible_ini_notes) && "bet.ini" %in% names(input_notes)) {
     input_notes[["bet.ini"]] <- paste(
