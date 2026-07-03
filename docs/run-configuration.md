@@ -30,7 +30,7 @@ This file keeps the operational Kflow/local-run details out of the root README.
 | `01-Diag2023` | `TRUE` | 01-Diagnostic | 01a | historical diagnostic | Diag2023 | 01 Diag2023 | `01-diag2023` | `doitall` | /home/mfcl/mfclo64_2023_diagnostic_2.2.2.0 | `blank` | `bet.frq` | `blank` |
 | `02a-NewExe` | `TRUE` | 02-Executable | 02a | current MFCL executable with 1003 ini | NewExe 1003 | 02a NewExe 1003 | `02a-newexe` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
 | `02b-Ini1007` | `TRUE` | 02-Executable | 02b | promote diagnostic ini to 1007 | Ini 1007 | 02b Ini 1007 | `02b-ini1007` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `02c-LnR0` | `TRUE` | 02-Executable | 02c | set diagnostic LN(R0) to 17 | LN(R0) 17 | 02c LN(R0) 17 | `02c-lnr0` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `02c-LengthWeight` | `TRUE` | 02-Executable | 02c | bias-corrected 2026 length-weight parameters | Length-weight | 02c Length-weight | `02c-lengthweight` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
 | `03-FixM` | `TRUE` | 03-FixM | 03a | fixed natural mortality from mgc=-5 diagnostic after 02c | FixM | 03 FixM | `03-fixm` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
 | `04-NewStructure` | `TRUE` | 04-NewStructure | 04 | 5-region structure with global CPUE | New structure | 04 New structure | `04-newstructure` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
 | `05-ConvertToLength` | `TRUE` | 05-ConvertToLength | 05a | convert weight compositions to length | Convert to length | 05 Convert to length | `05-converttolength` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
@@ -55,7 +55,7 @@ This file keeps the operational Kflow/local-run details out of the root README.
 | `01-Diag2023` | `steps/01-Diag2023/model` | `exists` |
 | `02a-NewExe` | `steps/02a-NewExe/model` | `exists` |
 | `02b-Ini1007` | `steps/02b-Ini1007/model` | `exists` |
-| `02c-LnR0` | `steps/02c-LnR0/model` | `exists` |
+| `02c-LengthWeight` | `steps/02c-LengthWeight/model` | `exists` |
 | `03-FixM` | `steps/03-FixM/model` | `exists` |
 | `04-NewStructure` | `steps/04-NewStructure/model` | `exists` |
 | `05-ConvertToLength` | `steps/05-ConvertToLength/model` | `exists` |

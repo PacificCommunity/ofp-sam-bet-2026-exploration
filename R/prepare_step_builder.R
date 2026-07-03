@@ -107,6 +107,11 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     ini_out,
     get0("five_region_total_population_scalar", ifnotfound = 17L)
   )
+  length_weight_note <- ""
+  length_weight_parameters <- get0("bias_corrected_length_weight_parameters", ifnotfound = character())
+  if (length(length_weight_parameters)) {
+    length_weight_note <- set_length_weight_parameters(ini_out, length_weight_parameters)
+  }
   ini_tag_note <- ensure_ini_tag_flags(
     ini_out,
     frq_counts$n_tag_groups,
@@ -124,6 +129,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
   ini_notes <- c(
     fixm_note,
     total_population_note,
+    length_weight_note,
     tag_rep_repair_note,
     tag_reporting_note,
     tag_reporting_cell_notes,
@@ -133,6 +139,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
   ini_note <- paste(ini_notes[nzchar(ini_notes)], collapse = "; ")
   visible_ini_notes <- c(
     total_population_note,
+    length_weight_note,
     tag_rep_repair_note,
     tag_reporting_note,
     tag_reporting_cell_notes,

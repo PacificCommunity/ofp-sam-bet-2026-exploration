@@ -45,6 +45,12 @@ reg_scaling_active_start_period <- 53L
 reg_scaling_active_end_period <- 72L
 reg_scaling_active_years <- "1965-1969"
 five_region_total_population_scalar <- 17L
+bias_corrected_length_weight_parameters <- c("3.073533e-05", "2.932410")
+bias_corrected_length_weight_note <- paste(
+  "bias-corrected BET 2026 L-W parameters",
+  paste0("a=", bias_corrected_length_weight_parameters[[1L]], ","),
+  paste0("b=", bias_corrected_length_weight_parameters[[2L]])
+)
 
 fixm_age_par_value <- "-2.54930339768360e+00"
 fixm_age_par_source <- "the 01-Diag2023 mgc=-5 diagnostic final par"
@@ -359,6 +365,7 @@ write_02a_newexe_step <- function() {
 write_diagnostic_substep <- function(step_id, title, summary, source_step,
                                      promote_1007 = FALSE,
                                      total_population_scalar = NA_integer_,
+                                     length_weight_parameters = character(),
                                      fixm = FALSE) {
   paths <- prepare_step_model_dir(step_id)
   source_model_dir <- file.path(root, "steps", source_step, "model")
@@ -376,6 +383,12 @@ write_diagnostic_substep <- function(step_id, title, summary, source_step,
     ini_notes <- c(ini_notes, set_total_population_scalar(
       file.path(paths$model_dir, "bet.ini"),
       total_population_scalar
+    ))
+  }
+  if (length(length_weight_parameters)) {
+    ini_notes <- c(ini_notes, set_length_weight_parameters(
+      file.path(paths$model_dir, "bet.ini"),
+      length_weight_parameters
     ))
   }
   if (isTRUE(fixm)) {
@@ -403,6 +416,19 @@ write_diagnostic_substep <- function(step_id, title, summary, source_step,
       c(paste0("Changes only `LN(R0)` to `", as.integer(total_population_scalar), "`."), "No generated edit."),
       c(paste0("All other `", source_step, "` ini controls."), paste0("Inherited from `", source_step, "`."))
     )
+  } else if (length(length_weight_parameters)) {
+    input_change_table(
+      c(".ini", ".frq/.tag/.age_length"),
+      c(
+        paste0(
+          "Changes only `# Length-weight parameters` to `",
+          paste(length_weight_parameters, collapse = " "),
+          "`."
+        ),
+        "No generated edit."
+      ),
+      c(paste0("All other `", source_step, "` ini controls."), paste0("Inherited from `", source_step, "`."))
+    )
   } else if (isTRUE(fixm)) {
     input_change_table(
       c(".ini", ".frq/.tag/.age_length"),
@@ -427,8 +453,9 @@ write_diagnostic_substep <- function(step_id, title, summary, source_step,
     paste0("Inherits the diagnostic-side 2023 assessment replication model from `", source_step, "`."),
     if (isTRUE(promote_1007)) "`bet.ini` is promoted from MFCL 1003 to 1007 while retaining the diagnostic values.",
     if (!is.na(total_population_scalar)) paste0("Sets the total population scaling factor LN(R0) to ", as.integer(total_population_scalar), "."),
+    if (length(length_weight_parameters)) paste0("Sets the BET bias-corrected 2026 length-weight parameters to `", paste(length_weight_parameters, collapse = " "), "`."),
     if (isTRUE(fixm)) paste("Applies the FixM M-scale row from", fixm_age_par_source, "with value", fixm_age_par_value),
-    if (!isTRUE(promote_1007) && is.na(total_population_scalar) && !isTRUE(fixm)) "No additional input change is applied."
+    if (!isTRUE(promote_1007) && is.na(total_population_scalar) && !length(length_weight_parameters) && !isTRUE(fixm)) "No additional input change is applied."
   )
   write_readme(
     paths$step_dir,
@@ -469,17 +496,17 @@ write_diagnostic_substep(
   promote_1007 = TRUE
 )
 write_diagnostic_substep(
-  "02c-LnR0",
-  "02c LnR0",
-  "02b 1007 ini baseline with total population scaling factor LN(R0) set to 17.",
+  "02c-LengthWeight",
+  "02c LengthWeight",
+  "02b 1007 ini baseline with BET bias-corrected 2026 length-weight parameters.",
   source_step = "02b-Ini1007",
-  total_population_scalar = 17L
+  length_weight_parameters = bias_corrected_length_weight_parameters
 )
 write_diagnostic_substep(
   "03-FixM",
   "03 FixM",
-  "02c baseline with the FixM M-scale row applied from the 01-Diag2023 mgc=-5 final run.",
-  source_step = "02c-LnR0",
+  "02c length-weight baseline with the FixM M-scale row applied from the 01-Diag2023 mgc=-5 final run.",
+  source_step = "02c-LengthWeight",
   fixm = TRUE
 )
 
@@ -538,6 +565,10 @@ total_population_note_04 <- set_total_population_scalar(
   file.path(newstructure_model_dir, "bet.ini"),
   five_region_total_population_scalar
 )
+length_weight_note_04 <- set_length_weight_parameters(
+  file.path(newstructure_model_dir, "bet.ini"),
+  bias_corrected_length_weight_parameters
+)
 frq_counts_04 <- frq_header_counts(
   readLines(file.path(newstructure_model_dir, "bet.frq"), warn = FALSE),
   file.path(newstructure_model_dir, "bet.frq")
@@ -567,8 +598,8 @@ write_manifest(newstructure_dir, list(
     file = "bet.ini",
     source = regfish_ini_source,
     note = paste(
-      c(fixm_age_par_note, total_population_note_04, ini_tag_note_04)[
-        nzchar(c(fixm_age_par_note, total_population_note_04, ini_tag_note_04))
+      c(fixm_age_par_note, total_population_note_04, length_weight_note_04, ini_tag_note_04)[
+        nzchar(c(fixm_age_par_note, total_population_note_04, length_weight_note_04, ini_tag_note_04))
       ],
       collapse = "; "
     )
@@ -603,7 +634,8 @@ write_readme(
     "Uses old CAAL re-assigned to the new fisheries.",
     paste0("Uses the restructured tag setup with ", frq_counts_04$n_tag_groups, " release groups."),
     paste("Applies", fixm_age_par_display, "while retaining the 5-region `.ini` structure."),
-    paste0("Sets total population scaling factor LN(R0) to ", five_region_total_population_scalar, ".")
+    paste0("Sets total population scaling factor LN(R0) to ", five_region_total_population_scalar, "."),
+    paste0("Uses ", bias_corrected_length_weight_note, ".")
   ),
   c(
     "bet.frq" = "`bet.2023.new-structure.global-cpue.frq`; 5-region, 33-fishery structure, terminal year 2021, global CPUE",
@@ -611,6 +643,7 @@ write_readme(
       "`bet.2023.new.structure.ini`;",
       fixm_age_par_note,
       total_population_note_04,
+      length_weight_note_04,
       "and explicit default tag flags inserted if needed"
     ),
     "bet.tag" = "`bet.2023.new.structure-low.recaps.removed.tag`; low-recapture-removed tag input",
@@ -633,13 +666,16 @@ write_readme(
     c(".frq", ".ini", ".tag", ".age_length"),
     c(
       "No generated edit beyond source validation.",
-      "Applies the fixed-M row and normalizes the tag-flags marker.",
+      paste(
+        "Applies the fixed-M row, normalizes the tag-flags marker, and uses",
+        paste0(bias_corrected_length_weight_note, ".")
+      ),
       "No generated edit.",
       "Changes effective sample size from `1` to `0.75`."
     ),
     c(
       "2023 new-structure global-CPUE source records.",
-      "`LN(R0)=17`, tag grouping, and `tag_flags(it,2)=0` from the source ini.",
+      "`LN(R0)=17`, bias-corrected L-W, tag grouping, and `tag_flags(it,2)=0`.",
       "2023 new-structure low-recapture-removed source file.",
       "CAAL records themselves."
     )

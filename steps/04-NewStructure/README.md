@@ -20,13 +20,14 @@ First 5-region / 33-fishery BET input step, ending in 2021 with global CPUE.
 | 5 | Uses the restructured tag setup with 96 release groups. |
 | 6 | Applies FixM M row from the 01-Diag2023 mgc=-5 diagnostic final par while retaining the 5-region `.ini` structure. |
 | 7 | Sets total population scaling factor LN(R0) to 17. |
+| 8 | Uses bias-corrected BET 2026 L-W parameters a=3.073533e-05, b=2.932410. |
 
 ## Inputs
 
 | File | Source / note |
 | --- | --- |
 | `.frq` | `bet.2023.new-structure.global-cpue.frq`; 5-region, 33-fishery structure, terminal year 2021, global CPUE |
-| `.ini` | `bet.2023.new.structure.ini`; FixM M row applied from the 01-Diag2023 mgc=-5 diagnostic final par  and explicit default tag flags inserted if needed |
+| `.ini` | `bet.2023.new.structure.ini`; FixM M row applied from the 01-Diag2023 mgc=-5 diagnostic final par  set Length-weight parameters from `3.063397e-05 2.932384` to `3.073533e-05 2.932410` and explicit default tag flags inserted if needed |
 | `.tag` | `bet.2023.new.structure-low.recaps.removed.tag`; low-recapture-removed tag input |
 | `.age_length` | `bet.2023.new-structure.age_length`; old CAAL / age_length re-assigned to new fisheries; set age_length effective sample size to 0.75 for 112 records |
 | `input_manifest.csv` | machine-readable source/input notes with source commits |
@@ -36,7 +37,7 @@ First 5-region / 33-fishery BET input step, ending in 2021 with global CPUE.
 | Scope | Generated change | Unchanged |
 | --- | --- | --- |
 | `.frq` | No generated edit beyond source validation. | 2023 new-structure global-CPUE source records. |
-| `.ini` | Applies the fixed-M row and normalizes the tag-flags marker. | `LN(R0)=17`, tag grouping, and `tag_flags(it,2)=0` from the source ini. |
+| `.ini` | Applies the fixed-M row, normalizes the tag-flags marker, and uses bias-corrected BET 2026 L-W parameters a=3.073533e-05, b=2.932410. | `LN(R0)=17`, bias-corrected L-W, tag grouping, and `tag_flags(it,2)=0`. |
 | `.tag` | No generated edit. | 2023 new-structure low-recapture-removed source file. |
 | `.age_length` | Changes effective sample size from `1` to `0.75`. | CAAL records themselves. |
 
@@ -45,7 +46,7 @@ First 5-region / 33-fishery BET input step, ending in 2021 with global CPUE.
 | Repository | Commit | Note |
 | --- | --- | --- |
 | `ofp-sam-2026-BET-YFT-frq-build` | `f89e066` | Delete YFT/yft.model-785.24062026.txt |
-| `ofp-sam-2026-BET-YFT-build-ini` | `0443d39` | adjust tag_flags(it,2)=0 to be in line with 2023 |
+| `ofp-sam-2026-BET-YFT-build-ini` | `a6e932d` | Updated mixing periods based on Joe's updates |
 | `ofp-sam-2026-BET-YFT-tag-prep` | `5a4f5fb` | assign unassigned gear to PS from canneries |
 | `ofp-sam-2026-BET-YFT-age-length-build` | `a26b694` | plus group at age 40 |
 | `ofp-sam-bet-2023-diagnostic` | `81fc412` | Format tables after plotting |

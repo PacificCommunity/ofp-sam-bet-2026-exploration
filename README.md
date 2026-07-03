@@ -18,7 +18,7 @@ traced without guessing.
 | `01-Diag2023` | Diagnostic anchor | Reruns the 2023 diagnostic with the historical MFCL executable. | Archived 2023 diagnostic model. |
 | `02a-NewExe` | Executable bridge | Runs the archived 2023 assessment replication inputs with the current MFCL executable. | 2023 assessment replication input set; MFCL 1003 ini. |
 | `02b-Ini1007` | Executable bridge | Converts the 02a ini layout from MFCL 1003 to MFCL 1007. | 02a. |
-| `02c-LnR0` | Executable bridge | Sets diagnostic total population scale `LN(R0)` to 17. | 02b. |
+| `02c-LengthWeight` | Executable bridge | Applies the BET 2026 bias-corrected length-weight parameters. | 02b. |
 | `03-FixM` | FixM bridge | Applies fixed natural mortality from the 01 diagnostic `mgc=-5` final run. | 02c. |
 | `04-NewStructure` | New structure | Switches to the 5-region / 33-fishery structure with global CPUE. | 2026 new-structure input, terminal year 2021. |
 | `05-ConvertToLength` | Size data | Converts existing weight compositions to length. | 04. |
@@ -37,7 +37,7 @@ traced without guessing.
 
 | Block | Substeps | Reason |
 | --- | --- | --- |
-| `02` executable bridge | `02a`, `02b`, `02c` | Separates current executable effects, MFCL 1007 ini conversion, and the `LN(R0)=17` scale change. |
+| `02` executable bridge | `02a`, `02b`, `02c` | Separates current executable effects, MFCL 1007 ini conversion, and the BET 2026 bias-corrected L-W parameter update. |
 | `05`-`15` | one row each | Each row adds one later assessment change on top of the selected baseline. |
 
 ## Names Used Here
@@ -60,7 +60,7 @@ edit note is in `steps/<step_id>/input_manifest.csv`.
 | `.frq` | `ofp-sam-2026-BET-YFT-frq-build` | Copied exactly except steps 14-15, where index-fishery effort creep is applied. |
 | `.tag` | `ofp-sam-2026-BET-YFT-tag-prep` | Copied exactly. `tag_rep_map.R` is only an audit file. |
 | `.age_length` | `ofp-sam-2026-BET-YFT-age-length-build` | Records copied from source; steps 04-15 change effective sample size from `1` to `0.75`. |
-| `.ini` | `ofp-sam-2026-BET-YFT-build-ini` and archived diagnostic inputs | Step-specific generated edits apply `LN(R0)`, FixM, tag/RR alignment, and MFCL-reader compatibility checks. |
+| `.ini` | `ofp-sam-2026-BET-YFT-build-ini` and archived diagnostic inputs | Step-specific generated edits apply BET 2026 L-W, `LN(R0)` from 04 onward, FixM, tag/RR alignment, and MFCL-reader compatibility checks. |
 | `bet.reg_scaling` | `ofp-sam-2026-BET-YFT-frq-build` | Copied exactly for steps 08-15. |
 
 For the exact source-vs-generated comparison, see
@@ -87,3 +87,5 @@ For the exact source-vs-generated comparison, see
 | Effort creep | Steps 14-15 apply 1%/yr for 1952-1976 and 0.5%/yr for 1977-2024 to index fisheries 29-33. |
 | Region maps | Steps 01-03 use the 2023 9-region asset; steps 04-15 use the 2026 5-region asset. See [`docs/region-map-assets.md`](docs/region-map-assets.md). |
 | Tag reporting rates | MFCL reads the reporting-rate blocks in `bet.ini`; `tag_rep_map.R` is only a human-readable check. See [`docs/tag-reporting-groups.md`](docs/tag-reporting-groups.md). |
+| Length-weight | Step 02c changes BET L-W from the 2023 value `3.063397e-05 2.932384` to the bias-corrected 2026 value `3.073533e-05 2.932410`; later steps retain it. |
+| Tag mixing source | Steps 10-15 use `ofp-sam-2026-BET-YFT-build-ini` commit `a6e932d` `BET/ini.mix-period/bet.2026.mix-0.2.ini`; source zero mixing periods for release groups 43 and 46 are raised to `1`, while `tag_flags(it,2)=0` and the fishery 19 RR repair are retained. |

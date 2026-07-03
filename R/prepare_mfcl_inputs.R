@@ -805,6 +805,37 @@ set_total_population_scalar <- function(path, value) {
   paste0("set total population scaling factor LN(R0) from ", old, " to ", formatted)
 }
 
+set_length_weight_parameters <- function(path, values) {
+  eol <- file_eol(path)
+  lines <- readLines(path, warn = FALSE)
+  marker <- grep("^#[[:space:]]*Length-weight parameters[[:space:]]*$", trimws(lines))
+  if (length(marker) != 1L) {
+    stop("Expected one # Length-weight parameters marker in ", path, call. = FALSE)
+  }
+  value_i <- first_data_line_after(lines, marker)
+  values <- as.character(values)
+  if (length(values) != 2L || any(!nzchar(values))) {
+    stop("Length-weight parameters must contain exactly two values", call. = FALSE)
+  }
+  old <- trimws(lines[[value_i]])
+  formatted <- paste(values, collapse = " ")
+  if (identical(old, formatted)) {
+    return(invisible(""))
+  }
+  old_values <- suppressWarnings(as.numeric(read_words(old)))
+  new_values <- suppressWarnings(as.numeric(values))
+  numeric_same <- length(old_values) == length(new_values) &&
+    all(is.finite(old_values)) &&
+    all(is.finite(new_values)) &&
+    isTRUE(all.equal(old_values, new_values, tolerance = 1e-12, check.attributes = FALSE))
+  lines[[value_i]] <- formatted
+  writeLines(lines, path, sep = eol, useBytes = TRUE)
+  if (numeric_same) {
+    return(invisible(""))
+  }
+  paste0("set Length-weight parameters from `", old, "` to `", formatted, "`")
+}
+
 set_age_length_effective_sample_size <- function(path, value = 0.75) {
   eol <- file_eol(path)
   lines <- readLines(path, warn = FALSE)
