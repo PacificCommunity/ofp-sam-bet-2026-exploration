@@ -127,8 +127,26 @@ best_par <- function(model_dir) {
   latest_par(model_dir)
 }
 
+mode_key <- function(run_mode) {
+  gsub("-", "_", tolower(trimws(as.character(run_mode %||% ""))), fixed = TRUE)
+}
+
 is_doitall_mode <- function(run_mode) {
-  run_mode %in% c("doitall", "script")
+  mode_key(run_mode) %in% c("doitall", "script")
+}
+
+is_mfclrtmb_doitall_mode <- function(run_mode) {
+  mode_key(run_mode) %in% c(
+    "mfclrtmb",
+    "rtmb",
+    "mfclrtmb_doitall",
+    "rtmb_doitall",
+    "doitall_rtmb"
+  )
+}
+
+is_doitall_like_mode <- function(run_mode) {
+  is_doitall_mode(run_mode) || is_mfclrtmb_doitall_mode(run_mode)
 }
 
 is_latest_par_mode <- function(run_mode) {
@@ -173,6 +191,132 @@ run_script <- function(script, program, log_file, live_log = TRUE) {
     collapse = " "
   )
   command <- sprintf("set -o pipefail; %s bash %s", env_assign, shQuote(script))
+  if (isTRUE(live_log)) {
+    command <- sprintf("%s 2>&1 | tee %s >&2", command, shQuote(log_file))
+    return(system2("bash", c("-c", command), wait = TRUE))
+  }
+  system2("bash", c("-c", command), stdout = log_file, stderr = log_file, wait = TRUE)
+}
+
+run_mfclrtmb_doitall <- function(model_dir, frq, script, log_file, live_log = TRUE) {
+  if (!file.exists(script)) stop("Run script not found: ", basename(script), call. = FALSE)
+  if (!requireNamespace("mfclrtmb", quietly = TRUE)) {
+    stop(
+      "RUN_MODE=mfclrtmb_doitall needs the mfclrtmb R package. ",
+      "Install it locally or include mfclrtmb in KFLOW_REPO_RUNTIME_PACKAGES.",
+      call. = FALSE
+    )
+  }
+
+  root_name <- sub("[.]frq$", "", basename(frq))
+  runner <- tempfile("mfclrtmb-doitall-", fileext = ".R")
+  on.exit(unlink(runner), add = TRUE)
+  writeLines(c(
+    "truthy <- function(x, default = FALSE) {",
+    "  if (is.null(x) || !nzchar(x)) return(default)",
+    "  tolower(trimws(x)) %in% c('1', 'true', 'yes', 'y', 'on')",
+    "}",
+    "env_chr <- function(name, default = NULL) {",
+    "  x <- Sys.getenv(name, unset = '')",
+    "  if (!nzchar(x)) default else x",
+    "}",
+    "env_int <- function(name, default = NULL) {",
+    "  x <- env_chr(name)",
+    "  if (is.null(x)) return(default)",
+    "  y <- suppressWarnings(as.integer(x))",
+    "  if (is.na(y)) stop(name, ' must be an integer', call. = FALSE)",
+    "  y",
+    "}",
+    "env_phase <- function(name, default = Inf) {",
+    "  x <- env_chr(name)",
+    "  if (is.null(x)) return(default)",
+    "  if (tolower(x) %in% c('inf', 'infinity')) return(Inf)",
+    "  y <- suppressWarnings(as.integer(x))",
+    "  if (is.na(y)) stop(name, ' must be an integer phase or Inf', call. = FALSE)",
+    "  y",
+    "}",
+    "env_bool_null <- function(name) {",
+    "  x <- env_chr(name)",
+    "  if (is.null(x)) return(NULL)",
+    "  truthy(x)",
+    "}",
+    "suppressPackageStartupMessages(library(mfclrtmb))",
+    "cat('[stepwise-mfclrtmb] package: ', as.character(utils::packageVersion('mfclrtmb')), '\\n', sep = '')",
+    "cat('[stepwise-mfclrtmb] case_dir: ', Sys.getenv('MFCLRTMB_CASE_DIR'), '\\n', sep = '')",
+    "cat('[stepwise-mfclrtmb] root: ', Sys.getenv('MFCLRTMB_ROOT'), '\\n', sep = '')",
+    "result <- mfclrtmb::run_mfcl_rtmb_doitall(",
+    "  case_dir = Sys.getenv('MFCLRTMB_CASE_DIR'),",
+    "  output_dir = Sys.getenv('MFCLRTMB_OUTPUT_DIR'),",
+    "  root = Sys.getenv('MFCLRTMB_ROOT'),",
+    "  doitall_file = Sys.getenv('MFCLRTMB_DOITALL_FILE'),",
+    "  start_phase = env_int('MFCLRTMB_START_PHASE'),",
+    "  resume = truthy(env_chr('MFCLRTMB_RESUME', 'false')),",
+    "  max_phase = env_phase('MFCLRTMB_MAX_PHASE', Inf),",
+    "  start_par = env_chr('MFCLRTMB_START_PAR'),",
+    "  start_control_par = env_chr('MFCLRTMB_START_CONTROL_PAR'),",
+    "  run_optimization = truthy(env_chr('MFCLRTMB_RUN_OPTIMIZATION', 'true'), TRUE),",
+    "  optimizer = env_chr('MFCLRTMB_OPTIMIZER', 'fmm'),",
+    "  maxfn = env_int('MFCLRTMB_MAXFN'),",
+    "  strict_switches = truthy(env_chr('MFCLRTMB_STRICT_SWITCHES', 'true'), TRUE),",
+    "  write_mfcl_files = TRUE,",
+    "  write_payload = FALSE,",
+    "  run_post_switches = truthy(env_chr('MFCLRTMB_RUN_POST_SWITCHES', 'true'), TRUE),",
+    "  exact_report = truthy(env_chr('MFCLRTMB_EXACT_REPORT', 'true'), TRUE),",
+    "  write_objective_trace = truthy(env_chr('MFCLRTMB_WRITE_OBJECTIVE_TRACE', 'false')),",
+    "  write_progress = truthy(env_chr('MFCLRTMB_WRITE_PROGRESS', 'true'), TRUE),",
+    "  verbose = truthy(env_chr('MFCLRTMB_VERBOSE', 'true'), TRUE),",
+    "  openmp_threads = env_int('MFCLRTMB_OPENMP_THREADS', 1L),",
+    "  openmp_autopar = truthy(env_chr('MFCLRTMB_OPENMP_AUTOPAR', 'false')),",
+    "  process_per_control = env_bool_null('MFCLRTMB_PROCESS_PER_CONTROL'),",
+    "  process_log = env_bool_null('MFCLRTMB_PROCESS_LOG'),",
+    "  process_time = env_bool_null('MFCLRTMB_PROCESS_TIME'),",
+    "  low_memory = env_bool_null('MFCLRTMB_LOW_MEMORY'),",
+    "  verbose_memory = env_bool_null('MFCLRTMB_VERBOSE_MEMORY')",
+    ")",
+    "if (!is.null(result$summary)) {",
+    "  cat('\\n[stepwise-mfclrtmb] phase summary\\n')",
+    "  print(result$summary)",
+    "}",
+    "cat('\\n[stepwise-mfclrtmb] done\\n')"
+  ), runner, useBytes = TRUE)
+
+  script_env <- c(
+    MFCLRTMB_CASE_DIR = normalizePath(model_dir, mustWork = TRUE),
+    MFCLRTMB_OUTPUT_DIR = normalizePath(model_dir, mustWork = TRUE),
+    MFCLRTMB_ROOT = root_name,
+    MFCLRTMB_DOITALL_FILE = normalizePath(script, mustWork = TRUE)
+  )
+  env_names <- c(
+    "MFCLRTMB_START_PHASE",
+    "MFCLRTMB_RESUME",
+    "MFCLRTMB_MAX_PHASE",
+    "MFCLRTMB_START_PAR",
+    "MFCLRTMB_START_CONTROL_PAR",
+    "MFCLRTMB_RUN_OPTIMIZATION",
+    "MFCLRTMB_OPTIMIZER",
+    "MFCLRTMB_MAXFN",
+    "MFCLRTMB_STRICT_SWITCHES",
+    "MFCLRTMB_RUN_POST_SWITCHES",
+    "MFCLRTMB_EXACT_REPORT",
+    "MFCLRTMB_WRITE_OBJECTIVE_TRACE",
+    "MFCLRTMB_WRITE_PROGRESS",
+    "MFCLRTMB_VERBOSE",
+    "MFCLRTMB_OPENMP_THREADS",
+    "MFCLRTMB_OPENMP_AUTOPAR",
+    "MFCLRTMB_PROCESS_PER_CONTROL",
+    "MFCLRTMB_PROCESS_LOG",
+    "MFCLRTMB_PROCESS_TIME",
+    "MFCLRTMB_LOW_MEMORY",
+    "MFCLRTMB_VERBOSE_MEMORY"
+  )
+  extra <- Sys.getenv(env_names, unset = NA_character_)
+  extra <- extra[!is.na(extra) & nzchar(extra)]
+  script_env <- c(script_env, extra)
+  env_assign <- paste(
+    sprintf("%s=%s", names(script_env), shQuote(unname(script_env))),
+    collapse = " "
+  )
+  command <- sprintf("set -o pipefail; %s Rscript %s", env_assign, shQuote(runner))
   if (isTRUE(live_log)) {
     command <- sprintf("%s 2>&1 | tee %s >&2", command, shQuote(log_file))
     return(system2("bash", c("-c", command), wait = TRUE))
@@ -353,7 +497,7 @@ stage_previous_job_par <- function(model_dir, step_id, job_ref, root, work_dir) 
 
 expected_final_par_for_run <- function(run_mode, run_script_name, cfg) {
   expected <- cfg$EXPECTED_FINAL_PAR %||% cfg$FINAL_PAR %||% ""
-  if (!nzchar(expected) && is_doitall_mode(run_mode) && identical(basename(run_script_name), "doitall.sh")) {
+  if (!nzchar(expected) && is_doitall_like_mode(run_mode) && identical(basename(run_script_name), "doitall.sh")) {
     expected <- "11.par"
   }
   expected
@@ -608,7 +752,7 @@ for (i in seq_len(nrow(step_table))) {
   label <- cfg$MODEL_LABEL %||% step_id
   source_dir <- cfg$SOURCE_DIR %||% ""
   input_subdir <- cfg$INPUT_SUBDIR %||% default_input_dir
-  run_mode <- tolower(cfg$RUN_MODE %||% "last_par")
+  run_mode <- mode_key(cfg$RUN_MODE %||% "last_par")
   input_par <- cfg$INPUT_PAR %||% "latest"
   output_par <- cfg$OUTPUT_PAR %||% ""
   requested_run_mode <- run_mode
@@ -637,8 +781,12 @@ for (i in seq_len(nrow(step_table))) {
   log_file <- file.path(model_dir, "mfcl.log")
   message("Running ", step_id, " (", label, ")")
   message("  source: ", relative_display_path(model_source, root))
+  run_engine <- if (is_mfclrtmb_doitall_mode(run_mode)) "mfclrtmb" else "mfcl"
   message("  mode:   ", run_mode)
-  message("  mfcl:   ", step_program)
+  message("  engine: ", run_engine)
+  if (!is_mfclrtmb_doitall_mode(run_mode)) {
+    message("  mfcl:   ", step_program)
+  }
   if (is_job_par_mode(run_mode)) {
     staged <- stage_previous_job_par(model_dir, step_id, par_source_job, root = root, work_dir = work_dir)
     input_par <- staged$input_par
@@ -651,7 +799,7 @@ for (i in seq_len(nrow(step_table))) {
       if (nzchar(par_source_job)) paste0(" (requested job ", par_source_job, ")") else ""
     )
   }
-  if (!is_doitall_mode(run_mode)) {
+  if (!is_doitall_like_mode(run_mode)) {
     needs_latest_par <- is_latest_par_mode(run_mode) &&
       (!nzchar(input_par) || identical(tolower(input_par), "latest") || run_mode %in% c("last", "latest", "last_par", "latest_par"))
     if (needs_latest_par) {
@@ -682,6 +830,9 @@ for (i in seq_len(nrow(step_table))) {
     if (is_doitall_mode(run_mode)) {
       message("  script: ", run_script_name)
       run_script(file.path(model_dir, run_script_name), program = step_program, log_file = log_file, live_log = mfcl_live_log)
+    } else if (is_mfclrtmb_doitall_mode(run_mode)) {
+      message("  script: ", run_script_name)
+      run_mfclrtmb_doitall(model_dir, frq = frq, script = file.path(model_dir, run_script_name), log_file = log_file, live_log = mfcl_live_log)
     } else {
       if (!nzchar(output_par)) output_par <- next_par_name(input_par)
       message("  input:  ", frq, " + ", input_par)
@@ -692,7 +843,7 @@ for (i in seq_len(nrow(step_table))) {
   }, finally = setwd(old))
   if (!identical(status, 0L)) stop("MFCL failed for ", step_id, " with status ", status, call. = FALSE)
 
-  final_output_par <- if (is_doitall_mode(run_mode)) {
+  final_output_par <- if (is_doitall_like_mode(run_mode)) {
     select_final_par(model_dir, step_id, run_mode, run_script_name, cfg)
   } else {
     output_par
@@ -744,7 +895,13 @@ for (i in seq_len(nrow(step_table))) {
     "bet.reg_scaling",
     "xinit.rpt",
     "indepvar.rpt",
-    "new_cor_report"
+    "new_cor_report",
+    "phase-plan.csv",
+    "phase-summary.csv",
+    "phase-progress.csv",
+    "phase-process-summary.csv",
+    "doitall-switches.csv",
+    "post-switch-summary.csv"
   ))
   for (file in keep) {
     src <- file.path(model_dir, file)
@@ -765,6 +922,7 @@ for (i in seq_len(nrow(step_table))) {
     change_axis = cfg$CHANGE_AXIS %||% "",
     model_label = label,
     model_source = relative_display_path(model_source, root),
+    run_engine = run_engine,
     mfcl_program_path = step_program,
     run_mode = run_mode,
     requested_run_mode = requested_run_mode,
