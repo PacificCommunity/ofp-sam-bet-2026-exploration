@@ -27,6 +27,7 @@ Original BET 2023 diagnostic model rerun with the historical MFCL executable.
 | `.ini` | original 2023 diagnostic ini, not promoted to MFCL 1007 |
 | `.tag` | original 2023 diagnostic tag input |
 | `.age_length` | original 2023 diagnostic CAAL input |
+| `fishery_map.R` | 2023 fishery names copied from the assessment replication input set for viewer labels |
 | `input_manifest.csv` | machine-readable source/input notes with source commits |
 
 ## Generated Input Changes
@@ -37,6 +38,7 @@ Original BET 2023 diagnostic model rerun with the historical MFCL executable.
 | `.ini` | No generated edit. | Original 2023 diagnostic format. |
 | `.tag` | No generated edit. | Original 2023 diagnostic source file. |
 | `.age_length` | No generated edit. | Original 2023 diagnostic source file. |
+| `fishery_map.R` | Copied from the 2023 assessment replication inputs for display labels. | Fishery names and grouping only; not an MFCL input. |
 
 ## Source Revisions
 
@@ -54,9 +56,10 @@ Original BET 2023 diagnostic model rerun with the historical MFCL executable.
 | # | Control |
 | --- | --- |
 | 1 | The model files come from `ofp-sam-bet-2023-diagnostic/MFCL`. |
-| 2 | The step-specific executable path is set in `job-config.R`; only this step uses the historical MFCL binary. |
-| 3 | No FixM, new-executable compatibility edits, new fishery structure, or 2026 input files are applied here. |
-| 4 | Generated safeguards cover FRQ regions, MFCL 1007 tag blocks, shed rates, `age_flags(128)`, fail-fast `doitall.sh`, and the PHASE 10/11 env switch. |
+| 2 | `fishery_map.R` is copied from the 2023 assessment replication input set because the diagnostic and replication fisheries match; this only supplies viewer/display labels. |
+| 3 | The step-specific executable path is set in `job-config.R`; only this step uses the historical MFCL binary. |
+| 4 | No FixM, new-executable compatibility edits, new fishery structure, or 2026 input files are applied here. |
+| 5 | Generated safeguards cover FRQ regions, MFCL 1007 tag blocks, shed rates, `age_flags(128)`, fail-fast `doitall.sh`, and the PHASE 10/11 env switch. |
 
 ## Checks
 

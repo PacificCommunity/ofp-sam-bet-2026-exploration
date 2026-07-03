@@ -250,6 +250,7 @@ copy_aux_if_exists <- function(from_dir, to_dir, file) {
 write_original_diagnostic_step <- function() {
   paths <- prepare_step_model_dir("01-Diag2023")
   copy_diagnostic_model_files(paths$model_dir)
+  copy_one(rep2023_file("fishery_map.R"), file.path(paths$model_dir, "fishery_map.R"))
   write_2023_historical_doitall(
     diagnostic_file("doitall.sh"),
     file.path(paths$model_dir, "doitall.sh")
@@ -259,6 +260,7 @@ write_original_diagnostic_step <- function() {
     list(role = "ini", file = "bet.ini", source = diagnostic_file("bet.ini"), note = "original 2023 diagnostic ini, intentionally not promoted or edited"),
     list(role = "tag", file = "bet.tag", source = diagnostic_file("bet.tag"), note = "original 2023 diagnostic tag input"),
     list(role = "age_length", file = "bet.age_length", source = diagnostic_file("bet.age_length"), note = "original 2023 diagnostic CAAL input"),
+    list(role = "fishery_map", file = "fishery_map.R", source = rep2023_file("fishery_map.R"), note = "display metadata copied from the 2023 assessment replication inputs; fishery definitions match the diagnostic model"),
     list(role = "doitall", file = "doitall.sh", source = diagnostic_file("doitall.sh"), note = "historical 2023 diagnostic control script with PHASE 10/11 convergence switch; run_stepwise resolves bare mfclo64 to the historical 2.2.2.0 executable for this step")
   ))
   write_readme(
@@ -277,10 +279,12 @@ write_original_diagnostic_step <- function() {
       "bet.ini" = "original 2023 diagnostic ini, not promoted to MFCL 1007",
       "bet.tag" = "original 2023 diagnostic tag input",
       "bet.age_length" = "original 2023 diagnostic CAAL input",
+      "fishery_map.R" = "2023 fishery names copied from the assessment replication input set for viewer labels",
       "input_manifest.csv" = "machine-readable source/input notes with source commits"
     ),
     c(
       "The model files come from `ofp-sam-bet-2023-diagnostic/MFCL`.",
+      "`fishery_map.R` is copied from the 2023 assessment replication input set because the diagnostic and replication fisheries match; this only supplies viewer/display labels.",
       "The step-specific executable path is set in `job-config.R`; only this step uses the historical MFCL binary.",
       "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict archival comparisons can set `-5` without editing model folders.",
       "No FixM, new-executable compatibility edits, new fishery structure, or 2026 input files are applied here."
@@ -291,9 +295,9 @@ write_original_diagnostic_step <- function() {
     ),
     "Ready for Kflow with the tuna-flow image that includes the historical 2023 diagnostic MFCL executable.",
     input_changes = input_change_table(
-      c(".frq", ".ini", ".tag", ".age_length"),
-      c("No generated edit.", "No generated edit.", "No generated edit.", "No generated edit."),
-      c("Original 2023 diagnostic source file.", "Original 2023 diagnostic format.", "Original 2023 diagnostic source file.", "Original 2023 diagnostic source file.")
+      c(".frq", ".ini", ".tag", ".age_length", "fishery_map.R"),
+      c("No generated edit.", "No generated edit.", "No generated edit.", "No generated edit.", "Copied from the 2023 assessment replication inputs for display labels."),
+      c("Original 2023 diagnostic source file.", "Original 2023 diagnostic format.", "Original 2023 diagnostic source file.", "Original 2023 diagnostic source file.", "Fishery names and grouping only; not an MFCL input.")
     ),
     source_revisions = input_repo_revision_table()
   )
