@@ -258,6 +258,25 @@ clone_github_source <- function(repo, ref) {
   source_dir
 }
 install_local_source <- function(path, lib) {
+  desc_path <- file.path(path, "DESCRIPTION")
+  if (file.exists(desc_path)) {
+    desc <- read.dcf(desc_path)
+    dep_fields <- intersect(c("Depends", "Imports", "LinkingTo"), colnames(desc))
+    deps <- unlist(strsplit(paste(desc[1, dep_fields], collapse = ","), ",", fixed = TRUE), use.names = FALSE)
+    deps <- trimws(gsub("\\s*\\([^)]*\\)", "", deps))
+    deps <- setdiff(unique(deps[nzchar(deps)]), c("R"))
+    missing_deps <- deps[!vapply(deps, requireNamespace, logical(1), quietly = TRUE)]
+    if (length(missing_deps)) {
+      message("[kflow-runtime-update] Installing CRAN dependencies for ",
+              basename(path), ": ", paste(missing_deps, collapse = ", "), ".")
+      utils::install.packages(
+        missing_deps,
+        lib = lib,
+        dependencies = c("Depends", "Imports", "LinkingTo"),
+        repos = getOption("repos")
+      )
+    }
+  }
   r_bin <- file.path(R.home("bin"), "R")
   output <- tryCatch(
     system2(
