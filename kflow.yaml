@@ -21,7 +21,7 @@ docker_image: ghcr.io/pacificcommunity/tuna-flow:v2.1
 # HTCondor resource request. Increase memory/disk before increasing CPUs unless
 # the MFCL command itself can use more threads.
 resources:
-  cpus: 4
+  cpus: 2
   memory: 8GB
   disk: 8GB
 
@@ -53,7 +53,7 @@ env:
   REPORT_FILE_STEM: bet-2026-report
   RUN_MODE: mfclrtmb_doitall
   MFCLRTMB_OPTIMIZER: nlminb
-  MFCLRTMB_OPENMP_THREADS: "4"
+  MFCLRTMB_OPENMP_THREADS: "1"
   MFCLRTMB_OPENMP_AUTOPAR: "false"
   MFCLRTMB_LOW_MEMORY: "true"
   MFCLRTMB_VERBOSE_MEMORY: "true"
@@ -63,7 +63,7 @@ env:
   MFCLRTMB_RUN_POST_SWITCHES: "true"
   MFCLRTMB_EXACT_REPORT: "true"
   MFCLRTMB_WRITE_MFCL_FILES: "true"
-  MFCLRTMB_TAG_FULL_MANUAL_ADJOINT_OPENMP: "true"
+  MFCLRTMB_TAG_FULL_MANUAL_ADJOINT_OPENMP: "false"
   MFCLRTMB_TAG_FULL_PACKED_MORTALITY: "true"
   MFCLRTMB_TAG_FULL_REVERSE_CACHE: "false"
   MFCLRTMB_NLMINB_STAGNATION_FMM_POLISH: "true"
