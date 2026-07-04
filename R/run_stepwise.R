@@ -258,7 +258,7 @@ run_mfclrtmb_doitall <- function(model_dir, frq, script, log_file, live_log = TR
     "  optimizer = env_chr('MFCLRTMB_OPTIMIZER', 'fmm'),",
     "  maxfn = env_int('MFCLRTMB_MAXFN'),",
     "  strict_switches = truthy(env_chr('MFCLRTMB_STRICT_SWITCHES', 'true'), TRUE),",
-    "  write_mfcl_files = TRUE,",
+    "  write_mfcl_files = truthy(env_chr('MFCLRTMB_WRITE_MFCL_FILES', 'true'), TRUE),",
     "  write_payload = FALSE,",
     "  run_post_switches = truthy(env_chr('MFCLRTMB_RUN_POST_SWITCHES', 'true'), TRUE),",
     "  exact_report = truthy(env_chr('MFCLRTMB_EXACT_REPORT', 'true'), TRUE),",
@@ -296,6 +296,7 @@ run_mfclrtmb_doitall <- function(model_dir, frq, script, log_file, live_log = TR
     "MFCLRTMB_OPTIMIZER",
     "MFCLRTMB_MAXFN",
     "MFCLRTMB_STRICT_SWITCHES",
+    "MFCLRTMB_WRITE_MFCL_FILES",
     "MFCLRTMB_RUN_POST_SWITCHES",
     "MFCLRTMB_EXACT_REPORT",
     "MFCLRTMB_WRITE_OBJECTIVE_TRACE",
@@ -737,6 +738,7 @@ copy_root_region_map_assets <- function(output_dir, region_counts) {
 
 model_rows <- list()
 saved_par_rows <- list()
+build_payloads <- truthy(env("STEPWISE_BUILD_PAYLOAD", "true"), default = TRUE)
 for (i in seq_len(nrow(step_table))) {
   step_id <- step_table$step_id[[i]]
   step_dir <- file.path(root, "steps", step_id)
@@ -877,9 +879,14 @@ for (i in seq_len(nrow(step_table))) {
     )
   }
 
-  message("  building model_payload.rds")
-  payload_status <- build_payload(model_dir, step_id)
-  message("  payload: ", payload_status)
+  if (isTRUE(build_payloads)) {
+    message("  building model_payload.rds")
+    payload_status <- build_payload(model_dir, step_id)
+    message("  payload: ", payload_status)
+  } else {
+    payload_status <- "skipped by STEPWISE_BUILD_PAYLOAD=false"
+    message("  payload: ", payload_status)
+  }
   payload_file <- file.path(model_dir, "model_payload.rds")
   footer <- par_footer(final_par)
 
