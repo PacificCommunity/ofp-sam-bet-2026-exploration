@@ -139,10 +139,28 @@ engine_label <- function(run_engine, program = "") {
   "native MFCL"
 }
 
-model_display_label <- function(label, run_engine, program = "") {
-  suffix <- engine_label(run_engine, program)
-  if (grepl(paste0("\\(", suffix, "\\)$"), label, ignore.case = TRUE)) return(label)
-  paste0(label, " (", suffix, ")")
+engine_token <- function(run_engine) {
+  if (identical(run_engine, "mfclrtmb")) "rtmb" else "native"
+}
+
+step_display_token <- function(step_id) {
+  token <- sub("-.*$", "", trimws(as.character(step_id %||% "")))
+  if (nzchar(token)) token else "model"
+}
+
+strip_engine_suffix <- function(label) {
+  sub(
+    "\\s*\\((native MFCL old|native MFCL|mfclrtmb|rtmb|MFCL)\\)\\s*$",
+    "",
+    trimws(as.character(label %||% "")),
+    ignore.case = TRUE
+  )
+}
+
+model_display_label <- function(label, run_engine, program = "", step_id = "") {
+  base <- strip_engine_suffix(label)
+  if (!nzchar(base)) base <- trimws(as.character(step_id %||% "model"))
+  paste0(step_display_token(step_id), "[", engine_token(run_engine), "]-", base)
 }
 
 format_elapsed_time <- function(seconds) {
@@ -883,7 +901,7 @@ for (i in seq_len(nrow(step_table))) {
   frq <- cfg$FRQ %||% if (length(frqs)) frqs[[1]] else ""
   if (!nzchar(frq) || is.na(frq)) stop("No .frq file found for ", step_id, call. = FALSE)
   run_engine <- if (is_mfclrtmb_doitall_mode(run_mode)) "mfclrtmb" else "mfcl"
-  display_label <- model_display_label(label, run_engine, step_program)
+  display_label <- model_display_label(label, run_engine, step_program, step_id = step_id)
   log_file <- file.path(model_dir, "mfcl.log")
   message("Running ", step_id, " (", display_label, ")")
   message("  source: ", relative_display_path(model_source, root))
