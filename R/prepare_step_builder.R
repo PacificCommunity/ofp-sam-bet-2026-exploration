@@ -169,14 +169,19 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
   has_reg_scaling <- nzchar(reg_scaling_source)
   if (has_reg_scaling) {
     regional_scaling_periods <- length(readLines(reg_scaling_source, warn = FALSE))
-    copy_one(reg_scaling_source, file.path(model_dir, "bet.reg_scaling"))
+    copy_regional_scaling_window(
+      reg_scaling_source,
+      file.path(model_dir, "bet.reg_scaling"),
+      start_period = reg_scaling_active_start_period,
+      end_period = reg_scaling_active_end_period
+    )
     if (!"bet.reg_scaling" %in% names(input_notes)) {
       input_notes[["bet.reg_scaling"]] <-
         paste0(
-          "`bet.2026.reg_scaling` global CPUE regional-scaling matrix, ",
-          regional_scaling_periods,
-          " quarterly rows x 5 regions; parest flags 77-81 define the active ",
-          reg_scaling_active_years, " prior window without truncating the input"
+          "`bet.2026.reg_scaling` global CPUE regional-scaling matrix, rows ",
+          reg_scaling_active_start_period, "-", reg_scaling_active_end_period,
+          " only (", reg_scaling_active_years, "), because native MFCL reads ",
+          "the active-window matrix directly after parest flags define the window"
         )
     }
   }
@@ -259,10 +264,13 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
       file = "bet.reg_scaling",
       source = reg_scaling_source,
       note = paste0(
-        "full global CPUE regional-scaling matrix for MFCL parest flags ",
-        "77-81; active periods ", reg_scaling_active_start_period, "-",
+        "rows ", reg_scaling_active_start_period, "-",
         reg_scaling_active_end_period,
-        " are controlled by doitall flags without truncating bet.reg_scaling"
+        " extracted from the global CPUE regional-scaling matrix; parest flags ",
+        "77-81 still define active periods ", reg_scaling_window$start, "-",
+        reg_scaling_window$end,
+        " so native MFCL streams this compact active-window matrix into the ",
+        "matching model periods"
       )
     )), after = 4L)
   }
