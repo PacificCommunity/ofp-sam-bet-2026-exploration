@@ -103,7 +103,7 @@ env:
   TUNA_FLOW_RUNTIME_UPDATE: never
   KFLOW_REPO_RUNTIME_UPDATE: auto
   KFLOW_RUNTIME_PACKAGES: none
-  KFLOW_REPO_RUNTIME_PACKAGES: mfclshiny=PacificCommunity/mfclshiny@b7a54374c43e4c159ca7acacce99dfc91d2d856b,mfclrtmb=PacificCommunity/ofp-sam-mfclrtmb@5f76546fe4b703defbe057e847b75779098798ea
+  KFLOW_REPO_RUNTIME_PACKAGES: mfclshiny=PacificCommunity/mfclshiny@b7a54374c43e4c159ca7acacce99dfc91d2d856b,mfclrtmb=PacificCommunity/ofp-sam-mfclrtmb@4471240a5d4b361541f64511bc37b70acdafbf9f
   MFCLSHINY_GITHUB_REF: b7a54374c43e4c159ca7acacce99dfc91d2d856b
   KFLOW_RUNTIME_GITHUB_AUTH: "true"
   KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME: "true"
