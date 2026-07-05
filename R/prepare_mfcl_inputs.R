@@ -306,6 +306,115 @@ copy_tag_reporting_matrices <- function(path, source_ini) {
   )
 }
 
+repair_tag_reporting_grouped_initial_values <- function(path) {
+  # Native MFCL requires every cell in a reporting-rate group to have the same
+  # active flag and starting value. If the upstream grouping is intentional,
+  # preserve the group flags and harmonize only the starting RR value. Targets
+  # and penalties are left unchanged.
+  markers <- c(
+    rep = "# tag fish rep",
+    group = "# tag fish rep group flags",
+    active = "# tag_fish_rep active flags"
+  )
+  lines <- readLines(path, warn = FALSE)
+  row_idx <- lapply(markers, function(marker) ini_matrix_row_indices(lines, marker))
+  rows <- lapply(row_idx, function(idx) strsplit(trimws(lines[idx]), "[[:space:]]+"))
+  widths <- lapply(rows, function(x) unique(lengths(x)))
+  if (any(lengths(widths) != 1L) || length(unique(unlist(widths, use.names = FALSE))) != 1L) {
+    stop("Tag reporting-rate matrices have inconsistent widths in ", path, call. = FALSE)
+  }
+  row_counts <- vapply(rows, length, integer(1))
+  if (length(unique(row_counts)) != 1L) {
+    stop("Tag reporting-rate matrices have inconsistent row counts in ", path, call. = FALSE)
+  }
+
+  to_matrix <- function(x, mode = c("numeric", "integer")) {
+    mode <- match.arg(mode)
+    value <- unlist(x, use.names = FALSE)
+    value <- if (identical(mode, "integer")) as.integer(value) else as.numeric(value)
+    matrix(value, nrow = length(x), byrow = TRUE)
+  }
+  rep <- to_matrix(rows$rep, "numeric")
+  group <- to_matrix(rows$group, "integer")
+  active <- to_matrix(rows$active, "integer")
+  if (!identical(dim(rep), dim(group)) || !identical(dim(rep), dim(active))) {
+    stop("Tag reporting-rate matrices have inconsistent dimensions in ", path, call. = FALSE)
+  }
+
+  changes <- list()
+  for (g in sort(unique(as.vector(group[group > 0L])))) {
+    cells <- which(group == g, arr.ind = TRUE)
+    if (!nrow(cells)) next
+    cells <- cells[order(cells[, "row"], cells[, "col"]), , drop = FALSE]
+    active_values <- unique(active[cells])
+    if (length(active_values) > 1L) {
+      stop(
+        "Tag reporting-rate group ", g,
+        " has mixed active flags in ", path,
+        ". This needs a group-flag fix, not an initial-value-only repair.",
+        call. = FALSE
+      )
+    }
+    values <- rep[cells]
+    unique_values <- unique(round(values, 12))
+    if (length(unique_values) <= 1L) next
+
+    replacement <- rows$rep[[cells[[1L, "row"]]]][[cells[[1L, "col"]]]]
+    changes[[length(changes) + 1L]] <- data.frame(
+      group = g,
+      replacement = replacement,
+      old_values = paste(format(sort(unique(values)), scientific = FALSE, trim = TRUE), collapse = ","),
+      n_cells = nrow(cells),
+      fisheries = compact_ints(cells[, "col"]),
+      release_rows = compact_ints(cells[, "row"]),
+      stringsAsFactors = FALSE
+    )
+    for (i in seq_len(nrow(cells))) {
+      rows$rep[[cells[[i, "row"]]]][[cells[[i, "col"]]]] <- replacement
+    }
+  }
+  if (!length(changes)) return(invisible(""))
+
+  lines[row_idx$rep] <- vapply(rows$rep, paste, collapse = " ", character(1))
+  writeLines(lines, path, sep = file_eol(path), useBytes = TRUE)
+
+  changed <- do.call(rbind, changes)
+  paste0(
+    "harmonized initial RR values only in ", nrow(changed),
+    " tag reporting-rate group(s) so grouped starts are native-MFCL compatible; ",
+    "group flags, targets, and penalties unchanged"
+  )
+}
+
+validate_tag_reporting_grouped_initial_values <- function(path) {
+  rep <- extract_ini_matrix(path, "# tag fish rep")
+  group <- extract_ini_matrix(path, "# tag fish rep group flags")
+  active <- extract_ini_matrix(path, "# tag_fish_rep active flags")
+  if (!identical(dim(rep), dim(group)) || !identical(dim(rep), dim(active))) {
+    stop("Tag reporting-rate matrices have inconsistent dimensions in ", path, call. = FALSE)
+  }
+  bad <- list()
+  for (g in sort(unique(as.vector(group[group > 0])))) {
+    cells <- which(group == g, arr.ind = TRUE)
+    keys <- unique(paste(active[cells], round(rep[cells], 12), sep = "|"))
+    if (length(keys) > 1L) {
+      bad[[length(bad) + 1L]] <- paste0(
+        "group ", g, " has ", length(keys),
+        " active/RR combinations across fisheries ",
+        compact_ints(cells[, "col"])
+      )
+    }
+  }
+  if (length(bad)) {
+    stop(
+      "Native MFCL-incompatible tag reporting-rate group initials in ",
+      path, ": ", paste(bad, collapse = "; "),
+      call. = FALSE
+    )
+  }
+  invisible("")
+}
+
 tag_recapture_table <- function(path) {
   lines <- readLines(path, warn = FALSE)
   release_header <- grep("#[[:space:]]+[0-9]+ - RELEASE REGION", lines)

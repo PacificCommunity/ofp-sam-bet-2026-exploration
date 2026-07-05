@@ -63,6 +63,15 @@ edit note is in `steps/<step_id>/input_manifest.csv`.
 | `.ini` | `ofp-sam-2026-BET-YFT-build-ini` and archived diagnostic inputs | Step-specific generated edits apply BET 2026 L-W, `LN(R0)` from 04 onward, FixM, tag/RR alignment, and MFCL-reader compatibility checks. |
 | `bet.reg_scaling` | `ofp-sam-2026-BET-YFT-frq-build` | Copied exactly for steps 08-15. |
 
+Current BET input sources from `origin/main`:
+
+| Source repo | Commit used |
+| --- | --- |
+| `ofp-sam-2026-BET-YFT-frq-build` | `f89e066` |
+| `ofp-sam-2026-BET-YFT-build-ini` | `f8faf7c` |
+| `ofp-sam-2026-BET-YFT-tag-prep` | `e0b427d` |
+| `ofp-sam-2026-BET-YFT-age-length-build` | `a26b694` |
+
 For the exact source-vs-generated comparison, see
 [`docs/input-source-audit.md`](docs/input-source-audit.md).
 
@@ -88,4 +97,5 @@ For the exact source-vs-generated comparison, see
 | Region maps | Steps 01-03 use the 2023 9-region asset; steps 04-15 use the 2026 5-region asset. See [`docs/region-map-assets.md`](docs/region-map-assets.md). |
 | Tag reporting rates | MFCL reads the reporting-rate blocks in `bet.ini`; `tag_rep_map.R` is only a human-readable check. See [`docs/tag-reporting-groups.md`](docs/tag-reporting-groups.md). |
 | Length-weight | Step 02c changes BET L-W from the 2023 value `3.063397e-05 2.932384` to the bias-corrected 2026 value `3.073533e-05 2.932410`; later steps retain it. |
+| Tag input source | Steps 04-15 use BET tag/ini sources from `ofp-sam-2026-BET-YFT-build-ini` commit `f8faf7c` and `ofp-sam-2026-BET-YFT-tag-prep` commit `e0b427d`; generated inputs harmonize grouped reporting-rate initial values for native MFCL while leaving group flags, targets, and penalties unchanged. |
 | Tag mixing source | Steps 10-15 use `ofp-sam-2026-BET-YFT-build-ini` commit `f8faf7c` `BET/ini.mix-period/bet.2026.mix-0.2.ini`; source zero mixing periods for release groups 43 and 46 are raised to `1`, while `tag_flags(it,2)=0` is retained and RR/active/target/penalty cells are validated against positive recaptures. |

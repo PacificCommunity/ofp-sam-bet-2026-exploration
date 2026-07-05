@@ -581,6 +581,10 @@ ini_tag_note_04 <- ensure_ini_tag_flags(
   file.path(newstructure_model_dir, "bet.ini"),
   frq_counts_04$n_tag_groups
 )
+tag_reporting_group_note_04 <- repair_tag_reporting_grouped_initial_values(
+  file.path(newstructure_model_dir, "bet.ini")
+)
+validate_tag_reporting_grouped_initial_values(file.path(newstructure_model_dir, "bet.ini"))
 write_generated_tag_rep_map(newstructure_model_dir)
 write_doitall(
   file.path(template_cache, "doitall.sh"),
@@ -602,8 +606,8 @@ write_manifest(newstructure_dir, list(
     file = "bet.ini",
     source = regfish_ini_source,
     note = paste(
-      c(fixm_age_par_note, total_population_note_04, length_weight_note_04, ini_tag_note_04)[
-        nzchar(c(fixm_age_par_note, total_population_note_04, length_weight_note_04, ini_tag_note_04))
+      c(fixm_age_par_note, total_population_note_04, length_weight_note_04, ini_tag_note_04, tag_reporting_group_note_04)[
+        nzchar(c(fixm_age_par_note, total_population_note_04, length_weight_note_04, ini_tag_note_04, tag_reporting_group_note_04))
       ],
       collapse = "; "
     )
@@ -644,11 +648,22 @@ write_readme(
   c(
     "bet.frq" = "`bet.2023.new-structure.global-cpue.frq`; 5-region, 33-fishery structure, terminal year 2021, global CPUE",
     "bet.ini" = paste(
-      "`bet.2023.new.structure.ini`;",
-      fixm_age_par_note,
-      total_population_note_04,
-      length_weight_note_04,
-      "and explicit default tag flags inserted if needed"
+      c(
+        "`bet.2023.new.structure.ini`",
+        fixm_age_par_note,
+        total_population_note_04,
+        length_weight_note_04,
+        ini_tag_note_04,
+        tag_reporting_group_note_04
+      )[nzchar(c(
+        "`bet.2023.new.structure.ini`",
+        fixm_age_par_note,
+        total_population_note_04,
+        length_weight_note_04,
+        ini_tag_note_04,
+        tag_reporting_group_note_04
+      ))],
+      collapse = "; "
     ),
     "bet.tag" = "`bet.2023.new.structure-low.recaps.removed.tag`; low-recapture-removed tag input",
     "bet.age_length" = paste("`bet.2023.new-structure.age_length`; old CAAL / age_length re-assigned to new fisheries", age_note_04, sep = "; "),
@@ -672,7 +687,8 @@ write_readme(
       "No generated edit beyond source validation.",
       paste(
         "Applies the fixed-M row, normalizes the tag-flags marker, and uses",
-        paste0(bias_corrected_length_weight_note, ".")
+        paste0(bias_corrected_length_weight_note, "."),
+        "Grouped tag reporting-rate initial values are harmonized for native MFCL without changing group flags, targets, or penalties."
       ),
       "No generated edit.",
       "Changes effective sample size from `1` to `0.75`."

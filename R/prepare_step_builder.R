@@ -102,6 +102,8 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     tag_reporting_cell_notes <- tag_reporting_cell_notes[nzchar(tag_reporting_cell_notes)]
   }
   validate_positive_tag_recapture_reporting_rates(ini_out, tag_out)
+  tag_reporting_group_note <- repair_tag_reporting_grouped_initial_values(ini_out)
+  validate_tag_reporting_grouped_initial_values(ini_out)
   apply_fixm_m(ini_out)
   total_population_note <- set_total_population_scalar(
     ini_out,
@@ -133,6 +135,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     tag_rep_repair_note,
     tag_reporting_note,
     tag_reporting_cell_notes,
+    tag_reporting_group_note,
     ini_tag_note,
     ini_shed_note
   )
@@ -143,6 +146,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     tag_rep_repair_note,
     tag_reporting_note,
     tag_reporting_cell_notes,
+    tag_reporting_group_note,
     ini_tag_note,
     ini_shed_note
   )

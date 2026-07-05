@@ -43,9 +43,9 @@ copied as-is and what is intentionally changed in the generated model folders?
 | 02b | 02a generated input | Sets ini version to `1007`; inserts 118 `# tag flags` rows with two-quarter mixing and `tag_flags(it,2)=0`; inserts a zero tag-shed vector; inserts MFCL 1007 defaults for `LN(R0)=25` and Richards growth parameter `0`. | Converts the 2023 replication ini into a current-reader layout without changing the assessment data. |
 | 02c | 02b generated input | Changes `# Length-weight parameters` from `3.063397e-05 2.932384` to `3.073533e-05 2.932410`. `LN(R0)` remains `25`. | Isolates the BET 2026 bias-corrected L-W update before later structural changes. |
 | 03 | 02c generated input | Replaces the `# age_pars` natural-mortality row with the fixed-M row from the 01 diagnostic `mgc=-5` final par. | Carries the chosen diagnostic M estimate and 02c L-W update into later current-executable runs. |
-| 04-06 | `BET/bet.2023.new.structure.ini` | Applies FixM, sets `LN(R0)=17`, applies the BET 2026 L-W values, and normalizes the `# tag flags` marker/format. The selected 2023 new-structure `.tag` has 96 release groups; the latest source `.ini` has 98 identical tag-control rows, so the generator trims the two extra tag-control rows to match the `.tag`. | Moves to the 5-region structure while keeping the intended tag treatment, fixed M, and 2026 L-W. |
-| 07-09 | `BET/bet.2026.ini`, plus RR blocks from `BET/ini.mix-period/bet.2026.mix-0.2.ini` | Applies FixM and BET 2026 L-W; copies the five RR/active/target/penalty matrix blocks from the mix-period ini; keeps the latest 98 release-group tag/RR shape; sets all `tag_flags(it,2)` from source `1` to generated `0`; validates positive-recapture RR cells. Mixing remains two quarters for all 98 groups. | Aligns the 2026 tag file with the latest 2026 ini/RR shape while keeping the 2023-style RR treatment during mixing. |
-| 10-15 | `BET/ini.mix-period/bet.2026.mix-0.2.ini` | Uses the latest mix-period ini as the base; applies FixM; keeps release-specific mixing where positive; sets all `tag_flags(it,2)` from source `1` to generated `0`; raises 2 source zero mixing periods to `1`; validates positive-recapture RR cells. | Uses release-specific mixing from the KS build but avoids zero-period values that the current MFCL reader rejects. |
+| 04-06 | `BET/bet.2023.new.structure.ini` from `ofp-sam-2026-BET-YFT-build-ini` commit `f8faf7c` | Applies FixM, sets `LN(R0)=17`, applies the BET 2026 L-W values, and normalizes the `# tag flags` marker/format. The selected 2023 new-structure `.tag` from `ofp-sam-2026-BET-YFT-tag-prep` commit `e0b427d` has 96 release groups; the latest source `.ini` has 98 identical tag-control rows, so the generator trims the two extra tag-control rows to match the `.tag`. It also harmonizes grouped RR initial values only, leaving group flags, targets, and penalties unchanged. | Moves to the 5-region structure while keeping the intended tag treatment, fixed M, and 2026 L-W; native MFCL requires grouped reporting-rate starts to be equal. |
+| 07-09 | `BET/bet.2026.ini`, plus RR blocks from `BET/ini.mix-period/bet.2026.mix-0.2.ini`, both from `ofp-sam-2026-BET-YFT-build-ini` commit `f8faf7c` | Applies FixM and BET 2026 L-W; copies the five RR/active/target/penalty matrix blocks from the mix-period ini; keeps the latest 98 release-group tag/RR shape; sets all `tag_flags(it,2)` from source `1` to generated `0`; validates positive-recapture RR cells; harmonizes grouped RR initial values only, leaving group flags, targets, and penalties unchanged. Mixing remains two quarters for all 98 groups. | Aligns the 2026 tag file from `ofp-sam-2026-BET-YFT-tag-prep` commit `e0b427d` with the latest 2026 ini/RR shape while keeping the 2023-style RR treatment during mixing; native MFCL requires grouped reporting-rate starts to be equal. |
+| 10-15 | `BET/ini.mix-period/bet.2026.mix-0.2.ini` from `ofp-sam-2026-BET-YFT-build-ini` commit `f8faf7c` | Uses the latest mix-period ini as the base; applies FixM; keeps release-specific mixing where positive; sets all `tag_flags(it,2)` from source `1` to generated `0`; raises 2 source zero mixing periods to `1`; validates positive-recapture RR cells; harmonizes grouped RR initial values only, leaving group flags, targets, and penalties unchanged. | Uses release-specific mixing from the KS build but avoids zero-period values that the current MFCL reader rejects; native MFCL requires grouped reporting-rate starts to be equal. |
 
 Current tag-flag check:
 
@@ -59,9 +59,12 @@ Current tag-flag check:
 | Generated step 10 ini | 98 | source `0` values raised to `1`; other values retained | all `0` |
 
 With the latest upstream RR groupings, the generated steps validate that every
-positive tag recapture has nonzero RR, active, target, and penalty cells. The
-older fishery 19 fallback repair remains in the generator only for older source
-inputs that still need it; it is not the active change for this pull.
+positive tag recapture has nonzero RR, active, target, and penalty cells. They
+also harmonize initial RR values within each active reporting-rate group because
+native MFCL requires grouped starts to be equal. This does not change reporting
+rate group flags, targets, or penalties. The older fishery 19 fallback repair
+remains in the generator only for older source inputs that still need it; it is
+not the active change for this pull.
 
 ## Effort Creep Details
 

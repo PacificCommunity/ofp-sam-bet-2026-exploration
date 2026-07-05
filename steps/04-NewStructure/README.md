@@ -27,7 +27,7 @@ First 5-region / 33-fishery BET input step, ending in 2021 with global CPUE.
 | File | Source / note |
 | --- | --- |
 | `.frq` | `bet.2023.new-structure.global-cpue.frq`; 5-region, 33-fishery structure, terminal year 2021, global CPUE |
-| `.ini` | `bet.2023.new.structure.ini`; FixM M row applied from the 01-Diag2023 mgc=-5 diagnostic final par  set Length-weight parameters from `3.063397e-05 2.932384` to `3.073533e-05 2.932410` and explicit default tag flags inserted if needed |
+| `.ini` | `bet.2023.new.structure.ini`; FixM M row applied from the 01-Diag2023 mgc=-5 diagnostic final par; set Length-weight parameters from `3.063397e-05 2.932384` to `3.073533e-05 2.932410`; trimmed extra MFCL 1007 tag-control rows from 98 to 96 release groups; harmonized initial RR values only in 1 tag reporting-rate group(s) so grouped starts are native-MFCL compatible; group flags, targets, and penalties unchanged |
 | `.tag` | `bet.2023.new.structure-low.recaps.removed.tag`; low-recapture-removed tag input |
 | `.age_length` | `bet.2023.new-structure.age_length`; old CAAL / age_length re-assigned to new fisheries; set age_length effective sample size to 0.75 for 112 records |
 | `input_manifest.csv` | machine-readable source/input notes with source commits |
@@ -37,7 +37,7 @@ First 5-region / 33-fishery BET input step, ending in 2021 with global CPUE.
 | Scope | Generated change | Unchanged |
 | --- | --- | --- |
 | `.frq` | No generated edit beyond source validation. | 2023 new-structure global-CPUE source records. |
-| `.ini` | Applies the fixed-M row, normalizes the tag-flags marker, and uses bias-corrected BET 2026 L-W parameters a=3.073533e-05, b=2.932410. | `LN(R0)=17`, bias-corrected L-W, tag grouping, and `tag_flags(it,2)=0`. |
+| `.ini` | Applies the fixed-M row, normalizes the tag-flags marker, and uses bias-corrected BET 2026 L-W parameters a=3.073533e-05, b=2.932410. Grouped tag reporting-rate initial values are harmonized for native MFCL without changing group flags, targets, or penalties. | `LN(R0)=17`, bias-corrected L-W, tag grouping, and `tag_flags(it,2)=0`. |
 | `.tag` | No generated edit. | 2023 new-structure low-recapture-removed source file. |
 | `.age_length` | Changes effective sample size from `1` to `0.75`. | CAAL records themselves. |
 
