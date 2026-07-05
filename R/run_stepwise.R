@@ -166,10 +166,13 @@ model_display_label <- function(label, run_engine, program = "", step_id = "") {
 format_elapsed_time <- function(seconds) {
   seconds <- suppressWarnings(as.numeric(seconds))
   if (!length(seconds) || !is.finite(seconds)) return("")
-  if (seconds < 90) return(sprintf("%.1f sec", seconds))
-  minutes <- seconds / 60
-  if (minutes < 90) return(sprintf("%.1f min", minutes))
-  sprintf("%.2f hr", minutes / 60)
+  seconds <- max(0, round(seconds))
+  if (seconds < 90) return(sprintf("%ds", seconds))
+  minutes <- round(seconds / 60)
+  if (minutes < 90) return(sprintf("%dm", minutes))
+  hours <- minutes %/% 60
+  minutes <- minutes %% 60
+  if (minutes > 0) sprintf("%dh %02dm", hours, minutes) else sprintf("%dh", hours)
 }
 
 parse_mfclrtmb_fit_elapsed_seconds <- function(log_file) {
@@ -969,6 +972,15 @@ for (i in seq_len(nrow(step_table))) {
   model_run_elapsed_seconds <- as.numeric(difftime(model_run_finished_at, model_run_started_at, units = "secs"))
   parsed_fit_seconds <- if (identical(run_engine, "mfclrtmb")) parse_mfclrtmb_fit_elapsed_seconds(log_file) else NA_real_
   model_fit_elapsed_seconds <- if (is.finite(parsed_fit_seconds)) parsed_fit_seconds else model_run_elapsed_seconds
+  if (is.finite(model_fit_elapsed_seconds) &&
+      is.finite(model_run_elapsed_seconds) &&
+      model_fit_elapsed_seconds > model_run_elapsed_seconds) {
+    message(
+      "  fit time exceeded model runner wall time; using runner wall time: ",
+      format_elapsed_time(model_run_elapsed_seconds)
+    )
+    model_fit_elapsed_seconds <- model_run_elapsed_seconds
+  }
   if (!identical(status, 0L)) stop("MFCL failed for ", step_id, " with status ", status, call. = FALSE)
 
   final_output_par <- if (is_doitall_like_mode(run_mode)) {
