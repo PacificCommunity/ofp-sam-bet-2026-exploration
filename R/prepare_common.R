@@ -51,21 +51,6 @@ copy_one <- function(from, to) {
   invisible(to)
 }
 
-copy_regional_scaling_window <- function(from, to, start_period, end_period) {
-  if (!file.exists(from)) stop("Missing source file: ", from, call. = FALSE)
-  lines <- readLines(from, warn = FALSE)
-  if (start_period < 1L || end_period < start_period || end_period > length(lines)) {
-    stop(
-      "Invalid regional-scaling window ", start_period, "-", end_period,
-      " for ", basename(from), " with ", length(lines), " rows.",
-      call. = FALSE
-    )
-  }
-  dir.create(dirname(to), recursive = TRUE, showWarnings = FALSE)
-  writeLines(lines[start_period:end_period], to, useBytes = TRUE)
-  invisible(to)
-}
-
 copy_if_exists <- function(from, to) {
   if (file.exists(from)) copy_one(from, to)
 }

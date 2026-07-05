@@ -61,7 +61,7 @@ edit note is in `steps/<step_id>/input_manifest.csv`.
 | `.tag` | `ofp-sam-2026-BET-YFT-tag-prep` | Copied exactly. `tag_rep_map.R` is only an audit file. |
 | `.age_length` | `ofp-sam-2026-BET-YFT-age-length-build` | Records copied from source; steps 04-15 change effective sample size from `1` to `0.75`. |
 | `.ini` | `ofp-sam-2026-BET-YFT-build-ini` and archived diagnostic inputs | Step-specific generated edits apply BET 2026 L-W, `LN(R0)` from 04 onward, FixM, tag/RR alignment, and MFCL-reader compatibility checks. |
-| `bet.reg_scaling` | `ofp-sam-2026-BET-YFT-frq-build` | Steps 08-15 extract rows 53-72 from the global 292-row source so native MFCL reads the active prior window directly. |
+| `bet.reg_scaling` | `ofp-sam-2026-BET-YFT-frq-build` | Steps 08-15 keep the full 292-row global CPUE regional-scaling source; parest flags 77-81 define the 1965-1969 active prior window without truncating the input. |
 
 Current BET input sources from `origin/main`:
 
@@ -92,7 +92,7 @@ For the exact source-vs-generated comparison, see
 
 | Topic | Note |
 | --- | --- |
-| Regional scaling | Steps 08-15 use an active-window `bet.reg_scaling` file for periods 53-72, matching the 1965-1969 global CPUE covariance-estimation window and native MFCL's direct matrix read. |
+| Regional scaling | Steps 08-15 keep the full `bet.reg_scaling` matrix and use parest flags 77-81 to activate periods 53-72, matching the 1965-1969 global CPUE covariance-estimation window while preserving the native-compatible CPUE scaling target. |
 | Effort creep | Steps 14-15 apply 1%/yr for 1952-1976 and 0.5%/yr for 1977-2024 to index fisheries 29-33. |
 | Region maps | Steps 01-03 use the 2023 9-region asset; steps 04-15 use the 2026 5-region asset. See [`docs/region-map-assets.md`](docs/region-map-assets.md). |
 | Tag reporting rates | MFCL reads the reporting-rate blocks in `bet.ini`; `tag_rep_map.R` is only a human-readable check. See [`docs/tag-reporting-groups.md`](docs/tag-reporting-groups.md). |
