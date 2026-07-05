@@ -596,6 +596,32 @@ ensure_ini_tag_flags <- function(path, n_tag_groups, default_mixing_period = 2L,
     flag_idx <- seq.int(tag_marker + 1L, next_comment[[1L]] - 1L)
     flag_idx <- flag_idx[nzchar(trimws(lines[flag_idx]))]
   }
+  if (length(flag_idx) > n_tag_groups) {
+    drop_idx <- flag_idx[seq.int(n_tag_groups + 1L, length(flag_idx))]
+    kept_last <- trimws(lines[[flag_idx[[n_tag_groups]]]])
+    extra_rows <- trimws(lines[drop_idx])
+    if (!all(vapply(extra_rows, identical, logical(1), kept_last))) {
+      stop(
+        "Found ", length(flag_idx), " tag flag rows in ", path,
+        " but only ", n_tag_groups, " release groups are expected, and the ",
+        "extra rows are not identical to the final kept tag flag row. ",
+        "Refusing to trim tag flags without an explicit release-group mapping.",
+        call. = FALSE
+      )
+    }
+    keep <- rep(TRUE, length(lines))
+    keep[drop_idx] <- FALSE
+    lines <- lines[keep]
+    notes <- c(notes, paste0(
+      "trimmed extra MFCL 1007 tag-control rows from ", length(flag_idx),
+      " to ", n_tag_groups,
+      " release groups"
+    ))
+    tag_marker <- which(vapply(lines, is_tag_flags_marker, logical(1)))
+    next_comment <- which(seq_along(lines) > tag_marker & grepl("^[[:space:]]*#", lines))
+    flag_idx <- seq.int(tag_marker + 1L, next_comment[[1L]] - 1L)
+    flag_idx <- flag_idx[nzchar(trimws(lines[flag_idx]))]
+  }
   if (length(flag_idx) != n_tag_groups) {
     stop(
       "Expected ", n_tag_groups, " tag flag rows in ", path,

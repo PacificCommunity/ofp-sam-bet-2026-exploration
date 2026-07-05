@@ -43,10 +43,11 @@ Generated inputs check three tag sections before Kflow submission:
 | Tag-control rows | One row per release group. |
 | Tag shed rate | One value per release group. |
 
-For `07`-`09`, the selected 2026 tag file has 98 release groups while the source
-`bet.2026.ini` reporting matrices had fewer rows. The generator fills the
-missing release rows by matching `(program, region, year, month)` from the
-previous new-structure ini, then keeps the pooled row last.
+For `07`-`09`, the selected 2026 tag file has 98 release groups and the latest
+source reporting matrices already have 99 rows, including the pooled row. The
+generator copies the latest RR/active/target/penalty blocks from the mix-period
+ini, then checks the dimensions and positive-recapture cells before writing the
+model folder.
 
 ## Generated Changes To Tag Inputs
 
@@ -57,21 +58,16 @@ that match the selected `.tag`.
 | Scope | Source | Change in generated `bet.ini` |
 | --- | --- | --- |
 | `.tag`, steps 07-15 | `bet.2026.low.recaps.removed.tag` | Copied unchanged from the tag-prep repo. |
-| Tag flags, steps 07-09 | `bet.2026.ini` | Rows padded from 91 to 98; column 2 `tag_flags(it,2)` set from `1` to `0`. |
-| RR matrices, steps 07-09 | `bet.2026.mix-0.2.ini` | Five RR blocks copied into the 07-09 `.ini`, then kept at 99 rows. |
+| Tag flags, steps 04-06 | `bet.2023.new.structure.ini` | Source has 98 identical tag-control rows for a 96-release-group tag file; generated rows are trimmed to 96. |
+| Tag flags, steps 07-09 | `bet.2026.ini` | Latest 98 rows kept; column 2 `tag_flags(it,2)` set from `1` to `0`. |
+| RR matrices, steps 07-09 | `bet.2026.mix-0.2.ini` | Five RR/active/target/penalty blocks copied into the 07-09 `.ini`, then kept at 99 rows. |
 | Tag flags, steps 10-15 | `bet.2026.mix-0.2.ini` | Column 2 `tag_flags(it,2)` set from `1` to `0`. |
 | Mixing periods, steps 10-15 | `bet.2026.mix-0.2.ini` | Source `0` mixing periods are raised to `1` for groups `43` and `46`. |
-| Fishery 19 RR, steps 07-15 | Generated `.ini` | Release groups `19`, `20`, `21`, `31`, `35`, and `40` copy fishery 21 settings into fishery 19. |
+| Positive recapture RR check, steps 04-15 | Generated `.ini` and selected `.tag` | Every positive recapture must have nonzero RR, active, target, and penalty cells. |
 
-Fishery 19 repair cells:
-
-| Block | Cell change |
-| --- | --- |
-| `# tag fish rep` | `0 -> 0.5` |
-| `# tag fish rep group flags` | `16 -> 15` |
-| `# tag_fish_rep active flags` | `0 -> 1` |
-| `# tag_fish_rep target` | `0 -> 50` |
-| `# tag_fish_rep penalty` | `0 -> 1` |
+The older fishery 19 repair helper remains available for older upstream inputs
+that still have inactive RR cells, but the latest `f8faf7c` / `e0b427d` source
+combination passes by validation rather than by applying that repair.
 
 The full cell-by-cell audit remains in each model folder as
 `steps/<step_id>/model/tag_rep_map.R`.

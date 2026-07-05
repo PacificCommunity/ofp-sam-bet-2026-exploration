@@ -88,4 +88,4 @@ For the exact source-vs-generated comparison, see
 | Region maps | Steps 01-03 use the 2023 9-region asset; steps 04-15 use the 2026 5-region asset. See [`docs/region-map-assets.md`](docs/region-map-assets.md). |
 | Tag reporting rates | MFCL reads the reporting-rate blocks in `bet.ini`; `tag_rep_map.R` is only a human-readable check. See [`docs/tag-reporting-groups.md`](docs/tag-reporting-groups.md). |
 | Length-weight | Step 02c changes BET L-W from the 2023 value `3.063397e-05 2.932384` to the bias-corrected 2026 value `3.073533e-05 2.932410`; later steps retain it. |
-| Tag mixing source | Steps 10-15 use `ofp-sam-2026-BET-YFT-build-ini` commit `a6e932d` `BET/ini.mix-period/bet.2026.mix-0.2.ini`; source zero mixing periods for release groups 43 and 46 are raised to `1`, while `tag_flags(it,2)=0` and the fishery 19 RR repair are retained. |
+| Tag mixing source | Steps 10-15 use `ofp-sam-2026-BET-YFT-build-ini` commit `f8faf7c` `BET/ini.mix-period/bet.2026.mix-0.2.ini`; source zero mixing periods for release groups 43 and 46 are raised to `1`, while `tag_flags(it,2)=0` is retained and RR/active/target/penalty cells are validated against positive recaptures. |

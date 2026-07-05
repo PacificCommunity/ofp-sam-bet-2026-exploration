@@ -692,9 +692,9 @@ newstructure_ini <- file.path(newstructure_model_dir, "bet.ini")
 newstructure_tag <- file.path(newstructure_model_dir, "bet.tag")
 
 latest_2026_tag_note <- paste(
-  "`bet.2026.low.recaps.removed.tag`; latest tag-prep build, including",
-  "canneries-based reassignment of recaptures with missing gear to purse-seine",
-  "fisheries before low-recap filtering"
+  "`bet.2026.low.recaps.removed.tag`; latest tag-prep build with updated RR",
+  "groups and canneries-based reassignment of recaptures with missing gear to",
+  "purse-seine fisheries before low-recap filtering"
 )
 
 fishery19_reporting_rate_repair <- list(list(
@@ -702,14 +702,15 @@ fishery19_reporting_rate_repair <- list(list(
   source_fishery = 21L
 ))
 fishery19_reporting_rate_note <- paste(
-  "Positive fishery 19 tag recaptures with inactive zero reporting-rate cells",
-  "are assigned the matching fishery 21 reporting-rate settings."
+  "Positive tag recapture RR, active, target, and penalty cells are validated",
+  "after copying the latest RR groupings; the fishery 19 repair only remains",
+  "as a fallback for older sources that still need it."
 )
 
 full_2024_alignment_run_notes <- c(
   "Generated inputs only repair `.ini` alignment: reporting-rate matrices, tag flags, and shed rates are matched to the selected release-group count.",
   "The latest `bet.2026.low.recaps.removed.tag` is kept; the tag build assigns missing-gear canneries recaptures to purse-seine before low-recap filtering.",
-  "The 2026 reporting-rate matrix is copied from the mix-period ini source before Kflow runs.",
+  "The latest 2026 reporting-rate, active, target, and penalty matrices are copied from the mix-period ini source before Kflow runs.",
   fishery19_reporting_rate_note
 )
 mix_period_alignment_run_notes <- c(
@@ -739,7 +740,7 @@ input_changes_07_08 <- input_change_table(
   c(".frq", ".ini", ".tag", ".age_length"),
   c(
     "No generated edit; full 2024 source is used.",
-    "Pads 2026 tag/RR/shed blocks from 91 to 98 release groups, copies RR matrices from `mix-0.2`, sets `tag_flags(it,2)=0`, applies fixed M, and repairs fishery 19 RR cells.",
+    "Copies latest RR/active/target/penalty matrices from `mix-0.2`, aligns tag-control rows to the selected tag release groups, sets `tag_flags(it,2)=0`, applies fixed M, and validates positive recapture cells.",
     "No generated edit.",
     "Changes effective sample size from `1` to `0.75`."
   ),
@@ -755,7 +756,7 @@ input_changes_09 <- input_change_table(
   c(".frq", ".ini", ".tag", ".age_length"),
   c(
     "No generated edit; full 2024 regional-CPUE source is used.",
-    "Pads 2026 tag/RR/shed blocks from 91 to 98 release groups, copies RR matrices from `mix-0.2`, sets `tag_flags(it,2)=0`, applies fixed M, and repairs fishery 19 RR cells.",
+    "Copies latest RR/active/target/penalty matrices from `mix-0.2`, aligns tag-control rows to the selected tag release groups, sets `tag_flags(it,2)=0`, applies fixed M, and validates positive recapture cells.",
     "No generated edit.",
     "Switches to the 2026 CAAL source and changes effective sample size from `1` to `0.75`."
   ),
@@ -771,7 +772,7 @@ input_changes_mix_period <- input_change_table(
   c(".frq", ".ini", ".tag", ".age_length"),
   c(
     "No generated edit; full 2024 regional-CPUE source is used.",
-    "Uses release-specific mixing from `mix-0.2`, sets `tag_flags(it,2)=0`, raises source zero mixing periods to `1`, applies fixed M, and repairs fishery 19 RR cells.",
+    "Uses release-specific mixing and latest RR/active/target/penalty matrices from `mix-0.2`, aligns tag-control rows to the selected tag release groups, sets `tag_flags(it,2)=0`, raises source zero mixing periods to `1`, applies fixed M, and validates positive recapture cells.",
     "No generated edit.",
     "Changes effective sample size from `1` to `0.75`."
   ),
@@ -787,7 +788,7 @@ input_changes_effort_creep <- input_change_table(
   c(".frq", ".ini", ".tag", ".age_length"),
   c(
     "Applies effort creep to positive effort values for index fisheries 29-33.",
-    "Uses release-specific mixing from `mix-0.2`, sets `tag_flags(it,2)=0`, raises source zero mixing periods to `1`, applies fixed M, and repairs fishery 19 RR cells.",
+    "Uses release-specific mixing and latest RR/active/target/penalty matrices from `mix-0.2`, aligns tag-control rows to the selected tag release groups, sets `tag_flags(it,2)=0`, raises source zero mixing periods to `1`, applies fixed M, and validates positive recapture cells.",
     "No generated edit.",
     "Changes effective sample size from `1` to `0.75`."
   ),
@@ -873,18 +874,18 @@ make_step(
     "Uses `bet.2026.new-structure.global-cpue.wt-as-len-plus-len.frq` without year chopping.",
     "Moves from the 2021 transition steps to the full 2024 frequency/catch/size series.",
     "Keeps old CAAL so the new otolith update is isolated in 09-NewOtoliths.",
-    paste0("Uses the 2026 low-recapture-removed tag file and 2026 reporting-rate matrix, with ", fixm_age_par_display, ".")
+    paste0("Uses the 2026 low-recapture-removed tag file and latest 2026 tag-reporting matrices, with ", fixm_age_par_display, ".")
   ),
   input_notes = c(
     "bet.frq" = "`bet.2026.new-structure.global-cpue.wt-as-len-plus-len.frq`, full 2024 with global CPUE",
-    "bet.ini" = paste("`bet.2026.ini` with tag reporting-rate matrices from `bet.2026.mix-0.2.ini`; two-quarter tag mixing retained,", fixm_age_par_note),
+    "bet.ini" = paste("`bet.2026.ini` with RR/active/target/penalty matrices from `bet.2026.mix-0.2.ini`; two-quarter tag mixing retained,", fixm_age_par_note),
     "bet.tag" = latest_2026_tag_note,
     "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
   ),
   control_notes = c(
     "04-NewStructure 5-region `doitall.sh` controls retained.",
     "The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period.",
-    "The 2026 reporting-rate matrix is copied from `bet.2026.mix-0.2.ini` before final alignment checks."
+    "The latest 2026 RR, active, target, and penalty matrices are copied from `bet.2026.mix-0.2.ini` before final alignment checks."
   ),
   input_changes = input_changes_07_08,
   run_notes = full_2024_alignment_run_notes,
@@ -908,11 +909,11 @@ make_step(
     "Uses the full 2024 regional CPUE `.frq` from the frq-build repo.",
     "Adds `bet.reg_scaling` and switches to the regional-scaling prior in PHASE 5.",
     "Keeps old CAAL so the new otolith update is isolated in 09-NewOtoliths.",
-    paste0("Uses the 2026 low-recapture-removed tag file and 2026 reporting-rate matrix, with ", fixm_age_par_display, ".")
+    paste0("Uses the 2026 low-recapture-removed tag file and latest 2026 tag-reporting matrices, with ", fixm_age_par_display, ".")
   ),
   input_notes = c(
     "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
-    "bet.ini" = paste("`bet.2026.ini` with tag reporting-rate matrices from `bet.2026.mix-0.2.ini`; two-quarter tag mixing retained,", fixm_age_par_note),
+    "bet.ini" = paste("`bet.2026.ini` with RR/active/target/penalty matrices from `bet.2026.mix-0.2.ini`; two-quarter tag mixing retained,", fixm_age_par_note),
     "bet.tag" = latest_2026_tag_note,
     "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
   ),
@@ -920,7 +921,7 @@ make_step(
     "04-NewStructure 5-region `doitall.sh` controls retained until PHASE 5.",
     "PHASE 5 switches index CPUE/selectivity grouping for the regional-scaling prior.",
     "The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period.",
-    "The 2026 reporting-rate matrix is copied from `bet.2026.mix-0.2.ini` before final alignment checks."
+    "The latest 2026 RR, active, target, and penalty matrices are copied from `bet.2026.mix-0.2.ini` before final alignment checks."
   ),
   input_changes = input_changes_07_08,
   run_notes = full_2024_alignment_run_notes,
@@ -941,21 +942,21 @@ make_step(
   title = "09 NewOtoliths",
   summary = "New Japanese otoliths and 2026 CAAL input on the regional CPUE model.",
   bullets = c(
-    "Uses the same regional CPUE `.frq`, 2026 reporting-rate matrix, and 2026 `.tag` as 08-RegionalCPUE.",
+    "Uses the same regional CPUE `.frq`, latest 2026 tag-reporting matrices, and 2026 `.tag` as 08-RegionalCPUE.",
     "Switches CAAL from `bet.2023.new-structure.age_length` to `bet.2026.age_length`.",
     "The 2026 age_length file includes the new otolith data used for this step.",
     paste("Applies", fixm_age_par_display, "to the 2026 ini.")
   ),
   input_notes = c(
     "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
-    "bet.ini" = paste("`bet.2026.ini` with tag reporting-rate matrices from `bet.2026.mix-0.2.ini`; two-quarter tag mixing retained,", fixm_age_par_note),
+    "bet.ini" = paste("`bet.2026.ini` with RR/active/target/penalty matrices from `bet.2026.mix-0.2.ini`; two-quarter tag mixing retained,", fixm_age_par_note),
     "bet.tag" = latest_2026_tag_note,
     "bet.age_length" = "`bet.2026.age_length` (updated CAAL/new otoliths)"
   ),
   control_notes = c(
     "08-RegionalCPUE controls retained.",
     "The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period.",
-    "The 2026 reporting-rate matrix is copied from `bet.2026.mix-0.2.ini` before final alignment checks."
+    "The latest 2026 RR, active, target, and penalty matrices are copied from `bet.2026.mix-0.2.ini` before final alignment checks."
   ),
   input_changes = input_changes_09,
   run_notes = full_2024_alignment_run_notes,
