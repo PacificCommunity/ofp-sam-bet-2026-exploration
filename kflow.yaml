@@ -21,7 +21,7 @@ docker_image: ghcr.io/pacificcommunity/tuna-flow:v2.1
 # HTCondor resource request. Increase memory/disk before increasing CPUs unless
 # the MFCL command itself can use more threads.
 resources:
-  cpus: 2
+  cpus: 4
   memory: 8GB
   disk: 8GB
 
@@ -53,7 +53,7 @@ env:
   REPORT_FILE_STEM: bet-2026-report
   RUN_MODE: mfclrtmb_doitall
   MFCLRTMB_OPTIMIZER: nlminb
-  MFCLRTMB_OPENMP_THREADS: "1"
+  MFCLRTMB_OPENMP_THREADS: "4"
   MFCLRTMB_OPENMP_AUTOPAR: "false"
   MFCLRTMB_LOW_MEMORY: "true"
   MFCLRTMB_VERBOSE_MEMORY: "true"
@@ -63,7 +63,7 @@ env:
   MFCLRTMB_RUN_POST_SWITCHES: "true"
   MFCLRTMB_EXACT_REPORT: "true"
   MFCLRTMB_WRITE_MFCL_FILES: "true"
-  MFCLRTMB_TAG_FULL_MANUAL_ADJOINT_OPENMP: "false"
+  MFCLRTMB_TAG_FULL_MANUAL_ADJOINT_OPENMP: "true"
   MFCLRTMB_TAG_FULL_MANUAL_SPLIT_CHUNKS: ""
   MFCLRTMB_TAG_FULL_MANUAL_SPLIT_CHUNKS_PER_THREAD: ""
   MFCLRTMB_TAG_FULL_PACKED_MORTALITY: "true"
@@ -104,7 +104,7 @@ env:
   TUNA_FLOW_RUNTIME_UPDATE: never
   KFLOW_REPO_RUNTIME_UPDATE: auto
   KFLOW_RUNTIME_PACKAGES: none
-  KFLOW_REPO_RUNTIME_PACKAGES: mfclshiny=PacificCommunity/mfclshiny@3615149ed9eb2998776fa1868d5c79b714d4b915,mfclrtmb=PacificCommunity/ofp-sam-mfclrtmb@c0a88be590056afa0b6b1285614e1bb629cd6e22
+  KFLOW_REPO_RUNTIME_PACKAGES: mfclshiny=PacificCommunity/mfclshiny@3615149ed9eb2998776fa1868d5c79b714d4b915,mfclrtmb=PacificCommunity/ofp-sam-mfclrtmb@d6344a4c993a8a906e4f25e9ff72525f880e9b31
   MFCLSHINY_GITHUB_REF: 3615149ed9eb2998776fa1868d5c79b714d4b915
   KFLOW_RUNTIME_GITHUB_AUTH: "true"
   KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME: "true"
