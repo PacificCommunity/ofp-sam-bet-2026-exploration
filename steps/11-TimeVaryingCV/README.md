@@ -25,7 +25,7 @@ Enable time-varying CPUE CV for the regional index fisheries.
 | `.ini` | `bet.2026.mix-0.2.ini`, FixM M row applied from the 01-Diag2023 mgc=-5 diagnostic final par; harmonized initial RR values only in 1 tag reporting-rate group(s) so grouped starts are native-MFCL compatible; group flags, targets, and penalties unchanged; raised 2 zero tag mixing periods to 1 because MFCL >=2.2.7.5 disallows 0; normalized MFCL 1007 tag-control rows for 98 release groups |
 | `.tag` | `bet.2026.low.recaps.removed.tag`; latest tag-prep build with updated RR groups and canneries-based reassignment of recaptures with missing gear to purse-seine fisheries before low-recap filtering |
 | `.age_length` | `bet.2026.age_length` (updated CAAL); set age_length effective sample size to 0.75 for 181 records |
-| `.reg_scaling` | `bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions |
+| `.reg_scaling` | `bet.2026.reg_scaling` global CPUE regional-scaling matrix, rows 53-72 only (1965-1969), because native MFCL reads the active-window matrix directly |
 | `input_manifest.csv` | machine-readable source/input notes |
 
 ## Generated Input Changes

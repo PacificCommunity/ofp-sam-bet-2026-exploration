@@ -21,11 +21,11 @@ Nick's suggestion.
 
 | Area | Fix |
 | --- | --- |
-| Input file | Copied `BET/bet.2026.reg_scaling` from the frq-build repo to `bet.reg_scaling` in 06-12. |
-| File shape | Verified each `bet.reg_scaling` has 292 rows and 5 columns, matching full 1952-2024 quarterly periods and 5 regions. |
+| Input file | Initially copied `BET/bet.2026.reg_scaling` from the frq-build repo to `bet.reg_scaling` in 06-12; this was superseded on 2026-07-06 by extracting rows 53-72 only for native MFCL compatibility. |
+| File shape | Initially verified each `bet.reg_scaling` had 292 rows and 5 columns; current generated steps use the 20-row active window because native MFCL reads the regional-scaling matrix directly. |
 | Early phases | PHASE 1-4 retain the current `CPUE_scaling` setup: index fisheries 29-33 share CPUE group 29 and selectivity group 25. |
 | PHASE 5 switch | PHASE 5 switches to `Prior_reg_biomass`: index CPUE groups become 29-33, fish flag 94 is set to 0, and index selectivity groups become 25-29. |
-| Doitall flags | Added `1 77 50`, `1 78 1`, `1 79 290`, `1 80 0`, and `1 81 1` in PHASE 5 for the MVN regional-scaling penalty. |
+| Doitall flags | Current generated steps add `1 77 50`, `1 78 1`, `1 79 240`, `1 80 220`, and `1 81 1` in PHASE 5 for the MVN regional-scaling penalty. |
 | Reproducibility | Updated `R/prepare_bet_2026_step_inputs.R` so regeneration preserves the files, flags, manifests, and READMEs. |
 | Run safety | Added `set -eu` to `doitall.sh` so an MFCL failure stops the job immediately instead of continuing with missing `.par` files. |
 
@@ -37,38 +37,41 @@ Nick's suggestion.
 - `parest_flags(77)>0` activates the regional-scaling penalty and sets its weight.
 - `parest_flags(78)=1` uses the mean regional-scaling target.
 - `parest_flags(79)` is interpreted by MFCL as `preg_start = nyears - flag79 + 1`.
-- `parest_flags(79)=290` starts the 292-period full-2024 regional-scaling
-  prior at period 3, matching the first period covered by all index fisheries.
-- `parest_flags(80)=0` ends at the terminal model period.
+- `parest_flags(79)=240` starts the 292-period full-2024 regional-scaling
+  prior at period 53, the first quarter of the 1965-1969 covariance window.
+- `parest_flags(80)=220` ends the prior at period 72, the last quarter of
+  the 1965-1969 covariance window.
 - `parest_flags(81)=1` uses the multivariate-normal penalty.
 
 ## Current Assumptions
 
-- Regional scaling starts in `06-Full2024`, as described in plan v2.
-- Steps `03-05` remain 2021-terminal transition steps and do not use
+- Regional scaling starts in `08-RegionalCPUE`, after the 2026 regional CPUE
+  input is introduced.
+- Steps `03-07` remain transition steps and do not use
   `bet.reg_scaling`; they retain one shared index selectivity group.
-- Steps `06-12` use the 09/06/2026 `Prior_reg_biomass` pattern from PHASE 5.
+- Steps `08-15` use the 09/06/2026 `Prior_reg_biomass` pattern from PHASE 5.
 - The initial regional-scaling weight is `parest_flags(77)=50`; 150, 500, and
   3000 remain documented candidates for later sensitivity or tuning.
-- The regional-scaling prior starts at period 3 because MFCL rejects period 1
-  when an index fishery starts later than period 1.
+- The regional-scaling prior uses periods 53-72, and the generated
+  `bet.reg_scaling` files contain only those 20 active rows because native
+  MFCL streams the active-window matrix directly from file start.
 - Arni's 19/06/2026 sigma values are retained in `fish_flags(92)` unless later
   residual diagnostics indicate they should be changed.
 
 ## Verification
 
 - `Rscript R/prepare_bet_2026_step_inputs.R` completed successfully.
-- All 06-12 `bet.reg_scaling` files are byte-identical to the frq-build source.
-- `03-RegFish` still has 25 selectivity groups with index fisheries 29-33 in
-  group 25.
-- `06-Full2024` through `12-DataWeight40` now keep that shared index selectivity
-  in PHASE 1 and switch to groups 25-29 in PHASE 5.
-- `parest_flags(79)=290` was chosen from the MFCL source interpretation:
-  `292 - 290 + 1 = 3`.
+- Steps 08-15 `bet.reg_scaling` files contain rows 53-72 from the frq-build
+  source.
+- Steps 03-07 still keep index fisheries 29-33 in the shared selectivity group.
+- Steps 08-15 keep that shared index selectivity in PHASE 1 and switch to
+  groups 25-29 in PHASE 5.
+- `parest_flags(79)=240` and `parest_flags(80)=220` were chosen from the MFCL
+  source interpretation: `292 - 240 + 1 = 53` and `292 - 220 = 72`.
 
 ## Still To Review
 
-- Review regional-scaling output once the full 06-12 Kflow jobs finish.
+- Review regional-scaling output once the full 08-15 Kflow jobs finish.
 - Decide whether the `77=50` starting weight should be increased to 150, 500,
   or 3000 after diagnostics.
 - Confirm after fitting that unshared index CPUE/selectivity plus the

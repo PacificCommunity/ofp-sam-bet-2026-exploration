@@ -168,11 +168,21 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
   }
   has_reg_scaling <- nzchar(reg_scaling_source)
   if (has_reg_scaling) {
-    copy_one(reg_scaling_source, file.path(model_dir, "bet.reg_scaling"))
     regional_scaling_periods <- length(readLines(reg_scaling_source, warn = FALSE))
+    copy_regional_scaling_window(
+      reg_scaling_source,
+      file.path(model_dir, "bet.reg_scaling"),
+      start_period = reg_scaling_active_start_period,
+      end_period = reg_scaling_active_end_period
+    )
     if (!"bet.reg_scaling" %in% names(input_notes)) {
       input_notes[["bet.reg_scaling"]] <-
-        "`bet.2026.reg_scaling` global CPUE regional-scaling matrix, 292 quarterly rows x 5 regions"
+        paste0(
+          "`bet.2026.reg_scaling` global CPUE regional-scaling matrix, rows ",
+          reg_scaling_active_start_period, "-", reg_scaling_active_end_period,
+          " only (", reg_scaling_active_years, "), because native MFCL reads ",
+          "the active-window matrix directly"
+        )
     }
   }
   control_notes <- c(
@@ -253,7 +263,13 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
       role = "reg_scaling",
       file = "bet.reg_scaling",
       source = reg_scaling_source,
-      note = "global CPUE regional-scaling matrix for MFCL parest flags 77-81"
+      note = paste0(
+        "rows ", reg_scaling_active_start_period, "-",
+        reg_scaling_active_end_period,
+        " extracted from the global CPUE regional-scaling matrix for MFCL ",
+        "parest flags 77-81; native MFCL reads this active-window matrix ",
+        "directly"
+      )
     )), after = 4L)
   }
   write_manifest(step_dir, entries)

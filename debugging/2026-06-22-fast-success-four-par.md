@@ -15,10 +15,10 @@ One 12-DataWeight40 Kflow run finished very quickly and archived only
 
 | Area | Change |
 | --- | --- |
-| Regional scaling period | Changed `parest_flags(79)` from `0` to `290` in 06-12 PHASE 5. |
-| MFCL interpretation | With 292 full-2024 periods, MFCL calculates `preg_start = 292 - 290 + 1 = 3`. |
+| Regional scaling period | The early fix changed `parest_flags(79)` from `0` to `290`; current generated steps use `79=240` and `80=220` for periods 53-72. |
+| MFCL interpretation | With 292 full-2024 periods, MFCL calculates `preg_start = 292 - 240 + 1 = 53` and `preg_end = 292 - 220 = 72`. |
 | Job failure handling | Added `set -eu` to all 12 `doitall.sh` scripts. |
-| Generator | Updated `R/prepare_bet_2026_step_inputs.R` so regenerated 04-12 scripts keep fail-fast behavior and 06-12 keep the period-3 regional-scaling start. |
+| Generator | Updated `R/prepare_bet_2026_step_inputs.R` so regenerated scripts keep fail-fast behavior and steps 08-15 keep the period 53-72 regional-scaling window. |
 
 ## Why This Matters
 
@@ -29,8 +29,10 @@ should now be prevented.
 ## Verification
 
 - `sh -n` passed for every `steps/*/model/doitall.sh`.
-- All 06-12 `doitall.sh` files contain `1 79 290`.
+- All current regional-scaling `doitall.sh` files contain `1 79 240` and `1 80 220`.
 - All 12 `.frq` files have a fishery-region line matching the header fishery
   count.
 - All 03-12 `.frq`, `.tag`, and `.ini` tag group counts agree.
-- All 06-12 `bet.reg_scaling` files are 292 rows x 5 columns.
+- At the time, all regional-scaling `bet.reg_scaling` files were 292 rows x 5 columns;
+  this was superseded on 2026-07-06 by writing only the 20-row active window
+  for native MFCL compatibility.

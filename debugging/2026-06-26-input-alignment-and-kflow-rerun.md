@@ -106,7 +106,7 @@ Nick Davies's MFCL-version note is also applied:
 - `age_flags(128)` is kept at 100 so the latest MFCL interprets the initial
   equilibrium natural-mortality multiplier as 1.0;
 - regional-scaling controls use `bet.reg_scaling` with `parest_flags(77)=50`
-  and a period-3 start for the 292-period full-2024 runs.
+  and the active period 53-72 window for the 292-period full-2024 runs.
 
 ## Warnings Left Intact
 
