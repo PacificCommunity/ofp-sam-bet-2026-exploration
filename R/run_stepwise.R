@@ -131,6 +131,104 @@ mode_key <- function(run_mode) {
   gsub("-", "_", tolower(trimws(as.character(run_mode %||% ""))), fixed = TRUE)
 }
 
+engine_label <- function(run_engine, program = "") {
+  if (identical(run_engine, "mfclrtmb")) return("mfclrtmb")
+  if (grepl("2023_diagnostic|diagnostic", basename(program), ignore.case = TRUE)) {
+    return("native MFCL old")
+  }
+  "native MFCL"
+}
+
+model_display_label <- function(label, run_engine, program = "") {
+  suffix <- engine_label(run_engine, program)
+  if (grepl(paste0("\\(", suffix, "\\)$"), label, ignore.case = TRUE)) return(label)
+  paste0(label, " (", suffix, ")")
+}
+
+format_elapsed_time <- function(seconds) {
+  seconds <- suppressWarnings(as.numeric(seconds))
+  if (!length(seconds) || !is.finite(seconds)) return("")
+  if (seconds < 90) return(sprintf("%.1f sec", seconds))
+  minutes <- seconds / 60
+  if (minutes < 90) return(sprintf("%.1f min", minutes))
+  sprintf("%.2f hr", minutes / 60)
+}
+
+parse_mfclrtmb_fit_elapsed_seconds <- function(log_file) {
+  if (!file.exists(log_file)) return(NA_real_)
+  lines <- readLines(log_file, warn = FALSE)
+  phase_lines <- grep("\\[mfclrtmb\\] phase-[^ ]+ .*total [0-9.]+s", lines, value = TRUE)
+  if (!length(phase_lines)) return(NA_real_)
+  totals <- suppressWarnings(as.numeric(sub(".*total ([0-9.]+)s\\).*", "\\1", phase_lines)))
+  totals <- totals[is.finite(totals)]
+  if (!length(totals)) NA_real_ else max(totals)
+}
+
+manifest_value <- function(x) {
+  if (inherits(x, "POSIXt")) return(format(x, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+  if (is.logical(x)) return(tolower(as.character(x[[1L]])))
+  if (is.numeric(x)) return(x[[1L]])
+  as.character(x[[1L]])
+}
+
+write_payload_metadata <- function(payload_file, model_dir, metadata) {
+  metadata <- metadata[!vapply(metadata, is.null, logical(1))]
+  metadata <- lapply(metadata, manifest_value)
+  registry_fields <- c(
+    "model_label", "base_model_label", "plot_label", "model_token",
+    "job_key", "run_engine", "engine_label", "run_mode", "requested_run_mode",
+    "region_count", "kflow_memory", "model_run_elapsed_seconds",
+    "model_fit_elapsed_seconds", "model_run_time"
+  )
+
+  if (file.exists(payload_file)) {
+    payload <- tryCatch(readRDS(payload_file), error = function(e) NULL)
+    if (is.list(payload)) {
+      if (is.null(payload$data) || !is.list(payload$data)) payload$data <- list()
+      if (is.null(payload$data$info) || !is.list(payload$data$info)) payload$data$info <- list()
+      if (is.null(payload$data$info$registry) || !is.list(payload$data$info$registry)) {
+        payload$data$info$registry <- list()
+      }
+      for (name in names(metadata)) {
+        payload$data$info[[name]] <- metadata[[name]]
+      }
+      for (name in intersect(registry_fields, names(metadata))) {
+        payload$data$info$registry[[name]] <- metadata[[name]]
+      }
+      saveRDS(payload, payload_file, compress = "xz")
+    }
+  }
+
+  manifest_path <- file.path(model_dir, "model_payload_manifest.json")
+  manifest_csv <- file.path(model_dir, "model_payload_manifest.csv")
+  manifest <- if (file.exists(manifest_csv)) {
+    tryCatch(read.csv(manifest_csv, stringsAsFactors = FALSE, check.names = FALSE), error = function(e) data.frame())
+  } else {
+    data.frame()
+  }
+  if (!nrow(manifest)) {
+    manifest <- data.frame(
+      schema = "mfclshiny.model_payload_manifest.v1",
+      created_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  }
+  for (name in names(metadata)) {
+    manifest[[name]] <- metadata[[name]]
+  }
+  write.csv(manifest, manifest_csv, row.names = FALSE)
+  if (requireNamespace("jsonlite", quietly = TRUE)) {
+    jsonlite::write_json(manifest, manifest_path, dataframe = "rows", auto_unbox = TRUE, pretty = TRUE, null = "null")
+  }
+  registry <- as.data.frame(metadata[intersect(registry_fields, names(metadata))],
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  write.csv(registry, file.path(model_dir, "model-registry.csv"), row.names = FALSE)
+  invisible(TRUE)
+}
+
 is_doitall_mode <- function(run_mode) {
   mode_key(run_mode) %in% c("doitall", "script")
 }
@@ -784,12 +882,13 @@ for (i in seq_len(nrow(step_table))) {
   frqs <- list.files(model_dir, pattern = "[.]frq$", full.names = FALSE)
   frq <- cfg$FRQ %||% if (length(frqs)) frqs[[1]] else ""
   if (!nzchar(frq) || is.na(frq)) stop("No .frq file found for ", step_id, call. = FALSE)
-  log_file <- file.path(model_dir, "mfcl.log")
-  message("Running ", step_id, " (", label, ")")
-  message("  source: ", relative_display_path(model_source, root))
   run_engine <- if (is_mfclrtmb_doitall_mode(run_mode)) "mfclrtmb" else "mfcl"
+  display_label <- model_display_label(label, run_engine, step_program)
+  log_file <- file.path(model_dir, "mfcl.log")
+  message("Running ", step_id, " (", display_label, ")")
+  message("  source: ", relative_display_path(model_source, root))
   message("  mode:   ", run_mode)
-  message("  engine: ", run_engine)
+  message("  engine: ", engine_label(run_engine, step_program))
   if (!is_mfclrtmb_doitall_mode(run_mode)) {
     message("  mfcl:   ", step_program)
   }
@@ -832,6 +931,7 @@ for (i in seq_len(nrow(step_table))) {
     }
   }
   old <- setwd(model_dir)
+  model_run_started_at <- Sys.time()
   status <- tryCatch({
     if (is_doitall_mode(run_mode)) {
       message("  script: ", run_script_name)
@@ -847,6 +947,10 @@ for (i in seq_len(nrow(step_table))) {
       run_mfcl(step_program, args, log_file = log_file, live_log = mfcl_live_log)
     }
   }, finally = setwd(old))
+  model_run_finished_at <- Sys.time()
+  model_run_elapsed_seconds <- as.numeric(difftime(model_run_finished_at, model_run_started_at, units = "secs"))
+  parsed_fit_seconds <- if (identical(run_engine, "mfclrtmb")) parse_mfclrtmb_fit_elapsed_seconds(log_file) else NA_real_
+  model_fit_elapsed_seconds <- if (is.finite(parsed_fit_seconds)) parsed_fit_seconds else model_run_elapsed_seconds
   if (!identical(status, 0L)) stop("MFCL failed for ", step_id, " with status ", status, call. = FALSE)
 
   final_output_par <- if (is_doitall_like_mode(run_mode)) {
@@ -870,7 +974,8 @@ for (i in seq_len(nrow(step_table))) {
     message("  saved par: ", relative_display_path(saved_final_par, root))
     saved_par_rows[[length(saved_par_rows) + 1L]] <- data.frame(
       step_id = step_id,
-      model_label = label,
+      model_label = display_label,
+      base_model_label = label,
       requested_run_mode = requested_run_mode,
       run_mode = run_mode,
       requested_input_par = requested_input_par,
@@ -893,6 +998,36 @@ for (i in seq_len(nrow(step_table))) {
   }
   payload_file <- file.path(model_dir, "model_payload.rds")
   footer <- par_footer(final_par)
+  requested_region_count <- suppressWarnings(as.integer(cfg$REGION_COUNT %||% NA_integer_))
+  detected_region_count <- if (exists("detect_frq_region_count", mode = "function")) {
+    detect_frq_region_count(file.path(model_dir, frq))
+  } else {
+    NA_integer_
+  }
+  region_count <- if (is.finite(detected_region_count)) detected_region_count else requested_region_count
+  run_metadata <- list(
+    model_label = display_label,
+    base_model_label = label,
+    plot_label = display_label,
+    model_token = display_label,
+    job_key = cfg$JOB_KEY %||% "",
+    step_id = step_id,
+    run_engine = run_engine,
+    engine_label = engine_label(run_engine, step_program),
+    run_mode = run_mode,
+    requested_run_mode = requested_run_mode,
+    mfcl_program_path = step_program,
+    region_count = region_count,
+    kflow_memory = env("KFLOW_JOB_MEMORY", cfg$KFLOW_MEMORY %||% ""),
+    model_run_started_at = model_run_started_at,
+    model_run_finished_at = model_run_finished_at,
+    model_run_elapsed_seconds = model_run_elapsed_seconds,
+    model_fit_elapsed_seconds = model_fit_elapsed_seconds,
+    model_run_time = format_elapsed_time(model_fit_elapsed_seconds)
+  )
+  if (file.exists(payload_file)) {
+    write_payload_metadata(payload_file, model_dir, run_metadata)
+  }
 
   step_out <- file.path(out_dir, "models", step_id)
   dir.create(step_out, recursive = TRUE, showWarnings = FALSE)
@@ -900,6 +1035,7 @@ for (i in seq_len(nrow(step_table))) {
     "model_payload.rds",
     "model_payload_manifest.json",
     "model_payload_manifest.csv",
+    "model-registry.csv",
     "fishery_map.R",
     "tag_rep_map.R",
     "doitall.sh",
@@ -919,11 +1055,6 @@ for (i in seq_len(nrow(step_table))) {
     if (file.exists(src)) file.copy(src, file.path(step_out, basename(file)), overwrite = TRUE)
   }
   file.copy(final_par, file.path(step_out, "final.par"), overwrite = TRUE, copy.date = TRUE)
-  region_count <- if (exists("detect_frq_region_count", mode = "function")) {
-    detect_frq_region_count(file.path(model_dir, frq))
-  } else {
-    NA_integer_
-  }
   region_map_asset_path <- copy_model_region_map_assets(step_out, region_count)
   region_map_assets <- nzchar(region_map_asset_path) && file.exists(region_map_asset_path)
   summary <- data.frame(
@@ -931,9 +1062,11 @@ for (i in seq_len(nrow(step_table))) {
     major_step = cfg$MAJOR_STEP %||% "",
     substep = cfg$SUBSTEP %||% "",
     change_axis = cfg$CHANGE_AXIS %||% "",
-    model_label = label,
+    model_label = display_label,
+    base_model_label = label,
     model_source = relative_display_path(model_source, root),
     run_engine = run_engine,
+    engine_label = engine_label(run_engine, step_program),
     mfcl_program_path = step_program,
     run_mode = run_mode,
     requested_run_mode = requested_run_mode,
@@ -949,6 +1082,10 @@ for (i in seq_len(nrow(step_table))) {
     par_fallback_reason = par_fallback_reason,
     objective = footer[["objective"]],
     max_gradient = footer[["max_gradient"]],
+    model_run_elapsed_seconds = model_run_elapsed_seconds,
+    model_fit_elapsed_seconds = model_fit_elapsed_seconds,
+    model_run_time = format_elapsed_time(model_fit_elapsed_seconds),
+    kflow_memory = env("KFLOW_JOB_MEMORY", cfg$KFLOW_MEMORY %||% ""),
     payload = file.exists(file.path(step_out, "model_payload.rds")),
     raw_mfcl_inputs_saved = FALSE,
     region_count = region_count,

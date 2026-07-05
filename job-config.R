@@ -158,8 +158,11 @@ stepwise_models <- data.frame(
     "15-dataweighting"
   ),
 
-  # Run settings for each model row.
-  run_mode = rep("doitall", 17),
+  # Run settings for each model row. 01 uses the old native MFCL diagnostic
+  # executable; current mfclrtmb comparisons start at 02a.
+  run_mode = c("doitall", rep("mfclrtmb_doitall", 16)),
+  region_count = c(rep(9L, 5), rep(5L, 12)),
+  kflow_memory = c(rep("12GB", 5), rep("8GB", 12)),
   mfcl_program_path = c(
     "/home/mfcl/mfclo64_2023_diagnostic_2.2.2.0",
     rep("", 16)

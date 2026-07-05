@@ -50,6 +50,43 @@ stepwise_first_value <- function(rows, column, fallback) {
   fallback
 }
 
+stepwise_engine_label <- function(run_mode) {
+  run_mode <- tolower(gsub("-", "_", trimws(as.character(run_mode))))
+  if (run_mode %in% c("mfclrtmb", "mfclrtmb_doitall", "rtmb", "rtmb_doitall", "doitall_rtmb")) {
+    return("mfclrtmb")
+  }
+  if (run_mode %in% c("doitall", "script")) {
+    return("native MFCL")
+  }
+  "MFCL"
+}
+
+stepwise_kflow_memory <- function(step_select = stepwise_value("default_step_select")) {
+  rows <- stepwise_selected_models(step_select)
+  if (!nrow(rows)) return("")
+  if ("kflow_memory" %in% names(rows)) {
+    memory <- trimws(as.character(rows$kflow_memory))
+    memory <- memory[nzchar(memory) & !is.na(memory)]
+    if (length(memory)) {
+      return(memory[[which.max(grepl("^12", memory))]])
+    }
+  }
+  if ("region_count" %in% names(rows)) {
+    regions <- suppressWarnings(as.integer(rows$region_count))
+    if (any(regions == 9L, na.rm = TRUE)) return("12GB")
+    if (any(regions == 5L, na.rm = TRUE)) return("8GB")
+  }
+  ""
+}
+
+stepwise_run_mode <- function(step_select = stepwise_value("default_step_select")) {
+  rows <- stepwise_selected_models(step_select)
+  if (!nrow(rows) || !"run_mode" %in% names(rows)) return("")
+  values <- trimws(as.character(rows$run_mode))
+  values <- unique(values[nzchar(values) & !is.na(values)])
+  if (length(values) == 1L) values[[1L]] else ""
+}
+
 stepwise_row_value <- function(step_select, column, default = "") {
   rows <- stepwise_selected_models(step_select)
   if (!nrow(rows) || !column %in% names(rows)) {
@@ -87,7 +124,12 @@ stepwise_model_label <- function(step_select = stepwise_value("default_step_sele
   }
   labels <- stepwise_model_labels(rows)
   if (length(labels) == 1L) {
-    return(labels[[1]])
+    suffix <- if ("run_mode" %in% names(rows)) stepwise_engine_label(rows$run_mode[[1]]) else ""
+    program <- if ("mfcl_program_path" %in% names(rows)) as.character(rows$mfcl_program_path[[1]]) else ""
+    if (nzchar(program) && grepl("2023_diagnostic|diagnostic", basename(program), ignore.case = TRUE)) {
+      suffix <- "native MFCL old"
+    }
+    return(if (nzchar(suffix)) paste0(labels[[1]], " (", suffix, ")") else labels[[1]])
   }
   paste0(labels[[1]], " +", length(labels) - 1L, " models")
 }
