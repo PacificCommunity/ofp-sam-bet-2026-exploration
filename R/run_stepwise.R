@@ -391,7 +391,12 @@ run_mfclrtmb_doitall <- function(model_dir, frq, script, log_file, live_log = TR
     "  process_log = env_bool_null('MFCLRTMB_PROCESS_LOG'),",
     "  process_time = env_bool_null('MFCLRTMB_PROCESS_TIME'),",
     "  low_memory = env_bool_null('MFCLRTMB_LOW_MEMORY'),",
-    "  verbose_memory = env_bool_null('MFCLRTMB_VERBOSE_MEMORY')",
+    "  verbose_memory = env_bool_null('MFCLRTMB_VERBOSE_MEMORY'),",
+    "  native_parity_check = truthy(env_chr('MFCLRTMB_NATIVE_PARITY_CHECK', 'false')),",
+    "  native_program_path = env_chr('MFCLRTMB_NATIVE_PROGRAM_PATH', Sys.getenv('PROGRAM_PATH', '/home/mfcl/mfclo64')),",
+    "  native_parity_objective_tolerance = suppressWarnings(as.numeric(env_chr('MFCLRTMB_NATIVE_PARITY_OBJECTIVE_TOLERANCE', '1e-5'))),",
+    "  native_parity_gradient = truthy(env_chr('MFCLRTMB_NATIVE_PARITY_GRADIENT', 'true'), TRUE),",
+    "  native_parity_fail = truthy(env_chr('MFCLRTMB_NATIVE_PARITY_FAIL', 'false'))",
     ")",
     "if (!is.null(result$summary)) {",
     "  cat('\\n[stepwise-mfclrtmb] phase summary\\n')",
@@ -431,7 +436,12 @@ run_mfclrtmb_doitall <- function(model_dir, frq, script, log_file, live_log = TR
     "MFCLRTMB_PROCESS_LOG",
     "MFCLRTMB_PROCESS_TIME",
     "MFCLRTMB_LOW_MEMORY",
-    "MFCLRTMB_VERBOSE_MEMORY"
+    "MFCLRTMB_VERBOSE_MEMORY",
+    "MFCLRTMB_NATIVE_PARITY_CHECK",
+    "MFCLRTMB_NATIVE_PARITY_OBJECTIVE_TOLERANCE",
+    "MFCLRTMB_NATIVE_PARITY_GRADIENT",
+    "MFCLRTMB_NATIVE_PARITY_FAIL",
+    "MFCLRTMB_NATIVE_PROGRAM_PATH"
   )
   extra <- Sys.getenv(env_names, unset = NA_character_)
   extra <- extra[!is.na(extra) & nzchar(extra)]
@@ -483,6 +493,106 @@ par_footer <- function(path) {
   }
   if (length(gradient_i) && gradient_i[[1]] < length(lines)) {
     out[["max_gradient"]] <- suppressWarnings(as.numeric(lines[[gradient_i[[1]] + 1L]]))
+  }
+  out
+}
+
+run_rtmb_parity_check <- function(model_dir, frq, final_par, native_footer) {
+  if (!truthy(env("STEPWISE_RTMB_PARITY_CHECK", "false"), FALSE)) {
+    return(NULL)
+  }
+  if (!requireNamespace("mfclrtmb", quietly = TRUE)) {
+    stop(
+      "STEPWISE_RTMB_PARITY_CHECK=true needs the mfclrtmb R package. ",
+      "Include mfclrtmb in KFLOW_REPO_RUNTIME_PACKAGES.",
+      call. = FALSE
+    )
+  }
+
+  root_name <- sub("[.]frq$", "", basename(frq))
+  check_dir <- file.path(model_dir, "rtmb-parity-check")
+  if (dir.exists(check_dir)) unlink(check_dir, recursive = TRUE, force = TRUE)
+  dir.create(check_dir, recursive = TRUE, showWarnings = FALSE)
+  tolerance <- suppressWarnings(as.numeric(env("STEPWISE_RTMB_PARITY_OBJECTIVE_TOLERANCE", "1e-5")))
+  if (!is.finite(tolerance)) tolerance <- 1e-5
+
+  message("  rtmb parity: evaluating native final par with mfclrtmb no-optim")
+  started <- Sys.time()
+  result <- tryCatch(
+    mfclrtmb::mfclrtmb_run(
+      case_dir = model_dir,
+      root = root_name,
+      par = basename(final_par),
+      output_dir = check_dir,
+      run_optimization = FALSE
+    ),
+    error = function(e) e
+  )
+  elapsed <- as.numeric(difftime(Sys.time(), started, units = "secs"))
+  failed <- inherits(result, "error")
+
+  rtmb_objective <- if (failed) {
+    NA_real_
+  } else {
+    suppressWarnings(as.numeric(result$fit$objective[[1L]]))
+  }
+  rtmb_max_gradient <- if (failed) {
+    NA_real_
+  } else {
+    suppressWarnings(as.numeric(result$fit$max_gradient[[1L]]))
+  }
+  native_objective <- suppressWarnings(as.numeric(native_footer[["objective"]]))
+  native_max_gradient <- suppressWarnings(as.numeric(native_footer[["max_gradient"]]))
+  objective_delta <- rtmb_objective - native_objective
+  objective_abs_delta <- abs(objective_delta)
+  objective_ok <- is.finite(objective_abs_delta) && objective_abs_delta <= tolerance
+  status <- if (isTRUE(objective_ok)) "match" else "mismatch"
+  if (failed || !is.finite(rtmb_objective)) status <- "rtmb_objective_unavailable"
+
+  out <- data.frame(
+    check_time = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
+    program_path = "mfclrtmb::mfclrtmb_run",
+    program_md5 = "",
+    root = root_name,
+    final_par = normalizePath(final_par, winslash = "/", mustWork = FALSE),
+    rtmb_objective = rtmb_objective,
+    rtmb_max_gradient = rtmb_max_gradient,
+    native_objective = native_objective,
+    native_gradient_objective = native_objective,
+    native_max_gradient = native_max_gradient,
+    native_gradient_mode = "final-par-footer",
+    rtmb_gradient_mode = "mfclrtmb_run_no_optimization",
+    objective_delta = objective_delta,
+    objective_abs_delta = objective_abs_delta,
+    objective_tolerance = tolerance,
+    objective_ok = objective_ok,
+    status = status,
+    objective_status = if (failed) 1L else 0L,
+    gradient_status = if (failed || !is.finite(rtmb_max_gradient)) 1L else 0L,
+    elapsed_seconds = elapsed,
+    error_message = if (failed) conditionMessage(result) else "",
+    work_dir = normalizePath(check_dir, winslash = "/", mustWork = FALSE),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  utils::write.csv(out, file.path(model_dir, "native-parity-check.csv"), row.names = FALSE)
+  utils::write.csv(out, file.path(check_dir, "summary.csv"), row.names = FALSE)
+  message(sprintf(
+    "  rtmb parity %s: native=%.12g rtmb=%.12g delta=%.6g",
+    status,
+    native_objective,
+    rtmb_objective,
+    objective_delta
+  ))
+
+  if (truthy(env("STEPWISE_RTMB_PARITY_FAIL", "false"), FALSE) && !isTRUE(objective_ok)) {
+    stop(
+      "RTMB parity check failed: objective delta ",
+      format(objective_delta, digits = 12),
+      " exceeds tolerance ",
+      format(tolerance, digits = 6),
+      call. = FALSE
+    )
   }
   out
 }
@@ -1018,6 +1128,16 @@ for (i in seq_len(nrow(step_table))) {
     )
   }
 
+  footer <- par_footer(final_par)
+  if (!identical(run_engine, "mfclrtmb")) {
+    run_rtmb_parity_check(
+      model_dir = model_dir,
+      frq = frq,
+      final_par = final_par,
+      native_footer = footer
+    )
+  }
+
   if (isTRUE(build_payloads)) {
     message("  building model_payload.rds")
     payload_status <- build_payload(model_dir, step_id)
@@ -1027,7 +1147,6 @@ for (i in seq_len(nrow(step_table))) {
     message("  payload: ", payload_status)
   }
   payload_file <- file.path(model_dir, "model_payload.rds")
-  footer <- par_footer(final_par)
   requested_region_count <- suppressWarnings(as.integer(cfg$REGION_COUNT %||% NA_integer_))
   detected_region_count <- if (exists("detect_frq_region_count", mode = "function")) {
     detect_frq_region_count(file.path(model_dir, frq))
@@ -1078,11 +1197,20 @@ for (i in seq_len(nrow(step_table))) {
     "phase-progress.csv",
     "phase-process-summary.csv",
     "doitall-switches.csv",
-    "post-switch-summary.csv"
+    "post-switch-summary.csv",
+    "native-parity-check.csv",
+    "native-parity-check",
+    "rtmb-parity-check"
   ))
   for (file in keep) {
     src <- file.path(model_dir, file)
-    if (file.exists(src)) file.copy(src, file.path(step_out, basename(file)), overwrite = TRUE)
+    if (file.exists(src)) {
+      if (dir.exists(src)) {
+        file.copy(src, step_out, overwrite = TRUE, recursive = TRUE, copy.date = TRUE)
+      } else {
+        file.copy(src, file.path(step_out, basename(file)), overwrite = TRUE, copy.date = TRUE)
+      }
+    }
   }
   file.copy(final_par, file.path(step_out, "final.par"), overwrite = TRUE, copy.date = TRUE)
   region_map_asset_path <- copy_model_region_map_assets(step_out, region_count)
