@@ -11,7 +11,7 @@ copied as-is and what is intentionally changed in the generated model folders?
 | `.tag` | Yes for all steps. | None. `tag_rep_map.R` is an audit file, not an MFCL input. |
 | `.age_length` | Records are copied from source. | Steps 04-15 set effective sample size from `1` to `0.75`. |
 | `.ini` | 01 and 02a are unchanged from source. Later steps are generated from source baselines. | MFCL 1007 conversion, BET 2026 L-W, `LN(R0)` from 04 onward, FixM, tag/RR alignment, and current-reader compatibility edits. |
-| `bet.reg_scaling` | Source rows are extracted for steps 08-15. | Rows 53-72 are written to the model folder so native MFCL reads the active prior window directly. |
+| `bet.reg_scaling` | The full source matrix is copied for steps 08-15. | Parest flags 77-81 select rows 53-72 internally for the active prior window. |
 
 ## Source Repos Checked
 
@@ -32,7 +32,7 @@ copied as-is and what is intentionally changed in the generated model folders?
 | `.age_length` | 01-03 | Diagnostic or archived 2023 replication source. | None. |
 | `.age_length` | 04-08 | `BET/bet.2023.new-structure.age_length` | 112 effective-sample-size values change from `1` to `0.75`. |
 | `.age_length` | 09-15 | `BET/bet.2026.age_length` | 181 effective-sample-size values change from `1` to `0.75`. |
-| `bet.reg_scaling` | 08-15 | `BET/bet.2026.reg_scaling` | Rows 53-72 only; the source file remains the full 292-period matrix. |
+| `bet.reg_scaling` | 08-15 | `BET/bet.2026.reg_scaling` | Full 292-period matrix copied unchanged; flags 77-81 select active rows 53-72 internally. |
 
 ## INI Edits
 

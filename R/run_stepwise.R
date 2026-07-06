@@ -78,6 +78,22 @@ copy_model_source <- function(from, to, step_dir = "") {
   invisible(to)
 }
 
+copy_raw_mfcl_inputs <- function(from, to) {
+  if (!dir.exists(from)) {
+    return(FALSE)
+  }
+  if (dir.exists(to)) {
+    unlink(to, recursive = TRUE, force = TRUE)
+  }
+  dir.create(to, recursive = TRUE, showWarnings = FALSE)
+  files <- list.files(from, all.files = TRUE, no.. = TRUE, full.names = TRUE)
+  if (!length(files)) {
+    return(TRUE)
+  }
+  ok <- file.copy(files, to, recursive = TRUE, overwrite = TRUE, copy.date = TRUE)
+  all(ok)
+}
+
 has_model_files <- function(path, input_par = "") {
   if (!dir.exists(path)) return(FALSE)
   files <- list.files(path, all.files = FALSE, recursive = FALSE, full.names = FALSE)
@@ -855,6 +871,7 @@ input_root <- file.path(work_dir, "inputs")
 program <- env("PROGRAM_PATH", "/home/mfcl/mfclo64")
 mfcl_live_log <- truthy(env("MFCL_LIVE_LOG", "true"), default = TRUE)
 save_final_par <- truthy(env("STEPWISE_SAVE_FINAL_PAR", "false"), default = FALSE)
+save_raw_mfcl_inputs <- truthy(env("STEPWISE_SAVE_RAW_MFCL_INPUTS", "true"), default = TRUE)
 step_select <- strsplit(env("STEP_SELECT", ""), ",", fixed = TRUE)[[1]]
 step_select <- trimws(step_select[nzchar(trimws(step_select))])
 default_input_dir <- env("DEFAULT_INPUT_DIR", "")
@@ -1180,6 +1197,16 @@ for (i in seq_len(nrow(step_table))) {
 
   step_out <- file.path(out_dir, "models", step_id)
   dir.create(step_out, recursive = TRUE, showWarnings = FALSE)
+  raw_mfcl_inputs_dir <- ""
+  raw_mfcl_inputs_saved <- FALSE
+  if (isTRUE(save_raw_mfcl_inputs)) {
+    raw_mfcl_inputs_dir <- file.path(step_out, "mfcl-inputs")
+    raw_mfcl_inputs_saved <- copy_raw_mfcl_inputs(model_source, raw_mfcl_inputs_dir)
+    if (!isTRUE(raw_mfcl_inputs_saved)) {
+      warning("Could not save raw MFCL inputs for ", step_id, call. = FALSE)
+      raw_mfcl_inputs_dir <- ""
+    }
+  }
   keep <- unique(c(
     "model_payload.rds",
     "model_payload_manifest.json",
@@ -1245,7 +1272,8 @@ for (i in seq_len(nrow(step_table))) {
     model_run_time = format_elapsed_time(model_fit_elapsed_seconds),
     kflow_memory = env("KFLOW_JOB_MEMORY", cfg$KFLOW_MEMORY %||% ""),
     payload = file.exists(file.path(step_out, "model_payload.rds")),
-    raw_mfcl_inputs_saved = FALSE,
+    raw_mfcl_inputs_saved = raw_mfcl_inputs_saved,
+    raw_mfcl_inputs = if (raw_mfcl_inputs_saved) portable_output_path(raw_mfcl_inputs_dir, out_dir) else "",
     region_count = region_count,
     region_map_assets = region_map_assets,
     region_map_asset = if (region_map_assets) portable_output_path(region_map_asset_path, out_dir) else "",

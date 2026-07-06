@@ -26,7 +26,7 @@ New Japanese otoliths and 2026 CAAL input on the regional CPUE model.
 | `.ini` | `bet.2026.ini` with RR/active/target/penalty matrices from `bet.2026.mix-0.2.ini`; two-quarter tag mixing retained, FixM M row applied from the 01-Diag2023 mgc=-5 diagnostic final par; harmonized initial RR values only in 1 tag reporting-rate group(s) so grouped starts are native-MFCL compatible; group flags, targets, and penalties unchanged; normalized MFCL 1007 tag-control rows for 98 release groups |
 | `.tag` | `bet.2026.low.recaps.removed.tag`; latest tag-prep build with updated RR groups and canneries-based reassignment of recaptures with missing gear to purse-seine fisheries before low-recap filtering |
 | `.age_length` | `bet.2026.age_length` (updated CAAL/new otoliths); set age_length effective sample size to 0.75 for 181 records |
-| `.reg_scaling` | `bet.2026.reg_scaling` global CPUE regional-scaling matrix, rows 53-72 only (1965-1969), because native MFCL reads the active-window matrix directly after parest flags define the window |
+| `.reg_scaling` | Full `bet.2026.reg_scaling` global CPUE regional-scaling matrix; parest flags select active periods 53-72 (1965-1969) for the prior |
 | `input_manifest.csv` | machine-readable source/input notes |
 
 ## Generated Input Changes

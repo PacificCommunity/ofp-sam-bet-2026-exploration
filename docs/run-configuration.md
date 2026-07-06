@@ -14,6 +14,7 @@ This file keeps the operational Kflow/local-run details out of the root README.
 | `docker_image` | `ghcr.io/pacificcommunity/tuna-flow:v2.1` | Docker image used by Kflow and local Docker runs. |
 | `program_path` | `/home/mfcl/mfclo64` | MFCL executable path inside the Docker image. |
 | `stepwise_save_final_par` | `false` | Optional: copy the final `.par` back into `steps/<step_id>/model/`. Off by default; Kflow outputs always include `outputs/models/<step_id>/final.par`. |
+| `stepwise_save_raw_mfcl_inputs` | `true` | Preserve the full raw MFCL input folder under `outputs/models/<step_id>/mfcl-inputs/` for native-style auditability. |
 | `stepwise_commit_final_pars` | `false` | Optional: create a narrow KflowBot commit containing saved final `.par` files. Off by default to avoid concurrent job push conflicts. |
 | `stepwise_push_final_pars` | `false` | Optional: push the saved final `.par` commit to the current branch. Off by default. |
 | `par_source_job` | `blank` | Optional previous Kflow job number/reference used with `RUN_MODE=job_par`. |
@@ -90,7 +91,8 @@ This file keeps the operational Kflow/local-run details out of the root README.
 
 ## Outputs
 
-Saved artifacts are intentionally compact:
+Saved artifacts include compact plot payloads plus the raw MFCL input folder
+used for the run:
 
 ```text
 outputs/model-index.csv
@@ -100,6 +102,7 @@ outputs/region-map/<project-map>.geojson
 outputs/models/<step_id>/model_payload.rds
 outputs/models/<step_id>/model_payload_manifest.json
 outputs/models/<step_id>/final.par
+outputs/models/<step_id>/mfcl-inputs/
 outputs/models/<step_id>/bet.region_map.geojson
 ```
 
@@ -108,8 +111,10 @@ Final `.par` files are archived in the Kflow output as
 set `PAR_SOURCE_JOB` to the previous same-step job number, and attach that same
 job with `KFLOW_INPUT_JOBS`.
 
-Bulky raw inputs and intermediate files such as `.frq`, `.tag`, and
-`temporary_tag_report` are not kept in the Kflow artifact.
+The raw MFCL inputs are preserved under
+`outputs/models/<step_id>/mfcl-inputs/` so files such as `.frq`, `.tag`,
+`.age_length`, and `.reg_scaling` can be audited exactly as read by the engine.
+Internal active subsets used by mfclrtmb are not substituted for those files.
 
 Region-map assets are copied from `assets/maps/`. The root `outputs/region-map/`
 folder stores shared project-specific GeoJSON files, and each model output also
