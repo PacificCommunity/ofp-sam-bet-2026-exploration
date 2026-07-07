@@ -232,7 +232,7 @@ write_payload_metadata <- function(payload_file, model_dir, metadata) {
       for (name in intersect(registry_fields, names(metadata))) {
         payload$data$info$registry[[name]] <- metadata[[name]]
       }
-      saveRDS(payload, payload_file, compress = "xz")
+      saveRDS(payload, payload_file, compress = "gzip")
     }
   }
 
@@ -1211,6 +1211,7 @@ for (i in seq_len(nrow(step_table))) {
     "model_payload.rds",
     "model_payload_manifest.json",
     "model_payload_manifest.csv",
+    "model_info.rds",
     "model-registry.csv",
     "fishery_map.R",
     "tag_rep_map.R",
@@ -1225,10 +1226,25 @@ for (i in seq_len(nrow(step_table))) {
     "phase-process-summary.csv",
     "doitall-switches.csv",
     "post-switch-summary.csv",
-    "native-parity-check.csv",
-    "native-parity-check",
-    "rtmb-parity-check"
+    "native-parity-check.csv"
   ))
+  key_patterns <- c(
+    "[.]rep$",
+    "^temporary_tag_report$",
+    "^length[.]fit$",
+    "^weight[.]fit$",
+    "[.]tag$",
+    "[.]age_length$",
+    "^test_plot_output(_[0-9]+)?$",
+    "^test_plot_output$",
+    "^likelihood_output$",
+    "^likelihood_components$",
+    "^likelihood[.]rep$"
+  )
+  key_files <- unique(unlist(lapply(key_patterns, function(pattern) {
+    list.files(model_dir, pattern = pattern, full.names = FALSE)
+  }), use.names = FALSE))
+  keep <- unique(c(keep, key_files))
   for (file in keep) {
     src <- file.path(model_dir, file)
     if (file.exists(src)) {
