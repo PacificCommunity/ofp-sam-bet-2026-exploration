@@ -804,22 +804,31 @@ run_native_parity_check <- function(model_dir, frq, final_par, rtmb_footer, prog
   if (!is.finite(phase_switch)) phase_switch <- 1L
   timeout <- suppressWarnings(as.numeric(env("STEPWISE_NATIVE_PARITY_TIMEOUT", "0")))
   if (!is.finite(timeout)) timeout <- 0
+  native_report <- truthy(env("STEPWISE_NATIVE_PARITY_REPORT", "true"), TRUE)
 
   message("  native parity: evaluating rtmb final par with native MFCL short eval")
+  short_eval_args <- list(
+    exe = program,
+    source_dir = model_dir,
+    root = root_name,
+    in_par = final_par,
+    out_par = "native-parity.par",
+    dest_dir = check_dir,
+    overwrite = TRUE,
+    report = native_report,
+    phase_switch = phase_switch,
+    timeout = timeout
+  )
+  short_eval_formals <- tryCatch(
+    names(formals(mfclrtmb::run_original_mfcl_short_eval)),
+    error = function(e) character()
+  )
+  if ("write_par" %in% short_eval_formals) {
+    short_eval_args$write_par <- TRUE
+  }
   started <- Sys.time()
   result <- tryCatch(
-    mfclrtmb::run_original_mfcl_short_eval(
-      exe = program,
-      source_dir = model_dir,
-      root = root_name,
-      in_par = final_par,
-      out_par = "native-parity.par",
-      dest_dir = check_dir,
-      overwrite = TRUE,
-      report = FALSE,
-      phase_switch = phase_switch,
-      timeout = timeout
-    ),
+    do.call(mfclrtmb::run_original_mfcl_short_eval, short_eval_args),
     error = function(e) e
   )
   elapsed <- as.numeric(difftime(Sys.time(), started, units = "secs"))
