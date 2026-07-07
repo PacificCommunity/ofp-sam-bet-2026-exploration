@@ -515,7 +515,8 @@ run_mfclrtmb_single_par <- function(model_dir,
   }
 
   runner <- tempfile("mfclrtmb-single-par-", fileext = ".R")
-  on.exit(unlink(runner), add = TRUE)
+  success_marker <- tempfile("mfclrtmb-single-par-ok-")
+  on.exit(unlink(c(runner, success_marker)), add = TRUE)
   writeLines(c(
     "truthy <- function(x, default = FALSE) {",
     "  if (is.null(x) || !nzchar(x)) return(default)",
@@ -562,14 +563,16 @@ run_mfclrtmb_single_par <- function(model_dir,
     ")",
     "cat('[stepwise-mfclrtmb] objective: ', format(fit$fit$objective, digits = 16), '\\n', sep = '')",
     "cat('[stepwise-mfclrtmb] max_gradient: ', format(fit$fit$max_gradient, digits = 16), '\\n', sep = '')",
-    "cat('[stepwise-mfclrtmb] done\\n')"
+    "cat('[stepwise-mfclrtmb] done\\n')",
+    "writeLines('ok', Sys.getenv('MFCLRTMB_SUCCESS_MARKER'))"
   ), runner, useBytes = TRUE)
 
   script_env <- c(
     MFCLRTMB_CASE_DIR = normalizePath(model_dir, mustWork = TRUE),
     MFCLRTMB_OUTPUT_DIR = normalizePath(model_dir, mustWork = TRUE),
     MFCLRTMB_ROOT = root_name,
-    MFCLRTMB_PAR = normalizePath(output_path, mustWork = TRUE)
+    MFCLRTMB_PAR = normalizePath(output_path, mustWork = TRUE),
+    MFCLRTMB_SUCCESS_MARKER = success_marker
   )
   env_names <- c(
     "MFCLRTMB_WRITE_MFCL_FILES",
@@ -588,9 +591,18 @@ run_mfclrtmb_single_par <- function(model_dir,
   command <- sprintf("set -o pipefail; %s Rscript %s", env_assign, shQuote(runner))
   if (isTRUE(live_log)) {
     command <- sprintf("%s 2>&1 | tee %s >&2", command, shQuote(log_file))
-    return(system2("bash", c("-c", command), wait = TRUE))
+    status <- system2("bash", c("-c", command), wait = TRUE)
+  } else {
+    status <- system2("bash", c("-c", command), stdout = log_file, stderr = log_file, wait = TRUE)
   }
-  system2("bash", c("-c", command), stdout = log_file, stderr = log_file, wait = TRUE)
+  if (is.null(status)) status <- 0L
+  status <- suppressWarnings(as.integer(status[[1L]]))
+  if (!is.finite(status)) status <- 1L
+  if (identical(status, 0L) && !file.exists(success_marker)) {
+    message("  mfclrtmb direct par eval did not write success marker")
+    status <- 1L
+  }
+  status
 }
 
 bind_rows_fill <- function(rows) {
