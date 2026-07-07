@@ -218,23 +218,22 @@ write_payload_metadata <- function(payload_file, model_dir, metadata) {
     "model_fit_elapsed_seconds", "model_run_time"
   )
 
-  if (file.exists(payload_file)) {
-    payload <- tryCatch(readRDS(payload_file), error = function(e) NULL)
-    if (is.list(payload)) {
-      if (is.null(payload$data) || !is.list(payload$data)) payload$data <- list()
-      if (is.null(payload$data$info) || !is.list(payload$data$info)) payload$data$info <- list()
-      if (is.null(payload$data$info$registry) || !is.list(payload$data$info$registry)) {
-        payload$data$info$registry <- list()
-      }
-      for (name in names(metadata)) {
-        payload$data$info[[name]] <- metadata[[name]]
-      }
-      for (name in intersect(registry_fields, names(metadata))) {
-        payload$data$info$registry[[name]] <- metadata[[name]]
-      }
-      saveRDS(payload, payload_file, compress = "gzip")
-    }
+  model_info <- if (file.exists(file.path(model_dir, "model_info.rds"))) {
+    tryCatch(readRDS(file.path(model_dir, "model_info.rds")), error = function(e) list())
+  } else {
+    list()
   }
+  if (!is.list(model_info)) model_info <- list()
+  if (is.null(model_info$registry) || !is.list(model_info$registry)) {
+    model_info$registry <- list()
+  }
+  for (name in names(metadata)) {
+    model_info[[name]] <- metadata[[name]]
+  }
+  for (name in intersect(registry_fields, names(metadata))) {
+    model_info$registry[[name]] <- metadata[[name]]
+  }
+  saveRDS(model_info, file.path(model_dir, "model_info.rds"), compress = "gzip")
 
   manifest_path <- file.path(model_dir, "model_payload_manifest.json")
   manifest_csv <- file.path(model_dir, "model_payload_manifest.csv")
@@ -805,8 +804,10 @@ build_payload <- function(model_dir, step_id) {
 
   validate_payload_file <- function(method) {
     payload <- tryCatch(readRDS(payload_file), error = function(e) NULL)
-    if (is.null(tryCatch(payload$data$RepOut, error = function(e) NULL))) {
-      stop("model_payload.rds for ", step_id, " does not contain data$RepOut.", call. = FALSE)
+    has_rep_object <- !is.null(tryCatch(payload$data$RepOut, error = function(e) NULL))
+    has_rep_artifact <- !is.null(tryCatch(payload$artifacts$files$rep$bytes, error = function(e) NULL))
+    if (!isTRUE(has_rep_object || has_rep_artifact)) {
+      stop("model_payload.rds for ", step_id, " does not contain RepOut data or a rep artifact.", call. = FALSE)
     }
     likelihood_components <- tryCatch(payload$data$LikelihoodComponents, error = function(e) NULL)
     if (is.null(likelihood_components)) {
@@ -871,7 +872,7 @@ input_root <- file.path(work_dir, "inputs")
 program <- env("PROGRAM_PATH", "/home/mfcl/mfclo64")
 mfcl_live_log <- truthy(env("MFCL_LIVE_LOG", "true"), default = TRUE)
 save_final_par <- truthy(env("STEPWISE_SAVE_FINAL_PAR", "false"), default = FALSE)
-save_raw_mfcl_inputs <- truthy(env("STEPWISE_SAVE_RAW_MFCL_INPUTS", "true"), default = TRUE)
+save_raw_mfcl_inputs <- truthy(env("STEPWISE_SAVE_RAW_MFCL_INPUTS", "false"), default = FALSE)
 step_select <- strsplit(env("STEP_SELECT", ""), ",", fixed = TRUE)[[1]]
 step_select <- trimws(step_select[nzchar(trimws(step_select))])
 default_input_dir <- env("DEFAULT_INPUT_DIR", "")
@@ -1215,11 +1216,6 @@ for (i in seq_len(nrow(step_table))) {
     "model-registry.csv",
     "fishery_map.R",
     "tag_rep_map.R",
-    "doitall.sh",
-    "bet.reg_scaling",
-    "xinit.rpt",
-    "indepvar.rpt",
-    "new_cor_report",
     "phase-plan.csv",
     "phase-summary.csv",
     "phase-progress.csv",
@@ -1228,23 +1224,6 @@ for (i in seq_len(nrow(step_table))) {
     "post-switch-summary.csv",
     "native-parity-check.csv"
   ))
-  key_patterns <- c(
-    "[.]rep$",
-    "^temporary_tag_report$",
-    "^length[.]fit$",
-    "^weight[.]fit$",
-    "[.]tag$",
-    "[.]age_length$",
-    "^test_plot_output(_[0-9]+)?$",
-    "^test_plot_output$",
-    "^likelihood_output$",
-    "^likelihood_components$",
-    "^likelihood[.]rep$"
-  )
-  key_files <- unique(unlist(lapply(key_patterns, function(pattern) {
-    list.files(model_dir, pattern = pattern, full.names = FALSE)
-  }), use.names = FALSE))
-  keep <- unique(c(keep, key_files))
   for (file in keep) {
     src <- file.path(model_dir, file)
     if (file.exists(src)) {
@@ -1255,7 +1234,6 @@ for (i in seq_len(nrow(step_table))) {
       }
     }
   }
-  file.copy(final_par, file.path(step_out, "final.par"), overwrite = TRUE, copy.date = TRUE)
   region_map_asset_path <- copy_model_region_map_assets(step_out, region_count)
   region_map_assets <- nzchar(region_map_asset_path) && file.exists(region_map_asset_path)
   summary <- data.frame(
@@ -1277,7 +1255,7 @@ for (i in seq_len(nrow(step_table))) {
     par_source_par = if (nzchar(par_source_par)) relative_display_path(par_source_par, root) else "",
     frq = frq,
     output_par = final_output_par,
-    final_par = "final.par",
+    final_par = "model_payload.rds:par",
     saved_par = if (nzchar(saved_final_par)) relative_display_path(saved_final_par, root) else "",
     par_fallback = par_fallback,
     par_fallback_reason = par_fallback_reason,
