@@ -786,8 +786,12 @@ run_native_parity_check <- function(model_dir, frq, final_par, rtmb_footer, prog
   }
 
   root_name <- sub("[.]frq$", "", basename(frq))
-  check_dir <- tempfile("native-parity-")
   keep_work <- truthy(env("STEPWISE_PARITY_KEEP_WORK", "false"), FALSE)
+  check_dir <- if (isTRUE(keep_work)) {
+    file.path(model_dir, "native-parity-work")
+  } else {
+    tempfile("native-parity-")
+  }
   on.exit({
     if (!isTRUE(keep_work)) unlink(check_dir, recursive = TRUE, force = TRUE)
   }, add = TRUE)
@@ -835,6 +839,26 @@ run_native_parity_check <- function(model_dir, frq, final_par, rtmb_footer, prog
     stdout_summary <- tryCatch(mfclrtmb::read_mfcl_stdout_summary(stdout_file), error = function(e) NULL)
     stdout_objective <- suppressWarnings(as.numeric(tryCatch(stdout_summary$last[["total_function"]], error = function(e) NA_real_)))
   }
+  stderr_file <- if (!failed && !is.null(result$stderr)) result$stderr else ""
+  tail_text <- function(path, n = 12L) {
+    if (!nzchar(path) || !file.exists(path)) return("")
+    lines <- tryCatch(readLines(path, warn = FALSE), error = function(e) character())
+    lines <- tail(lines, n)
+    paste(lines, collapse = " | ")
+  }
+  native_error_message <- if (failed) {
+    conditionMessage(result)
+  } else if (!isTRUE(result$ok)) {
+    paste(
+      paste0("status=", suppressWarnings(as.integer(result$status %||% NA_integer_))),
+      paste0("out_par_exists=", file.exists(result$out_par %||% "")),
+      paste0("stderr_tail=", tail_text(stderr_file)),
+      paste0("stdout_tail=", tail_text(stdout_file)),
+      sep = "; "
+    )
+  } else {
+    ""
+  }
 
   native_objective <- suppressWarnings(as.numeric(native_footer[["objective"]]))
   if (!is.finite(native_objective)) native_objective <- stdout_objective
@@ -874,7 +898,7 @@ run_native_parity_check <- function(model_dir, frq, final_par, rtmb_footer, prog
     objective_status = if (failed) 1L else suppressWarnings(as.integer(result$status %||% 0L)),
     gradient_status = if (!is.finite(native_max_gradient)) 1L else 0L,
     elapsed_seconds = elapsed,
-    error_message = if (failed) conditionMessage(result) else "",
+    error_message = native_error_message,
     work_dir = if (isTRUE(keep_work)) normalizePath(check_dir, winslash = "/", mustWork = FALSE) else "",
     stringsAsFactors = FALSE,
     check.names = FALSE
