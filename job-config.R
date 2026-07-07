@@ -161,7 +161,7 @@ stepwise_models <- data.frame(
   # Run settings for each model row. All rows use native MFCL for this stepwise run.
   run_mode = rep("doitall", 17),
   region_count = c(rep(9L, 5), rep(5L, 12)),
-  kflow_memory = c(rep("14GB", 5), rep("8GB", 12)),
+  kflow_memory = c(rep("12GB", 5), rep("8GB", 12)),
   mfcl_program_path = c(
     "/home/mfcl/mfclo64_2023_diagnostic_2.2.2.0",
     rep("", 16)
