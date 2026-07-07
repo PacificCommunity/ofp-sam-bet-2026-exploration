@@ -544,7 +544,7 @@ run_rtmb_parity_check <- function(model_dir, frq, final_par, native_footer) {
   rtmb_args <- list(
     case_dir = model_dir,
     root = root_name,
-    par = basename(final_par),
+    par = normalizePath(final_par, winslash = "/", mustWork = TRUE),
     output_dir = check_dir,
     run_optimization = FALSE,
     write_outputs = FALSE,
