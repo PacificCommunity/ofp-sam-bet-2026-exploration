@@ -772,7 +772,8 @@ run_rtmb_parity_check <- function(model_dir, frq, final_par, native_footer) {
   out
 }
 
-run_native_parity_check <- function(model_dir, frq, final_par, rtmb_footer, program) {
+run_native_parity_check <- function(model_dir, frq, final_par, rtmb_footer,
+                                    program, source_dir = model_dir) {
   if (!truthy(env("STEPWISE_NATIVE_PARITY_CHECK", env("STEPWISE_PARITY_CHECK", "false")), FALSE)) {
     return(NULL)
   }
@@ -809,7 +810,7 @@ run_native_parity_check <- function(model_dir, frq, final_par, rtmb_footer, prog
   message("  native parity: evaluating rtmb final par with native MFCL short eval")
   short_eval_args <- list(
     exe = program,
-    source_dir = model_dir,
+    source_dir = source_dir,
     root = root_name,
     in_par = final_par,
     out_par = "native-parity.par",
@@ -1580,7 +1581,8 @@ for (i in seq_len(nrow(step_table))) {
       frq = frq,
       final_par = final_par,
       rtmb_footer = footer,
-      program = env("MFCLRTMB_NATIVE_PROGRAM_PATH", step_program)
+      program = env("MFCLRTMB_NATIVE_PROGRAM_PATH", step_program),
+      source_dir = model_source
     )
   } else {
     run_rtmb_parity_check(
@@ -1657,7 +1659,8 @@ for (i in seq_len(nrow(step_table))) {
     "phase-process-summary.csv",
     "doitall-switches.csv",
     "post-switch-summary.csv",
-    "native-parity-check.csv"
+    "native-parity-check.csv",
+    "native-parity-work"
   ))
   for (file in keep) {
     src <- file.path(model_dir, file)
