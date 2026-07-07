@@ -513,7 +513,7 @@ par_footer <- function(path) {
 }
 
 run_rtmb_parity_check <- function(model_dir, frq, final_par, native_footer) {
-  if (!truthy(env("STEPWISE_RTMB_PARITY_CHECK", "false"), FALSE)) {
+  if (!truthy(env("STEPWISE_RTMB_PARITY_CHECK", env("STEPWISE_PARITY_CHECK", "false")), FALSE)) {
     return(NULL)
   }
   if (!requireNamespace("mfclrtmb", quietly = TRUE)) {
@@ -525,22 +525,45 @@ run_rtmb_parity_check <- function(model_dir, frq, final_par, native_footer) {
   }
 
   root_name <- sub("[.]frq$", "", basename(frq))
-  check_dir <- file.path(model_dir, "rtmb-parity-check")
-  if (dir.exists(check_dir)) unlink(check_dir, recursive = TRUE, force = TRUE)
+  check_dir <- tempfile("rtmb-parity-")
   dir.create(check_dir, recursive = TRUE, showWarnings = FALSE)
+  keep_work <- truthy(env("STEPWISE_PARITY_KEEP_WORK", "false"), FALSE)
+  on.exit({
+    if (!isTRUE(keep_work)) unlink(check_dir, recursive = TRUE, force = TRUE)
+  }, add = TRUE)
   tolerance <- suppressWarnings(as.numeric(env("STEPWISE_RTMB_PARITY_OBJECTIVE_TOLERANCE", "1e-5")))
   if (!is.finite(tolerance)) tolerance <- 1e-5
+  parity_openmp_threads <- suppressWarnings(as.integer(env("MFCLRTMB_OPENMP_THREADS", "1")))
+  if (!is.finite(parity_openmp_threads) || parity_openmp_threads < 1L) parity_openmp_threads <- 1L
+  mfclrtmb_fit_formals <- tryCatch(
+    names(formals(get("mfclrtmb_fit", envir = asNamespace("mfclrtmb")))),
+    error = function(e) character(0L)
+  )
+  rtmb_args <- list(
+    case_dir = model_dir,
+    root = root_name,
+    par = basename(final_par),
+    output_dir = check_dir,
+    run_optimization = FALSE,
+    write_outputs = FALSE,
+    write_payload = FALSE,
+    write_mfcl_files = FALSE,
+    copy_inputs = FALSE,
+    copy_support_files = FALSE,
+    exact_report = FALSE,
+    run_sdreport = FALSE,
+    verbose = FALSE,
+    openmp_threads = parity_openmp_threads,
+    openmp_autopar = truthy(env("MFCLRTMB_OPENMP_AUTOPAR", "false"), FALSE)
+  )
+  if ("build_report" %in% mfclrtmb_fit_formals) {
+    rtmb_args$build_report <- FALSE
+  }
 
   message("  rtmb parity: evaluating native final par with mfclrtmb no-optim")
   started <- Sys.time()
   result <- tryCatch(
-    mfclrtmb::mfclrtmb_run(
-      case_dir = model_dir,
-      root = root_name,
-      par = basename(final_par),
-      output_dir = check_dir,
-      run_optimization = FALSE
-    ),
+    do.call(mfclrtmb::mfclrtmb_run, rtmb_args),
     error = function(e) e
   )
   elapsed <- as.numeric(difftime(Sys.time(), started, units = "secs"))
@@ -566,6 +589,7 @@ run_rtmb_parity_check <- function(model_dir, frq, final_par, native_footer) {
 
   out <- data.frame(
     check_time = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
+    check_direction = "native_final_par_with_rtmb",
     program_path = "mfclrtmb::mfclrtmb_run",
     program_md5 = "",
     root = root_name,
@@ -586,12 +610,14 @@ run_rtmb_parity_check <- function(model_dir, frq, final_par, native_footer) {
     gradient_status = if (failed || !is.finite(rtmb_max_gradient)) 1L else 0L,
     elapsed_seconds = elapsed,
     error_message = if (failed) conditionMessage(result) else "",
-    work_dir = normalizePath(check_dir, winslash = "/", mustWork = FALSE),
+    work_dir = if (isTRUE(keep_work)) normalizePath(check_dir, winslash = "/", mustWork = FALSE) else "",
     stringsAsFactors = FALSE,
     check.names = FALSE
   )
   utils::write.csv(out, file.path(model_dir, "native-parity-check.csv"), row.names = FALSE)
-  utils::write.csv(out, file.path(check_dir, "summary.csv"), row.names = FALSE)
+  if (isTRUE(keep_work)) {
+    utils::write.csv(out, file.path(check_dir, "summary.csv"), row.names = FALSE)
+  }
   message(sprintf(
     "  rtmb parity %s: native=%.12g rtmb=%.12g delta=%.6g",
     status,
@@ -603,6 +629,137 @@ run_rtmb_parity_check <- function(model_dir, frq, final_par, native_footer) {
   if (truthy(env("STEPWISE_RTMB_PARITY_FAIL", "false"), FALSE) && !isTRUE(objective_ok)) {
     stop(
       "RTMB parity check failed: objective delta ",
+      format(objective_delta, digits = 12),
+      " exceeds tolerance ",
+      format(tolerance, digits = 6),
+      call. = FALSE
+    )
+  }
+  out
+}
+
+run_native_parity_check <- function(model_dir, frq, final_par, rtmb_footer, program) {
+  if (!truthy(env("STEPWISE_NATIVE_PARITY_CHECK", env("STEPWISE_PARITY_CHECK", "false")), FALSE)) {
+    return(NULL)
+  }
+  if (!requireNamespace("mfclrtmb", quietly = TRUE) ||
+      !("run_original_mfcl_short_eval" %in% getNamespaceExports("mfclrtmb"))) {
+    stop(
+      "STEPWISE_NATIVE_PARITY_CHECK=true needs mfclrtmb::run_original_mfcl_short_eval. ",
+      "Include mfclrtmb in KFLOW_REPO_RUNTIME_PACKAGES.",
+      call. = FALSE
+    )
+  }
+
+  root_name <- sub("[.]frq$", "", basename(frq))
+  check_dir <- tempfile("native-parity-")
+  keep_work <- truthy(env("STEPWISE_PARITY_KEEP_WORK", "false"), FALSE)
+  on.exit({
+    if (!isTRUE(keep_work)) unlink(check_dir, recursive = TRUE, force = TRUE)
+  }, add = TRUE)
+  tolerance <- suppressWarnings(as.numeric(env(
+    "STEPWISE_NATIVE_PARITY_OBJECTIVE_TOLERANCE",
+    env("STEPWISE_RTMB_PARITY_OBJECTIVE_TOLERANCE", "1e-5")
+  )))
+  if (!is.finite(tolerance)) tolerance <- 1e-5
+  phase_switch <- suppressWarnings(as.integer(env("STEPWISE_NATIVE_PARITY_PHASE_SWITCH", "1")))
+  if (!is.finite(phase_switch)) phase_switch <- 1L
+  timeout <- suppressWarnings(as.numeric(env("STEPWISE_NATIVE_PARITY_TIMEOUT", "0")))
+  if (!is.finite(timeout)) timeout <- 0
+
+  message("  native parity: evaluating rtmb final par with native MFCL short eval")
+  started <- Sys.time()
+  result <- tryCatch(
+    mfclrtmb::run_original_mfcl_short_eval(
+      exe = program,
+      source_dir = model_dir,
+      root = root_name,
+      in_par = final_par,
+      out_par = "native-parity.par",
+      dest_dir = check_dir,
+      overwrite = TRUE,
+      report = FALSE,
+      phase_switch = phase_switch,
+      timeout = timeout
+    ),
+    error = function(e) e
+  )
+  elapsed <- as.numeric(difftime(Sys.time(), started, units = "secs"))
+  failed <- inherits(result, "error")
+
+  native_footer <- c(objective = NA_real_, max_gradient = NA_real_)
+  stdout_objective <- NA_real_
+  if (!failed && isTRUE(result$ok) && file.exists(result$out_par)) {
+    native_footer <- par_footer(result$out_par)
+  }
+  stdout_file <- if (!failed && !is.null(result$case$work_dir)) {
+    file.path(result$case$work_dir, "mfcl_switch.stdout")
+  } else {
+    ""
+  }
+  if (nzchar(stdout_file) && file.exists(stdout_file)) {
+    stdout_summary <- tryCatch(mfclrtmb::read_mfcl_stdout_summary(stdout_file), error = function(e) NULL)
+    stdout_objective <- suppressWarnings(as.numeric(tryCatch(stdout_summary$last[["total_function"]], error = function(e) NA_real_)))
+  }
+
+  native_objective <- suppressWarnings(as.numeric(native_footer[["objective"]]))
+  if (!is.finite(native_objective)) native_objective <- stdout_objective
+  native_max_gradient <- suppressWarnings(as.numeric(native_footer[["max_gradient"]]))
+  rtmb_objective <- suppressWarnings(as.numeric(rtmb_footer[["objective"]]))
+  rtmb_max_gradient <- suppressWarnings(as.numeric(rtmb_footer[["max_gradient"]]))
+  objective_delta <- rtmb_objective - native_objective
+  objective_abs_delta <- abs(objective_delta)
+  objective_ok <- is.finite(objective_abs_delta) && objective_abs_delta <= tolerance
+  status <- if (isTRUE(objective_ok)) "match" else "mismatch"
+  if (failed || !isTRUE(result$ok) || !is.finite(native_objective)) status <- "native_objective_unavailable"
+
+  program_md5 <- if (file.exists(program)) {
+    tryCatch(as.character(tools::md5sum(program)[[1L]]), error = function(e) "")
+  } else {
+    ""
+  }
+  out <- data.frame(
+    check_time = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
+    check_direction = "rtmb_final_par_with_native",
+    program_path = program,
+    program_md5 = program_md5,
+    root = root_name,
+    final_par = normalizePath(final_par, winslash = "/", mustWork = FALSE),
+    rtmb_objective = rtmb_objective,
+    rtmb_max_gradient = rtmb_max_gradient,
+    native_objective = native_objective,
+    native_gradient_objective = native_objective,
+    native_max_gradient = native_max_gradient,
+    native_gradient_mode = "run_original_mfcl_short_eval",
+    rtmb_gradient_mode = "final-par-footer",
+    objective_delta = objective_delta,
+    objective_abs_delta = objective_abs_delta,
+    objective_tolerance = tolerance,
+    objective_ok = objective_ok,
+    status = status,
+    objective_status = if (failed) 1L else suppressWarnings(as.integer(result$status %||% 0L)),
+    gradient_status = if (!is.finite(native_max_gradient)) 1L else 0L,
+    elapsed_seconds = elapsed,
+    error_message = if (failed) conditionMessage(result) else "",
+    work_dir = if (isTRUE(keep_work)) normalizePath(check_dir, winslash = "/", mustWork = FALSE) else "",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  utils::write.csv(out, file.path(model_dir, "native-parity-check.csv"), row.names = FALSE)
+  if (isTRUE(keep_work)) {
+    utils::write.csv(out, file.path(check_dir, "summary.csv"), row.names = FALSE)
+  }
+  message(sprintf(
+    "  native parity %s: rtmb=%.12g native=%.12g delta=%.6g",
+    status,
+    rtmb_objective,
+    native_objective,
+    objective_delta
+  ))
+
+  if (truthy(env("STEPWISE_NATIVE_PARITY_FAIL", "false"), FALSE) && !isTRUE(objective_ok)) {
+    stop(
+      "Native parity check failed: objective delta ",
       format(objective_delta, digits = 12),
       " exceeds tolerance ",
       format(tolerance, digits = 6),
@@ -1159,7 +1316,15 @@ for (i in seq_len(nrow(step_table))) {
   }
 
   footer <- par_footer(final_par)
-  if (!identical(run_engine, "mfclrtmb")) {
+  if (identical(run_engine, "mfclrtmb")) {
+    run_native_parity_check(
+      model_dir = model_dir,
+      frq = frq,
+      final_par = final_par,
+      rtmb_footer = footer,
+      program = env("MFCLRTMB_NATIVE_PROGRAM_PATH", step_program)
+    )
+  } else {
     run_rtmb_parity_check(
       model_dir = model_dir,
       frq = frq,
