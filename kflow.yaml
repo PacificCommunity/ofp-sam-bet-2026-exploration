@@ -171,6 +171,41 @@ local_apps:
       base_libs <- setdiff(.libPaths(), normalizePath(lib, winslash = "/", mustWork = FALSE))
       .libPaths(unique(c(lib, base_libs)))
 
+      ensure_cran_packages <- function(packages) {
+        packages <- unique(packages[nzchar(packages)])
+        missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+        if (!length(missing)) {
+          return(invisible(TRUE))
+        }
+        repos <- getOption("repos")
+        if (is.null(repos) || identical(unname(repos[["CRAN"]]), "@CRAN@")) {
+          repos <- c(CRAN = Sys.getenv("CRAN_REPO", "https://cloud.r-project.org"))
+        }
+        message("[mfclshiny-local-app] installing missing CRAN packages: ", paste(missing, collapse = ", "))
+        utils::install.packages(
+          missing,
+          lib = lib,
+          repos = repos,
+          dependencies = c("Depends", "Imports", "LinkingTo"),
+          Ncpus = getOption("Ncpus", 1L)
+        )
+        missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+        if (length(missing)) {
+          stop(
+            "Missing R package(s) after local-app dependency install: ",
+            paste(missing, collapse = ", "),
+            call. = FALSE
+          )
+        }
+        invisible(TRUE)
+      }
+      ensure_cran_packages(c(
+        "cowplot", "dplyr", "DT", "ggplot2", "htmltools", "jsonlite",
+        "maps", "patchwork", "plotly", "purrr", "rlang", "rpart",
+        "scales", "shiny", "shinydashboard", "shinyFiles", "shinyWidgets",
+        "stringr", "tibble", "tidyr", "viridis"
+      ))
+
       mfclshiny_ref <- Sys.getenv("MFCLSHINY_GITHUB_REF", "main")
       desc_field <- function(desc, name) {
         value <- tryCatch(desc[[name]], error = function(e) "")
