@@ -148,7 +148,6 @@ mode_key <- function(run_mode) {
 }
 
 engine_label <- function(run_engine, program = "") {
-  if (identical(run_engine, "mfclrtmb")) return("mfclrtmb")
   if (grepl("2023_diagnostic|diagnostic", basename(program), ignore.case = TRUE)) {
     return("native MFCL old")
   }
@@ -156,7 +155,7 @@ engine_label <- function(run_engine, program = "") {
 }
 
 engine_token <- function(run_engine) {
-  if (identical(run_engine, "mfclrtmb")) "rtmb" else "native"
+  "native"
 }
 
 step_display_token <- function(step_id) {
@@ -166,7 +165,7 @@ step_display_token <- function(step_id) {
 
 strip_engine_suffix <- function(label) {
   sub(
-    "\\s*\\((native MFCL old|native MFCL|mfclrtmb|rtmb|MFCL)\\)\\s*$",
+    "\\s*\\((native MFCL old|native MFCL|MFCL)\\)\\s*$",
     "",
     trimws(as.character(label %||% "")),
     ignore.case = TRUE
@@ -189,16 +188,6 @@ format_elapsed_time <- function(seconds) {
   hours <- minutes %/% 60
   minutes <- minutes %% 60
   if (minutes > 0) sprintf("%dh %02dm", hours, minutes) else sprintf("%dh", hours)
-}
-
-parse_mfclrtmb_fit_elapsed_seconds <- function(log_file) {
-  if (!file.exists(log_file)) return(NA_real_)
-  lines <- readLines(log_file, warn = FALSE)
-  phase_lines <- grep("\\[mfclrtmb\\] phase-[^ ]+ .*total [0-9.]+s", lines, value = TRUE)
-  if (!length(phase_lines)) return(NA_real_)
-  totals <- suppressWarnings(as.numeric(sub(".*total ([0-9.]+)s\\).*", "\\1", phase_lines)))
-  totals <- totals[is.finite(totals)]
-  if (!length(totals)) NA_real_ else max(totals)
 }
 
 manifest_value <- function(x) {
@@ -269,33 +258,8 @@ is_doitall_mode <- function(run_mode) {
   mode_key(run_mode) %in% c("doitall", "script")
 }
 
-is_mfclrtmb_doitall_mode <- function(run_mode) {
-  mode_key(run_mode) %in% c(
-    "mfclrtmb",
-    "rtmb",
-    "mfclrtmb_doitall",
-    "rtmb_doitall",
-    "doitall_rtmb"
-  )
-}
-
-is_mfclrtmb_par_mode <- function(run_mode) {
-  mode_key(run_mode) %in% c(
-    "mfclrtmb_par",
-    "rtmb_par",
-    "mfclrtmb_single_par",
-    "rtmb_single_par",
-    "mfclrtmb_noopt",
-    "rtmb_noopt"
-  )
-}
-
-is_mfclrtmb_mode <- function(run_mode) {
-  is_mfclrtmb_doitall_mode(run_mode) || is_mfclrtmb_par_mode(run_mode)
-}
-
 is_doitall_like_mode <- function(run_mode) {
-  is_doitall_mode(run_mode) || is_mfclrtmb_doitall_mode(run_mode)
+  is_doitall_mode(run_mode)
 }
 
 is_latest_par_mode <- function(run_mode) {
@@ -347,264 +311,6 @@ run_script <- function(script, program, log_file, live_log = TRUE) {
   system2("bash", c("-c", command), stdout = log_file, stderr = log_file, wait = TRUE)
 }
 
-run_mfclrtmb_doitall <- function(model_dir, frq, script, log_file, live_log = TRUE) {
-  if (!file.exists(script)) stop("Run script not found: ", basename(script), call. = FALSE)
-  if (!requireNamespace("mfclrtmb", quietly = TRUE)) {
-    stop(
-      "RUN_MODE=mfclrtmb_doitall needs the mfclrtmb R package. ",
-      "Install it locally or include mfclrtmb in KFLOW_REPO_RUNTIME_PACKAGES.",
-      call. = FALSE
-    )
-  }
-
-  root_name <- sub("[.]frq$", "", basename(frq))
-  runner <- tempfile("mfclrtmb-doitall-", fileext = ".R")
-  on.exit(unlink(runner), add = TRUE)
-  writeLines(c(
-    "truthy <- function(x, default = FALSE) {",
-    "  if (is.null(x) || !nzchar(x)) return(default)",
-    "  tolower(trimws(x)) %in% c('1', 'true', 'yes', 'y', 'on')",
-    "}",
-    "env_chr <- function(name, default = NULL) {",
-    "  x <- Sys.getenv(name, unset = '')",
-    "  if (!nzchar(x)) default else x",
-    "}",
-    "env_int <- function(name, default = NULL) {",
-    "  x <- env_chr(name)",
-    "  if (is.null(x)) return(default)",
-    "  y <- suppressWarnings(as.integer(x))",
-    "  if (is.na(y)) stop(name, ' must be an integer', call. = FALSE)",
-    "  y",
-    "}",
-    "env_phase <- function(name, default = Inf) {",
-    "  x <- env_chr(name)",
-    "  if (is.null(x)) return(default)",
-    "  if (tolower(x) %in% c('inf', 'infinity')) return(Inf)",
-    "  y <- suppressWarnings(as.integer(x))",
-    "  if (is.na(y)) stop(name, ' must be an integer phase or Inf', call. = FALSE)",
-    "  y",
-    "}",
-    "env_bool_null <- function(name) {",
-    "  x <- env_chr(name)",
-    "  if (is.null(x)) return(NULL)",
-    "  truthy(x)",
-    "}",
-    "suppressPackageStartupMessages(library(mfclrtmb))",
-    "cat('[stepwise-mfclrtmb] package: ', as.character(utils::packageVersion('mfclrtmb')), '\\n', sep = '')",
-    "cat('[stepwise-mfclrtmb] case_dir: ', Sys.getenv('MFCLRTMB_CASE_DIR'), '\\n', sep = '')",
-    "cat('[stepwise-mfclrtmb] root: ', Sys.getenv('MFCLRTMB_ROOT'), '\\n', sep = '')",
-    "result <- mfclrtmb::run_mfcl_rtmb_doitall(",
-    "  case_dir = Sys.getenv('MFCLRTMB_CASE_DIR'),",
-    "  output_dir = Sys.getenv('MFCLRTMB_OUTPUT_DIR'),",
-    "  root = Sys.getenv('MFCLRTMB_ROOT'),",
-    "  doitall_file = Sys.getenv('MFCLRTMB_DOITALL_FILE'),",
-    "  start_phase = env_int('MFCLRTMB_START_PHASE'),",
-    "  resume = truthy(env_chr('MFCLRTMB_RESUME', 'false')),",
-    "  max_phase = env_phase('MFCLRTMB_MAX_PHASE', Inf),",
-    "  start_par = env_chr('MFCLRTMB_START_PAR'),",
-    "  start_control_par = env_chr('MFCLRTMB_START_CONTROL_PAR'),",
-    "  run_optimization = truthy(env_chr('MFCLRTMB_RUN_OPTIMIZATION', 'true'), TRUE),",
-    "  optimizer = env_chr('MFCLRTMB_OPTIMIZER', 'fmm'),",
-    "  maxfn = env_int('MFCLRTMB_MAXFN'),",
-    "  strict_switches = truthy(env_chr('MFCLRTMB_STRICT_SWITCHES', 'true'), TRUE),",
-    "  write_mfcl_files = truthy(env_chr('MFCLRTMB_WRITE_MFCL_FILES', 'true'), TRUE),",
-    "  write_payload = FALSE,",
-    "  run_post_switches = truthy(env_chr('MFCLRTMB_RUN_POST_SWITCHES', 'true'), TRUE),",
-    "  exact_report = truthy(env_chr('MFCLRTMB_EXACT_REPORT', 'true'), TRUE),",
-    "  write_objective_trace = truthy(env_chr('MFCLRTMB_WRITE_OBJECTIVE_TRACE', 'false')),",
-    "  write_progress = truthy(env_chr('MFCLRTMB_WRITE_PROGRESS', 'true'), TRUE),",
-    "  verbose = truthy(env_chr('MFCLRTMB_VERBOSE', 'true'), TRUE),",
-    "  verbose_eval = env_bool_null('MFCLRTMB_VERBOSE_EVAL'),",
-    "  openmp_threads = env_int('MFCLRTMB_OPENMP_THREADS', 1L),",
-    "  openmp_autopar = truthy(env_chr('MFCLRTMB_OPENMP_AUTOPAR', 'false')),",
-    "  process_per_control = env_bool_null('MFCLRTMB_PROCESS_PER_CONTROL'),",
-    "  process_log = env_bool_null('MFCLRTMB_PROCESS_LOG'),",
-    "  process_time = env_bool_null('MFCLRTMB_PROCESS_TIME'),",
-    "  low_memory = env_bool_null('MFCLRTMB_LOW_MEMORY'),",
-    "  verbose_memory = env_bool_null('MFCLRTMB_VERBOSE_MEMORY'),",
-    "  native_parity_check = truthy(env_chr('MFCLRTMB_NATIVE_PARITY_CHECK', 'false')),",
-    "  native_program_path = env_chr('MFCLRTMB_NATIVE_PROGRAM_PATH', Sys.getenv('PROGRAM_PATH', '/home/mfcl/mfclo64')),",
-    "  native_parity_objective_tolerance = suppressWarnings(as.numeric(env_chr('MFCLRTMB_NATIVE_PARITY_OBJECTIVE_TOLERANCE', '1e-5'))),",
-    "  native_parity_gradient = truthy(env_chr('MFCLRTMB_NATIVE_PARITY_GRADIENT', 'true'), TRUE),",
-    "  native_parity_fail = truthy(env_chr('MFCLRTMB_NATIVE_PARITY_FAIL', 'false'))",
-    ")",
-    "if (!is.null(result$summary)) {",
-    "  cat('\\n[stepwise-mfclrtmb] phase summary\\n')",
-    "  print(result$summary)",
-    "}",
-    "cat('\\n[stepwise-mfclrtmb] done\\n')"
-  ), runner, useBytes = TRUE)
-
-  script_env <- c(
-    MFCLRTMB_CASE_DIR = normalizePath(model_dir, mustWork = TRUE),
-    MFCLRTMB_OUTPUT_DIR = normalizePath(model_dir, mustWork = TRUE),
-    MFCLRTMB_ROOT = root_name,
-    MFCLRTMB_DOITALL_FILE = normalizePath(script, mustWork = TRUE)
-  )
-  env_names <- c(
-    "MFCLRTMB_START_PHASE",
-    "MFCLRTMB_RESUME",
-    "MFCLRTMB_MAX_PHASE",
-    "MFCLRTMB_START_PAR",
-    "MFCLRTMB_START_CONTROL_PAR",
-    "MFCLRTMB_RUN_OPTIMIZATION",
-    "MFCLRTMB_OPTIMIZER",
-    "MFCLRTMB_MAXFN",
-    "MFCLRTMB_STRICT_SWITCHES",
-    "MFCLRTMB_WRITE_MFCL_FILES",
-    "MFCLRTMB_RUN_POST_SWITCHES",
-    "MFCLRTMB_EXACT_REPORT",
-    "MFCLRTMB_WRITE_OBJECTIVE_TRACE",
-    "MFCLRTMB_WRITE_PROGRESS",
-    "MFCLRTMB_VERBOSE",
-    "MFCLRTMB_VERBOSE_EVAL",
-    "MFCLRTMB_OPENMP_THREADS",
-    "MFCLRTMB_OPENMP_AUTOPAR",
-    "MFCLRTMB_TAG_FULL_MANUAL_SPLIT_CHUNKS",
-    "MFCLRTMB_TAG_FULL_MANUAL_SPLIT_CHUNKS_PER_THREAD",
-    "MFCLRTMB_PROCESS_PER_CONTROL",
-    "MFCLRTMB_PROCESS_LOG",
-    "MFCLRTMB_PROCESS_TIME",
-    "MFCLRTMB_LOW_MEMORY",
-    "MFCLRTMB_VERBOSE_MEMORY",
-    "MFCLRTMB_NATIVE_PARITY_CHECK",
-    "MFCLRTMB_NATIVE_PARITY_OBJECTIVE_TOLERANCE",
-    "MFCLRTMB_NATIVE_PARITY_GRADIENT",
-    "MFCLRTMB_NATIVE_PARITY_FAIL",
-    "MFCLRTMB_NATIVE_PROGRAM_PATH"
-  )
-  extra <- Sys.getenv(env_names, unset = NA_character_)
-  extra <- extra[!is.na(extra) & nzchar(extra)]
-  script_env <- c(script_env, extra)
-  env_assign <- paste(
-    sprintf("%s=%s", names(script_env), shQuote(unname(script_env))),
-    collapse = " "
-  )
-  command <- sprintf("set -o pipefail; %s Rscript %s", env_assign, shQuote(runner))
-  if (isTRUE(live_log)) {
-    command <- sprintf("%s 2>&1 | tee %s >&2", command, shQuote(log_file))
-    return(system2("bash", c("-c", command), wait = TRUE))
-  }
-  system2("bash", c("-c", command), stdout = log_file, stderr = log_file, wait = TRUE)
-}
-
-run_mfclrtmb_single_par <- function(model_dir,
-                                    frq,
-                                    input_par,
-                                    output_par,
-                                    log_file,
-                                    live_log = TRUE) {
-  if (!requireNamespace("mfclrtmb", quietly = TRUE)) {
-    stop(
-      "RUN_MODE=mfclrtmb_par needs the mfclrtmb R package. ",
-      "Install it locally or include mfclrtmb in KFLOW_REPO_RUNTIME_PACKAGES.",
-      call. = FALSE
-    )
-  }
-  root_name <- sub("[.]frq$", "", basename(frq))
-  input_path <- file.path(model_dir, input_par)
-  output_path <- file.path(model_dir, output_par)
-  if (!file.exists(input_path)) {
-    stop("RTMB single-par input not found: ", input_par, call. = FALSE)
-  }
-  if (!same_path(input_path, output_path)) {
-    ok <- file.copy(input_path, output_path, overwrite = TRUE, copy.date = TRUE)
-    if (!isTRUE(ok)) {
-      stop("Could not stage RTMB single-par output file: ", output_par, call. = FALSE)
-    }
-  }
-
-  runner <- tempfile("mfclrtmb-single-par-", fileext = ".R")
-  success_marker <- tempfile("mfclrtmb-single-par-ok-")
-  on.exit(unlink(c(runner, success_marker)), add = TRUE)
-  writeLines(c(
-    "truthy <- function(x, default = FALSE) {",
-    "  if (is.null(x) || !nzchar(x)) return(default)",
-    "  tolower(trimws(x)) %in% c('1', 'true', 'yes', 'y', 'on')",
-    "}",
-    "env_chr <- function(name, default = NULL) {",
-    "  x <- Sys.getenv(name, unset = '')",
-    "  if (!nzchar(x)) default else x",
-    "}",
-    "env_int <- function(name, default = NULL) {",
-    "  x <- env_chr(name)",
-    "  if (is.null(x)) return(default)",
-    "  y <- suppressWarnings(as.integer(x))",
-    "  if (is.na(y)) stop(name, ' must be an integer', call. = FALSE)",
-    "  y",
-    "}",
-    "env_bool_null <- function(name) {",
-    "  x <- env_chr(name)",
-    "  if (is.null(x)) return(NULL)",
-    "  truthy(x)",
-    "}",
-    "suppressPackageStartupMessages(library(mfclrtmb))",
-    "cat('[stepwise-mfclrtmb] package: ', as.character(utils::packageVersion('mfclrtmb')), '\\n', sep = '')",
-    "cat('[stepwise-mfclrtmb] direct par eval\\n')",
-    "cat('[stepwise-mfclrtmb] case_dir: ', Sys.getenv('MFCLRTMB_CASE_DIR'), '\\n', sep = '')",
-    "cat('[stepwise-mfclrtmb] par: ', Sys.getenv('MFCLRTMB_PAR'), '\\n', sep = '')",
-    "fit <- mfclrtmb::mfclrtmb_run(",
-    "  case_dir = Sys.getenv('MFCLRTMB_CASE_DIR'),",
-    "  root = Sys.getenv('MFCLRTMB_ROOT'),",
-    "  par = Sys.getenv('MFCLRTMB_PAR'),",
-    "  output_dir = Sys.getenv('MFCLRTMB_OUTPUT_DIR'),",
-    "  run_optimization = FALSE,",
-    "  write_outputs = TRUE,",
-    "  write_payload = FALSE,",
-    "  write_mfcl_files = truthy(env_chr('MFCLRTMB_WRITE_MFCL_FILES', 'true'), TRUE),",
-    "  copy_inputs = FALSE,",
-    "  copy_support_files = FALSE,",
-    "  build_report = TRUE,",
-    "  exact_report = truthy(env_chr('MFCLRTMB_EXACT_REPORT', 'true'), TRUE),",
-    "  run_sdreport = FALSE,",
-    "  verbose = truthy(env_chr('MFCLRTMB_VERBOSE', 'true'), TRUE),",
-    "  openmp_threads = env_int('MFCLRTMB_OPENMP_THREADS', 1L),",
-    "  openmp_autopar = truthy(env_chr('MFCLRTMB_OPENMP_AUTOPAR', 'false'))",
-    ")",
-    "cat('[stepwise-mfclrtmb] objective: ', format(fit$fit$objective, digits = 16), '\\n', sep = '')",
-    "cat('[stepwise-mfclrtmb] max_gradient: ', format(fit$fit$max_gradient, digits = 16), '\\n', sep = '')",
-    "cat('[stepwise-mfclrtmb] done\\n')",
-    "writeLines('ok', Sys.getenv('MFCLRTMB_SUCCESS_MARKER'))"
-  ), runner, useBytes = TRUE)
-
-  script_env <- c(
-    MFCLRTMB_CASE_DIR = normalizePath(model_dir, mustWork = TRUE),
-    MFCLRTMB_OUTPUT_DIR = normalizePath(model_dir, mustWork = TRUE),
-    MFCLRTMB_ROOT = root_name,
-    MFCLRTMB_PAR = normalizePath(output_path, mustWork = TRUE),
-    MFCLRTMB_SUCCESS_MARKER = success_marker
-  )
-  env_names <- c(
-    "MFCLRTMB_WRITE_MFCL_FILES",
-    "MFCLRTMB_EXACT_REPORT",
-    "MFCLRTMB_VERBOSE",
-    "MFCLRTMB_OPENMP_THREADS",
-    "MFCLRTMB_OPENMP_AUTOPAR"
-  )
-  extra <- Sys.getenv(env_names, unset = NA_character_)
-  extra <- extra[!is.na(extra) & nzchar(extra)]
-  script_env <- c(script_env, extra)
-  env_assign <- paste(
-    sprintf("%s=%s", names(script_env), shQuote(unname(script_env))),
-    collapse = " "
-  )
-  command <- sprintf("set -o pipefail; %s Rscript %s", env_assign, shQuote(runner))
-  if (isTRUE(live_log)) {
-    command <- sprintf("%s 2>&1 | tee %s >&2", command, shQuote(log_file))
-    status <- system2("bash", c("-c", command), wait = TRUE)
-  } else {
-    status <- system2("bash", c("-c", command), stdout = log_file, stderr = log_file, wait = TRUE)
-  }
-  if (is.null(status)) status <- 0L
-  status <- suppressWarnings(as.integer(status[[1L]]))
-  if (!is.finite(status)) status <- 1L
-  if (identical(status, 0L) && !file.exists(success_marker)) {
-    message("  mfclrtmb direct par eval did not write success marker")
-    status <- 1L
-  }
-  status
-}
-
 bind_rows_fill <- function(rows) {
   rows <- rows[vapply(rows, function(x) is.data.frame(x) && nrow(x), logical(1))]
   if (!length(rows)) return(data.frame(stringsAsFactors = FALSE))
@@ -642,297 +348,6 @@ par_footer <- function(path) {
   }
   if (length(gradient_i) && gradient_i[[1]] < length(lines)) {
     out[["max_gradient"]] <- suppressWarnings(as.numeric(lines[[gradient_i[[1]] + 1L]]))
-  }
-  out
-}
-
-run_rtmb_parity_check <- function(model_dir, frq, final_par, native_footer) {
-  if (!truthy(env("STEPWISE_RTMB_PARITY_CHECK", env("STEPWISE_PARITY_CHECK", "false")), FALSE)) {
-    return(NULL)
-  }
-  if (!requireNamespace("mfclrtmb", quietly = TRUE)) {
-    stop(
-      "STEPWISE_RTMB_PARITY_CHECK=true needs the mfclrtmb R package. ",
-      "Include mfclrtmb in KFLOW_REPO_RUNTIME_PACKAGES.",
-      call. = FALSE
-    )
-  }
-
-  root_name <- sub("[.]frq$", "", basename(frq))
-  check_dir <- tempfile("rtmb-parity-")
-  dir.create(check_dir, recursive = TRUE, showWarnings = FALSE)
-  keep_work <- truthy(env("STEPWISE_PARITY_KEEP_WORK", "false"), FALSE)
-  on.exit({
-    if (!isTRUE(keep_work)) unlink(check_dir, recursive = TRUE, force = TRUE)
-  }, add = TRUE)
-  tolerance <- suppressWarnings(as.numeric(env("STEPWISE_RTMB_PARITY_OBJECTIVE_TOLERANCE", "1e-5")))
-  if (!is.finite(tolerance)) tolerance <- 1e-5
-  parity_openmp_threads <- suppressWarnings(as.integer(env("MFCLRTMB_OPENMP_THREADS", "1")))
-  if (!is.finite(parity_openmp_threads) || parity_openmp_threads < 1L) parity_openmp_threads <- 1L
-  mfclrtmb_fit_formals <- tryCatch(
-    names(formals(get("mfclrtmb_fit", envir = asNamespace("mfclrtmb")))),
-    error = function(e) character(0L)
-  )
-  rtmb_args <- list(
-    case_dir = model_dir,
-    root = root_name,
-    par = normalizePath(final_par, winslash = "/", mustWork = TRUE),
-    output_dir = check_dir,
-    run_optimization = FALSE,
-    write_outputs = FALSE,
-    write_payload = FALSE,
-    write_mfcl_files = FALSE,
-    copy_inputs = FALSE,
-    copy_support_files = FALSE,
-    exact_report = FALSE,
-    run_sdreport = FALSE,
-    verbose = FALSE,
-    openmp_threads = parity_openmp_threads,
-    openmp_autopar = truthy(env("MFCLRTMB_OPENMP_AUTOPAR", "false"), FALSE)
-  )
-  if ("build_report" %in% mfclrtmb_fit_formals) {
-    rtmb_args$build_report <- FALSE
-  }
-
-  message("  rtmb parity: evaluating native final par with mfclrtmb no-optim")
-  started <- Sys.time()
-  result <- tryCatch(
-    do.call(mfclrtmb::mfclrtmb_run, rtmb_args),
-    error = function(e) e
-  )
-  elapsed <- as.numeric(difftime(Sys.time(), started, units = "secs"))
-  failed <- inherits(result, "error")
-
-  rtmb_objective <- if (failed) {
-    NA_real_
-  } else {
-    suppressWarnings(as.numeric(result$fit$objective[[1L]]))
-  }
-  rtmb_max_gradient <- if (failed) {
-    NA_real_
-  } else {
-    suppressWarnings(as.numeric(result$fit$max_gradient[[1L]]))
-  }
-  native_objective <- suppressWarnings(as.numeric(native_footer[["objective"]]))
-  native_max_gradient <- suppressWarnings(as.numeric(native_footer[["max_gradient"]]))
-  objective_delta <- rtmb_objective - native_objective
-  objective_abs_delta <- abs(objective_delta)
-  objective_ok <- is.finite(objective_abs_delta) && objective_abs_delta <= tolerance
-  status <- if (isTRUE(objective_ok)) "match" else "mismatch"
-  if (failed || !is.finite(rtmb_objective)) status <- "rtmb_objective_unavailable"
-
-  out <- data.frame(
-    check_time = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
-    check_direction = "native_final_par_with_rtmb",
-    program_path = "mfclrtmb::mfclrtmb_run",
-    program_md5 = "",
-    root = root_name,
-    final_par = normalizePath(final_par, winslash = "/", mustWork = FALSE),
-    rtmb_objective = rtmb_objective,
-    rtmb_max_gradient = rtmb_max_gradient,
-    native_objective = native_objective,
-    native_gradient_objective = native_objective,
-    native_max_gradient = native_max_gradient,
-    native_gradient_mode = "final-par-footer",
-    rtmb_gradient_mode = "mfclrtmb_run_no_optimization",
-    objective_delta = objective_delta,
-    objective_abs_delta = objective_abs_delta,
-    objective_tolerance = tolerance,
-    objective_ok = objective_ok,
-    status = status,
-    objective_status = if (failed) 1L else 0L,
-    gradient_status = if (failed || !is.finite(rtmb_max_gradient)) 1L else 0L,
-    elapsed_seconds = elapsed,
-    error_message = if (failed) conditionMessage(result) else "",
-    work_dir = if (isTRUE(keep_work)) normalizePath(check_dir, winslash = "/", mustWork = FALSE) else "",
-    stringsAsFactors = FALSE,
-    check.names = FALSE
-  )
-  utils::write.csv(out, file.path(model_dir, "native-parity-check.csv"), row.names = FALSE)
-  if (isTRUE(keep_work)) {
-    utils::write.csv(out, file.path(check_dir, "summary.csv"), row.names = FALSE)
-  }
-  message(sprintf(
-    "  rtmb parity %s: native=%.12g rtmb=%.12g delta=%.6g",
-    status,
-    native_objective,
-    rtmb_objective,
-    objective_delta
-  ))
-
-  if (truthy(env("STEPWISE_RTMB_PARITY_FAIL", "false"), FALSE) && !isTRUE(objective_ok)) {
-    stop(
-      "RTMB parity check failed: objective delta ",
-      format(objective_delta, digits = 12),
-      " exceeds tolerance ",
-      format(tolerance, digits = 6),
-      call. = FALSE
-    )
-  }
-  out
-}
-
-run_native_parity_check <- function(model_dir, frq, final_par, rtmb_footer,
-                                    program, source_dir = model_dir) {
-  if (!truthy(env("STEPWISE_NATIVE_PARITY_CHECK", env("STEPWISE_PARITY_CHECK", "false")), FALSE)) {
-    return(NULL)
-  }
-  if (!requireNamespace("mfclrtmb", quietly = TRUE) ||
-      !("run_original_mfcl_short_eval" %in% getNamespaceExports("mfclrtmb"))) {
-    stop(
-      "STEPWISE_NATIVE_PARITY_CHECK=true needs mfclrtmb::run_original_mfcl_short_eval. ",
-      "Include mfclrtmb in KFLOW_REPO_RUNTIME_PACKAGES.",
-      call. = FALSE
-    )
-  }
-
-  root_name <- sub("[.]frq$", "", basename(frq))
-  keep_work <- truthy(env("STEPWISE_PARITY_KEEP_WORK", "false"), FALSE)
-  check_dir <- if (isTRUE(keep_work)) {
-    file.path(model_dir, "native-parity-work")
-  } else {
-    tempfile("native-parity-")
-  }
-  on.exit({
-    if (!isTRUE(keep_work)) unlink(check_dir, recursive = TRUE, force = TRUE)
-  }, add = TRUE)
-  tolerance <- suppressWarnings(as.numeric(env(
-    "STEPWISE_NATIVE_PARITY_OBJECTIVE_TOLERANCE",
-    env("STEPWISE_RTMB_PARITY_OBJECTIVE_TOLERANCE", "1e-5")
-  )))
-  if (!is.finite(tolerance)) tolerance <- 1e-5
-  phase_switch <- suppressWarnings(as.integer(env("STEPWISE_NATIVE_PARITY_PHASE_SWITCH", "1")))
-  if (!is.finite(phase_switch)) phase_switch <- 1L
-  timeout <- suppressWarnings(as.numeric(env("STEPWISE_NATIVE_PARITY_TIMEOUT", "0")))
-  if (!is.finite(timeout)) timeout <- 0
-  native_report <- truthy(env("STEPWISE_NATIVE_PARITY_REPORT", "true"), TRUE)
-
-  message("  native parity: evaluating rtmb final par with native MFCL short eval")
-  short_eval_args <- list(
-    exe = program,
-    source_dir = source_dir,
-    root = root_name,
-    in_par = final_par,
-    out_par = "native-parity.par",
-    dest_dir = check_dir,
-    overwrite = TRUE,
-    report = native_report,
-    phase_switch = phase_switch,
-    timeout = timeout
-  )
-  short_eval_formals <- tryCatch(
-    names(formals(mfclrtmb::run_original_mfcl_short_eval)),
-    error = function(e) character()
-  )
-  if ("write_par" %in% short_eval_formals) {
-    short_eval_args$write_par <- TRUE
-  }
-  started <- Sys.time()
-  result <- tryCatch(
-    do.call(mfclrtmb::run_original_mfcl_short_eval, short_eval_args),
-    error = function(e) e
-  )
-  elapsed <- as.numeric(difftime(Sys.time(), started, units = "secs"))
-  failed <- inherits(result, "error")
-
-  native_footer <- c(objective = NA_real_, max_gradient = NA_real_)
-  stdout_objective <- NA_real_
-  if (!failed && isTRUE(result$ok) && file.exists(result$out_par)) {
-    native_footer <- par_footer(result$out_par)
-  }
-  stdout_file <- if (!failed && !is.null(result$case$work_dir)) {
-    file.path(result$case$work_dir, "mfcl_switch.stdout")
-  } else {
-    ""
-  }
-  if (nzchar(stdout_file) && file.exists(stdout_file)) {
-    stdout_summary <- tryCatch(mfclrtmb::read_mfcl_stdout_summary(stdout_file), error = function(e) NULL)
-    stdout_objective <- suppressWarnings(as.numeric(tryCatch(stdout_summary$last[["total_function"]], error = function(e) NA_real_)))
-  }
-  stderr_file <- if (!failed && !is.null(result$stderr)) result$stderr else ""
-  tail_text <- function(path, n = 12L) {
-    if (!nzchar(path) || !file.exists(path)) return("")
-    lines <- tryCatch(readLines(path, warn = FALSE), error = function(e) character())
-    lines <- tail(lines, n)
-    paste(lines, collapse = " | ")
-  }
-  native_error_message <- if (failed) {
-    conditionMessage(result)
-  } else if (!isTRUE(result$ok)) {
-    paste(
-      paste0("status=", suppressWarnings(as.integer(result$status %||% NA_integer_))),
-      paste0("out_par_exists=", file.exists(result$out_par %||% "")),
-      paste0("stderr_tail=", tail_text(stderr_file)),
-      paste0("stdout_tail=", tail_text(stdout_file)),
-      sep = "; "
-    )
-  } else {
-    ""
-  }
-
-  native_objective <- suppressWarnings(as.numeric(native_footer[["objective"]]))
-  if (!is.finite(native_objective)) native_objective <- stdout_objective
-  native_max_gradient <- suppressWarnings(as.numeric(native_footer[["max_gradient"]]))
-  rtmb_objective <- suppressWarnings(as.numeric(rtmb_footer[["objective"]]))
-  rtmb_max_gradient <- suppressWarnings(as.numeric(rtmb_footer[["max_gradient"]]))
-  objective_delta <- rtmb_objective - native_objective
-  objective_abs_delta <- abs(objective_delta)
-  objective_ok <- is.finite(objective_abs_delta) && objective_abs_delta <= tolerance
-  status <- if (isTRUE(objective_ok)) "match" else "mismatch"
-  if (failed || !isTRUE(result$ok) || !is.finite(native_objective)) status <- "native_objective_unavailable"
-
-  program_md5 <- if (file.exists(program)) {
-    tryCatch(as.character(tools::md5sum(program)[[1L]]), error = function(e) "")
-  } else {
-    ""
-  }
-  out <- data.frame(
-    check_time = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
-    check_direction = "rtmb_final_par_with_native",
-    program_path = program,
-    program_md5 = program_md5,
-    root = root_name,
-    final_par = normalizePath(final_par, winslash = "/", mustWork = FALSE),
-    rtmb_objective = rtmb_objective,
-    rtmb_max_gradient = rtmb_max_gradient,
-    native_objective = native_objective,
-    native_gradient_objective = native_objective,
-    native_max_gradient = native_max_gradient,
-    native_gradient_mode = "run_original_mfcl_short_eval",
-    rtmb_gradient_mode = "final-par-footer",
-    objective_delta = objective_delta,
-    objective_abs_delta = objective_abs_delta,
-    objective_tolerance = tolerance,
-    objective_ok = objective_ok,
-    status = status,
-    objective_status = if (failed) 1L else suppressWarnings(as.integer(result$status %||% 0L)),
-    gradient_status = if (!is.finite(native_max_gradient)) 1L else 0L,
-    elapsed_seconds = elapsed,
-    error_message = native_error_message,
-    work_dir = if (isTRUE(keep_work)) normalizePath(check_dir, winslash = "/", mustWork = FALSE) else "",
-    stringsAsFactors = FALSE,
-    check.names = FALSE
-  )
-  utils::write.csv(out, file.path(model_dir, "native-parity-check.csv"), row.names = FALSE)
-  if (isTRUE(keep_work)) {
-    utils::write.csv(out, file.path(check_dir, "summary.csv"), row.names = FALSE)
-  }
-  message(sprintf(
-    "  native parity %s: rtmb=%.12g native=%.12g delta=%.6g",
-    status,
-    rtmb_objective,
-    native_objective,
-    objective_delta
-  ))
-
-  if (truthy(env("STEPWISE_NATIVE_PARITY_FAIL", "false"), FALSE) && !isTRUE(objective_ok)) {
-    stop(
-      "Native parity check failed: objective delta ",
-      format(objective_delta, digits = 12),
-      " exceeds tolerance ",
-      format(tolerance, digits = 6),
-      call. = FALSE
-    )
   }
   out
 }
@@ -1231,15 +646,6 @@ build_payload <- function(model_dir, step_id) {
     }
   }
 
-  if (requireNamespace("mfclrtmb", quietly = TRUE) &&
-      "write_mfcl_shiny_payload" %in% getNamespaceExports("mfclrtmb")) {
-    if (try_builder("mfclrtmb::write_mfcl_shiny_payload", {
-      mfclrtmb::write_mfcl_shiny_payload(output_dir = model_dir, input_dir = model_dir, payload_file = payload_file)
-    })) {
-      return(validate_payload_file("mfclrtmb::write_mfcl_shiny_payload"))
-    }
-  }
-
   if (!file.exists(payload_file)) {
     stop(
       "model_payload.rds was not created for ", step_id,
@@ -1416,16 +822,14 @@ for (i in seq_len(nrow(step_table))) {
   frqs <- list.files(model_dir, pattern = "[.]frq$", full.names = FALSE)
   frq <- cfg$FRQ %||% if (length(frqs)) frqs[[1]] else ""
   if (!nzchar(frq) || is.na(frq)) stop("No .frq file found for ", step_id, call. = FALSE)
-  run_engine <- if (is_mfclrtmb_mode(run_mode)) "mfclrtmb" else "mfcl"
+  run_engine <- "mfcl"
   display_label <- model_display_label(label, run_engine, step_program, step_id = step_id)
   log_file <- file.path(model_dir, "mfcl.log")
   message("Running ", step_id, " (", display_label, ")")
   message("  source: ", relative_display_path(model_source, root))
   message("  mode:   ", run_mode)
   message("  engine: ", engine_label(run_engine, step_program))
-  if (!is_mfclrtmb_mode(run_mode)) {
-    message("  mfcl:   ", step_program)
-  }
+  message("  mfcl:   ", step_program)
   if (is_job_par_mode(run_mode)) {
     staged <- stage_previous_job_par(model_dir, step_id, par_source_job, root = root, work_dir = work_dir)
     input_par <- staged$input_par
@@ -1435,30 +839,6 @@ for (i in seq_len(nrow(step_table))) {
     message(
       "  previous job par: ",
       relative_display_path(par_source_par, root),
-      if (nzchar(par_source_job)) paste0(" (requested job ", par_source_job, ")") else ""
-    )
-  }
-  if (is_mfclrtmb_doitall_mode(run_mode) && nzchar(par_source_job)) {
-    staged <- stage_previous_job_par(model_dir, step_id, par_source_job, root = root, work_dir = work_dir)
-    input_par <- staged$input_par
-    par_source_par <- staged$source_par
-    Sys.setenv(MFCLRTMB_START_PAR = file.path(model_dir, staged$input_par))
-    message(
-      "  previous job par: ",
-      relative_display_path(par_source_par, root),
-      " -> MFCLRTMB_START_PAR",
-      if (nzchar(par_source_job)) paste0(" (requested job ", par_source_job, ")") else ""
-    )
-  }
-  if (is_mfclrtmb_par_mode(run_mode) && nzchar(par_source_job)) {
-    staged <- stage_previous_job_par(model_dir, step_id, par_source_job, root = root, work_dir = work_dir)
-    input_par <- staged$input_par
-    par_source_par <- staged$source_par
-    if (!nzchar(output_par)) output_par <- "final.par"
-    message(
-      "  previous job par: ",
-      relative_display_path(par_source_par, root),
-      " -> ", output_par,
       if (nzchar(par_source_job)) paste0(" (requested job ", par_source_job, ")") else ""
     )
   }
@@ -1476,13 +856,6 @@ for (i in seq_len(nrow(step_table))) {
       par_fallback_reason <- paste0("requested .par file was not found: ", input_par)
     }
     if (isTRUE(par_fallback)) {
-      if (is_mfclrtmb_par_mode(run_mode)) {
-        stop(
-          "RUN_MODE=", requested_run_mode, " needs an existing .par file",
-          if (nzchar(par_fallback_reason)) paste0("; ", par_fallback_reason) else "",
-          call. = FALSE
-        )
-      }
       message(
         "[stepwise-par] ", step_id,
         " requested RUN_MODE=", requested_run_mode,
@@ -1501,21 +874,6 @@ for (i in seq_len(nrow(step_table))) {
     if (is_doitall_mode(run_mode)) {
       message("  script: ", run_script_name)
       run_script(file.path(model_dir, run_script_name), program = step_program, log_file = log_file, live_log = mfcl_live_log)
-    } else if (is_mfclrtmb_doitall_mode(run_mode)) {
-      message("  script: ", run_script_name)
-      run_mfclrtmb_doitall(model_dir, frq = frq, script = file.path(model_dir, run_script_name), log_file = log_file, live_log = mfcl_live_log)
-    } else if (is_mfclrtmb_par_mode(run_mode)) {
-      if (!nzchar(output_par)) output_par <- "final.par"
-      message("  input:  ", frq, " + ", input_par)
-      message("  output: ", output_par)
-      run_mfclrtmb_single_par(
-        model_dir = model_dir,
-        frq = frq,
-        input_par = input_par,
-        output_par = output_par,
-        log_file = log_file,
-        live_log = mfcl_live_log
-      )
     } else {
       if (!nzchar(output_par)) output_par <- next_par_name(input_par)
       message("  input:  ", frq, " + ", input_par)
@@ -1526,17 +884,7 @@ for (i in seq_len(nrow(step_table))) {
   }, finally = setwd(old))
   model_run_finished_at <- Sys.time()
   model_run_elapsed_seconds <- as.numeric(difftime(model_run_finished_at, model_run_started_at, units = "secs"))
-  parsed_fit_seconds <- if (identical(run_engine, "mfclrtmb")) parse_mfclrtmb_fit_elapsed_seconds(log_file) else NA_real_
-  model_fit_elapsed_seconds <- if (is.finite(parsed_fit_seconds)) parsed_fit_seconds else model_run_elapsed_seconds
-  if (is.finite(model_fit_elapsed_seconds) &&
-      is.finite(model_run_elapsed_seconds) &&
-      model_fit_elapsed_seconds > model_run_elapsed_seconds) {
-    message(
-      "  fit time exceeded model runner wall time; using runner wall time: ",
-      format_elapsed_time(model_run_elapsed_seconds)
-    )
-    model_fit_elapsed_seconds <- model_run_elapsed_seconds
-  }
+  model_fit_elapsed_seconds <- model_run_elapsed_seconds
   if (!identical(status, 0L)) stop("MFCL failed for ", step_id, " with status ", status, call. = FALSE)
 
   final_output_par <- if (is_doitall_like_mode(run_mode)) {
@@ -1575,24 +923,6 @@ for (i in seq_len(nrow(step_table))) {
   }
 
   footer <- par_footer(final_par)
-  if (identical(run_engine, "mfclrtmb")) {
-    run_native_parity_check(
-      model_dir = model_dir,
-      frq = frq,
-      final_par = final_par,
-      rtmb_footer = footer,
-      program = env("MFCLRTMB_NATIVE_PROGRAM_PATH", step_program),
-      source_dir = model_source
-    )
-  } else {
-    run_rtmb_parity_check(
-      model_dir = model_dir,
-      frq = frq,
-      final_par = final_par,
-      native_footer = footer
-    )
-  }
-
   if (isTRUE(build_payloads)) {
     message("  building model_payload.rds")
     payload_status <- build_payload(model_dir, step_id)
@@ -1658,9 +988,7 @@ for (i in seq_len(nrow(step_table))) {
     "phase-progress.csv",
     "phase-process-summary.csv",
     "doitall-switches.csv",
-    "post-switch-summary.csv",
-    "native-parity-check.csv",
-    "native-parity-work"
+    "post-switch-summary.csv"
   ))
   for (file in keep) {
     src <- file.path(model_dir, file)

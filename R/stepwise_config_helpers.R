@@ -52,9 +52,6 @@ stepwise_first_value <- function(rows, column, fallback) {
 
 stepwise_engine_label <- function(run_mode) {
   run_mode <- tolower(gsub("-", "_", trimws(as.character(run_mode))))
-  if (run_mode %in% c("mfclrtmb", "mfclrtmb_doitall", "rtmb", "rtmb_doitall", "doitall_rtmb")) {
-    return("mfclrtmb")
-  }
   if (run_mode %in% c("doitall", "script")) {
     return("native MFCL")
   }

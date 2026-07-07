@@ -66,7 +66,7 @@ that match the selected `.tag`.
 | Positive recapture RR check, steps 04-15 | Generated `.ini` and selected `.tag` | Every positive recapture must have nonzero RR, active, target, and penalty cells. |
 
 The older fishery 19 repair helper remains available for older upstream inputs
-that still have inactive RR cells, but the latest `f8faf7c` / `e0b427d` source
+that still have inactive RR cells, but the latest `386d169` / `471b2fd` source
 combination passes by validation rather than by applying that repair.
 
 The full cell-by-cell audit remains in each model folder as

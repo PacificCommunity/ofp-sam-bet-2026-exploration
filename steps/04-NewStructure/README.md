@@ -27,7 +27,7 @@ First 5-region / 33-fishery BET input step, ending in 2021 with global CPUE.
 | File | Source / note |
 | --- | --- |
 | `.frq` | `bet.2023.new-structure.global-cpue.frq`; 5-region, 33-fishery structure, terminal year 2021, global CPUE |
-| `.ini` | `bet.2023.new.structure.ini`; FixM M row applied from the 01-Diag2023 mgc=-5 diagnostic final par; set Length-weight parameters from `3.063397e-05 2.932384` to `3.073533e-05 2.932410`; trimmed extra MFCL 1007 tag-control rows from 98 to 96 release groups; harmonized initial RR values only in 1 tag reporting-rate group(s) so grouped starts are native-MFCL compatible; group flags, targets, and penalties unchanged |
+| `.ini` | `bet.2023.new.structure.ini`; FixM M row applied from the 01-Diag2023 mgc=-5 diagnostic final par; set Length-weight parameters from `3.063397e-05 2.932384` to `3.073533e-05 2.932410`; normalized MFCL 1007 tag-control rows for 96 release groups; harmonized initial RR values only in 1 tag reporting-rate group(s) so grouped starts are native-MFCL compatible; group flags, targets, and penalties unchanged |
 | `.tag` | `bet.2023.new.structure-low.recaps.removed.tag`; low-recapture-removed tag input |
 | `.age_length` | `bet.2023.new-structure.age_length`; old CAAL / age_length re-assigned to new fisheries; set age_length effective sample size to 0.75 for 112 records |
 | `input_manifest.csv` | machine-readable source/input notes with source commits |
@@ -46,8 +46,8 @@ First 5-region / 33-fishery BET input step, ending in 2021 with global CPUE.
 | Repository | Commit | Note |
 | --- | --- | --- |
 | `ofp-sam-2026-BET-YFT-frq-build` | `f89e066` | Delete YFT/yft.model-785.24062026.txt |
-| `ofp-sam-2026-BET-YFT-build-ini` | `f8faf7c` | updated RR groupings |
-| `ofp-sam-2026-BET-YFT-tag-prep` | `e0b427d` | updated RR groups |
+| `ofp-sam-2026-BET-YFT-build-ini` | `386d169` | Correct RR init values |
+| `ofp-sam-2026-BET-YFT-tag-prep` | `471b2fd` | Correct RR group init values |
 | `ofp-sam-2026-BET-YFT-age-length-build` | `a26b694` | plus group at age 40 |
 | `ofp-sam-bet-2023-diagnostic` | `81fc412` | Format tables after plotting |
 | `ofp-sam-2026-BET` | `847d036` | Revert "Fallback selftest projection par generation" |

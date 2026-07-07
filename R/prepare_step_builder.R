@@ -262,7 +262,7 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
         "full global CPUE regional-scaling matrix copied unchanged; parest ",
         "flags 77-81 define active periods ", reg_scaling_window$start, "-",
         reg_scaling_window$end,
-        " so native MFCL and mfclrtmb take only the flagged rows internally"
+        " so native MFCL takes only the flagged rows internally"
       )
     )), after = 4L)
   }
