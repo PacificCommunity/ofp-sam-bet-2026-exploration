@@ -221,17 +221,54 @@ local_apps:
       installed_sha <- desc_field(installed_desc, "RemoteSha")
       installed_ref <- desc_field(installed_desc, "RemoteRef")
       ref_is_sha <- grepl("^[0-9a-f]{7,40}$", mfclshiny_ref, ignore.case = TRUE)
+      token <- Sys.getenv("GITHUB_PAT", Sys.getenv("GITHUB_TOKEN", ""))
+      git <- Sys.which("git")
+      git_url <- "https://github.com/PacificCommunity/mfclshiny.git"
+      resolve_remote_sha <- function(ref) {
+        if (!nzchar(git) || !nzchar(ref) || isTRUE(ref_is_sha)) {
+          return(if (isTRUE(ref_is_sha)) ref else "")
+        }
+        askpass <- tempfile(pattern = "mfclshiny-lsremote-askpass-")
+        on.exit(unlink(askpass, recursive = TRUE, force = TRUE), add = TRUE)
+        writeLines(c(
+          "#!/bin/sh",
+          "case \"$1\" in",
+          "  *Username*) printf '%s\\n' x-access-token ;;",
+          "  *) printf '%s\\n' \"$KFLOW_GIT_ASKPASS_TOKEN\" ;;",
+          "esac"
+        ), askpass)
+        Sys.chmod(askpass, mode = "0700")
+        out <- tryCatch(
+          system2(
+            git,
+            c("ls-remote", git_url, ref, paste0("refs/heads/", ref), paste0("refs/tags/", ref)),
+            env = c(
+              paste0("GIT_ASKPASS=", askpass),
+              "GIT_TERMINAL_PROMPT=0",
+              paste0("KFLOW_GIT_ASKPASS_TOKEN=", token)
+            ),
+            stdout = TRUE,
+            stderr = FALSE
+          ),
+          error = function(e) character()
+        )
+        sha_lines <- out[grepl("^[0-9a-fA-F]{40}[[:space:]]", out)]
+        sha <- if (length(sha_lines)) sub("[[:space:]].*$", "", sha_lines[[1L]]) else ""
+        if (nzchar(sha)) sha else ""
+      }
+      desired_sha <- resolve_remote_sha(mfclshiny_ref)
       ref_matches <- if (isTRUE(ref_is_sha)) {
         nzchar(installed_sha) && startsWith(tolower(installed_sha), tolower(mfclshiny_ref))
       } else {
-        identical(installed_ref, mfclshiny_ref)
+        identical(installed_ref, mfclshiny_ref) &&
+          nzchar(installed_sha) &&
+          nzchar(desired_sha) &&
+          startsWith(tolower(installed_sha), tolower(desired_sha))
       }
       if (is.null(installed_desc) || !isTRUE(ref_matches)) {
-        token <- Sys.getenv("GITHUB_PAT", Sys.getenv("GITHUB_TOKEN", ""))
         if (!nzchar(token)) {
           stop("mfclshiny cache does not match MFCLSHINY_GITHUB_REF and no GitHub token was forwarded.", call. = FALSE)
         }
-        git <- Sys.which("git")
         if (!nzchar(git)) {
           stop("git is required to install mfclshiny for the local app.", call. = FALSE)
         }
@@ -290,7 +327,7 @@ local_apps:
             RemoteUsername = "PacificCommunity",
             RemoteRepo = "mfclshiny",
             RemoteRef = mfclshiny_ref,
-            RemoteSha = mfclshiny_ref
+            RemoteSha = if (nzchar(desired_sha)) desired_sha else mfclshiny_ref
           )
           fields <- as.list(read.dcf(desc_path)[1, ])
           fields[names(remote)] <- remote
@@ -301,19 +338,22 @@ local_apps:
             meta[["DESCRIPTION"]][names(remote)] <- unlist(remote)
             saveRDS(meta, meta_path)
           }
+          }
+          installed_desc <- tryCatch(
+            suppressWarnings(utils::packageDescription("mfclshiny", lib.loc = lib)),
+            error = function(e) NULL
+          )
+          installed_sha <- desc_field(installed_desc, "RemoteSha")
+          installed_ref <- desc_field(installed_desc, "RemoteRef")
+          ref_matches <- if (isTRUE(ref_is_sha)) {
+            nzchar(installed_sha) && startsWith(tolower(installed_sha), tolower(mfclshiny_ref))
+          } else {
+            identical(installed_ref, mfclshiny_ref) &&
+              nzchar(installed_sha) &&
+              nzchar(desired_sha) &&
+              startsWith(tolower(installed_sha), tolower(desired_sha))
+          }
         }
-        installed_desc <- tryCatch(
-          suppressWarnings(utils::packageDescription("mfclshiny", lib.loc = lib)),
-          error = function(e) NULL
-        )
-        installed_sha <- desc_field(installed_desc, "RemoteSha")
-        installed_ref <- desc_field(installed_desc, "RemoteRef")
-        ref_matches <- if (isTRUE(ref_is_sha)) {
-          nzchar(installed_sha) && startsWith(tolower(installed_sha), tolower(mfclshiny_ref))
-        } else {
-          identical(installed_ref, mfclshiny_ref)
-        }
-      }
       if (is.null(installed_desc) || !isTRUE(ref_matches)) {
         stop("mfclshiny does not match MFCLSHINY_GITHUB_REF: ", mfclshiny_ref, call. = FALSE)
       }
