@@ -1053,6 +1053,18 @@ for (i in seq_len(nrow(step_table))) {
       if (nzchar(par_source_job)) paste0(" (requested job ", par_source_job, ")") else ""
     )
   }
+  if (is_mfclrtmb_doitall_mode(run_mode) && nzchar(par_source_job)) {
+    staged <- stage_previous_job_par(model_dir, step_id, par_source_job, root = root, work_dir = work_dir)
+    input_par <- staged$input_par
+    par_source_par <- staged$source_par
+    Sys.setenv(MFCLRTMB_START_PAR = file.path(model_dir, staged$input_par))
+    message(
+      "  previous job par: ",
+      relative_display_path(par_source_par, root),
+      " -> MFCLRTMB_START_PAR",
+      if (nzchar(par_source_job)) paste0(" (requested job ", par_source_job, ")") else ""
+    )
+  }
   if (!is_doitall_like_mode(run_mode)) {
     needs_latest_par <- is_latest_par_mode(run_mode) &&
       (!nzchar(input_par) || identical(tolower(input_par), "latest") || run_mode %in% c("last", "latest", "last_par", "latest_par"))
