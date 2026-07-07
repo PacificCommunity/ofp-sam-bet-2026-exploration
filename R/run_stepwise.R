@@ -486,12 +486,14 @@ bind_rows_fill <- function(rows) {
 }
 
 smoke_switch_args <- function(iterations = 1L) {
+  report <- truthy(env("STEPWISE_SINGLE_PAR_REPORT", "true"), TRUE)
+  report_flag <- as.integer(isTRUE(report))
   switches <- c(
     1, 1, as.integer(iterations),
-    1, 189, 1,
-    1, 190, 1,
-    1, 188, 1,
-    1, 187, 1,
+    1, 189, report_flag,
+    1, 190, report_flag,
+    1, 188, report_flag,
+    1, 187, report_flag,
     1, 186, 0
   )
   c("-switch", as.character(length(switches) / 3L), as.character(switches))
@@ -884,21 +886,81 @@ find_previous_job_par <- function(step_id, job_ref = "", root, work_dir) {
   candidates[order(score, info$mtime, candidates)][[length(candidates)]]
 }
 
+find_previous_job_payload <- function(step_id, job_ref = "", root, work_dir) {
+  roots <- par_source_roots(root, work_dir)
+  if (!length(roots)) return("")
+  candidates <- unlist(lapply(roots, function(path) {
+    list.files(path, pattern = "^model_payload[.]rds$", recursive = TRUE, full.names = TRUE)
+  }), use.names = FALSE)
+  candidates <- unique(normalizePath(candidates[file.exists(candidates)], winslash = "/", mustWork = FALSE))
+  if (!length(candidates)) return("")
+
+  step_pattern <- paste0("(^|/)", gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", step_id), "(/|$)")
+  candidates <- candidates[grepl(step_pattern, candidates)]
+  if (!length(candidates)) return("")
+
+  tokens <- job_ref_tokens(job_ref)
+  if (length(tokens)) {
+    token_pattern <- paste(gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", tokens), collapse = "|")
+    path_matches <- candidates[grepl(token_pattern, candidates, ignore.case = TRUE)]
+    if (length(path_matches)) {
+      candidates <- path_matches
+    }
+  }
+
+  info <- file.info(candidates)
+  candidates[order(info$mtime, candidates)][[length(candidates)]]
+}
+
+restore_payload_par <- function(payload_file, dest) {
+  payload <- tryCatch(readRDS(payload_file), error = function(e) e)
+  if (inherits(payload, "error")) {
+    stop("Could not read compact payload par from ", payload_file, ": ", conditionMessage(payload), call. = FALSE)
+  }
+  artifact <- tryCatch(payload$artifacts$files$par, error = function(e) NULL)
+  bytes <- tryCatch(artifact$bytes, error = function(e) NULL)
+  if (is.null(artifact) || is.null(bytes) || !is.raw(bytes)) {
+    stop("Compact payload does not contain a par artifact: ", payload_file, call. = FALSE)
+  }
+  compression <- tryCatch(as.character(artifact$compression[[1L]]), error = function(e) "none")
+  if (!nzchar(compression) || is.na(compression)) compression <- "none"
+  if (!identical(compression, "none")) {
+    bytes <- tryCatch(memDecompress(bytes, type = compression), error = function(e) e)
+    if (inherits(bytes, "error") || is.null(bytes)) {
+      stop("Could not decompress par artifact from ", payload_file, call. = FALSE)
+    }
+  }
+  writeBin(bytes, dest)
+  if (!file.exists(dest) || file.info(dest)$size <= 0) {
+    stop("Could not restore previous-job.par from compact payload: ", payload_file, call. = FALSE)
+  }
+  invisible(dest)
+}
+
 stage_previous_job_par <- function(model_dir, step_id, job_ref, root, work_dir) {
   source_par <- find_previous_job_par(step_id, job_ref = job_ref, root = root, work_dir = work_dir)
+  dest <- file.path(model_dir, "previous-job.par")
+  if (nzchar(source_par) && file.exists(source_par)) {
+    ok <- file.copy(source_par, dest, overwrite = TRUE, copy.date = TRUE)
+    if (!isTRUE(ok)) stop("Could not stage previous-job.par from ", source_par, call. = FALSE)
+    return(list(input_par = basename(dest), source_par = source_par))
+  }
+
+  source_payload <- find_previous_job_payload(step_id, job_ref = job_ref, root = root, work_dir = work_dir)
+  if (nzchar(source_payload) && file.exists(source_payload)) {
+    restore_payload_par(source_payload, dest)
+    return(list(input_par = basename(dest), source_par = paste0(source_payload, ":par")))
+  }
+
   if (!nzchar(source_par) || !file.exists(source_par)) {
     stop(
       "RUN_MODE=job_par needs a previous Kflow output par for ", step_id,
       if (nzchar(job_ref)) paste0(" from job ", job_ref) else "",
       ". Attach that job as an input job, or set STEPWISE_PAR_SOURCE_DIR to a folder containing outputs/models/",
-      step_id, "/final.par.",
+      step_id, "/final.par or a compact model_payload.rds with a par artifact.",
       call. = FALSE
     )
   }
-  dest <- file.path(model_dir, "previous-job.par")
-  ok <- file.copy(source_par, dest, overwrite = TRUE, copy.date = TRUE)
-  if (!isTRUE(ok)) stop("Could not stage previous-job.par from ", source_par, call. = FALSE)
-  list(input_par = basename(dest), source_par = source_par)
 }
 
 expected_final_par_for_run <- function(run_mode, run_script_name, cfg) {

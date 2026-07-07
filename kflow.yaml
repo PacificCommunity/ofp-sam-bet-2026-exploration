@@ -90,6 +90,7 @@ env:
   STEPWISE_COMMIT_FINAL_PARS: "false"
   STEPWISE_PUSH_FINAL_PARS: "false"
   STEPWISE_PUBLISH_REQUIRED: "false"
+  STEPWISE_SINGLE_PAR_REPORT: "true"
 
   # true streams the full MFCL output to Kflow logs. false keeps logs quieter.
   MFCL_LIVE_LOG: "true"
@@ -588,6 +589,7 @@ job_config:
     - STEPWISE_COMMIT_FINAL_PARS
     - STEPWISE_PUSH_FINAL_PARS
     - STEPWISE_PUBLISH_REQUIRED
+    - STEPWISE_SINGLE_PAR_REPORT
     - PROGRAM_PATH
     - MFCL_LIVE_LOG
     - BET_PHASE10_11_CONVERGENCE
