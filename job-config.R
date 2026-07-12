@@ -176,6 +176,6 @@ stepwise_models <- data.frame(
   input_par = rep("", 18),
   frq = rep("bet.frq", 18),
   output_par = rep("", 18),
-  expected_final_par = c(rep("11.par", 14), rep("12.par", 4)),
+  expected_final_par = rep("11.par", 18),
   stringsAsFactors = FALSE
 )

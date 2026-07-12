@@ -72,6 +72,28 @@ has_setting_value() {
   return 1
 }
 
+phase_has_setting() {
+  local path=$1
+  local phase=$2
+  local owner=$3
+  local flag=$4
+  local expected=$5
+
+  awk -v phase="$phase" -v owner="$owner" -v flag="$flag" -v expected="$expected" '
+    $0 ~ ("<<PHASE" phase "$") { in_phase = 1; next }
+    in_phase && $0 ~ ("^PHASE" phase "$") { exit(found ? 0 : 1) }
+    in_phase {
+      sub(/#.*/, "")
+      for (i = 1; i + 2 <= NF; i += 3) {
+        if ($i == owner && $(i + 1) == flag && $(i + 2) == expected) {
+          found = 1
+        }
+      }
+    }
+    END { if (in_phase) exit(found ? 0 : 1); exit 1 }
+  ' "$path"
+}
+
 assert_exact_setting() {
   local step=$1
   local path=$2
@@ -318,8 +340,14 @@ for step in "${opr_steps[@]}"; do
     validate_opr_exact "$step" "$doitall_path"
     if ! bash -n "$doitall_path"; then
       fail "$step: doitall.sh does not pass bash syntax validation"
-    elif ! grep -Fq '$program_path bet.frq 11.par 12.par -file - <<PHASE12' "$doitall_path"; then
-      fail "$step: missing independent 11.par -> 12.par terminal-penalty refinement"
+    elif grep -Eq 'PHASE12|12\.par' "$doitall_path"; then
+      fail "$step: PHASE12/12.par remains in the PHASE11-only sequence"
+    elif ! grep -Fq '$program_path bet.frq 10.par 11.par -file - <<PHASE11' "$doitall_path"; then
+      fail "$step: missing final 10.par -> 11.par terminal-penalty refinement"
+    elif ! phase_has_setting "$doitall_path" 3 1 397 0; then
+      fail "$step: PHASE3 must stage pf397=0 before the final refinement"
+    elif ! phase_has_setting "$doitall_path" 11 1 397 100; then
+      fail "$step: PHASE11 must activate pf397=100"
     else
       pass
     fi

@@ -300,31 +300,34 @@ apply_opr <- function(lines, year_effect = 72L, season_effect = 1L,
     return(lines)
   }
 
-  if (any(grepl("<<PHASE12$", lines))) {
-    stop("Terminal-recruitment refinement already exists in doitall.sh", call. = FALSE)
+  if (any(grepl("<<PHASE12$", lines)) || any(grepl("12.par", lines, fixed = TRUE))) {
+    stop("Unexpected PHASE12/12.par in the PHASE11-only doitall template", call. = FALSE)
   }
+  phase11_cmd <- grep("<<PHASE11$", lines)
   phase11_end <- grep("^PHASE11$", lines)
-  if (length(phase11_end) != 1L) {
-    stop("Expected one PHASE11 terminator before adding the terminal penalty", call. = FALSE)
+  if (length(phase11_cmd) != 1L || length(phase11_end) != 1L || phase11_cmd >= phase11_end) {
+    stop("Expected one complete PHASE11 block before adding the terminal penalty", call. = FALSE)
   }
-  terminal_block <- c(
-    "",
+  phase11_heading <- which(
+    seq_along(lines) < phase11_cmd &
+      grepl("^[[:space:]]*#[[:space:]]+PHASE 11([[:space:]]|$)", lines)
+  )
+  if (length(phase11_heading) != 1L) {
+    stop("Expected one PHASE 11 heading", call. = FALSE)
+  }
+  lines[[phase11_heading]] <- "#  PHASE 11 - terminal-recruitment penalty refinement"
+  terminal_phase11 <- c(
     "pdh_terminal_evaluations=${BET_PDH_TERMINAL_EVALUATIONS:-20000}",
-    "pdh_terminal_convergence=${BET_PDH_TERMINAL_CONVERGENCE:--5}",
     "case \"$pdh_terminal_evaluations\" in",
     "  ''|*[!0-9]*) echo \"BET_PDH_TERMINAL_EVALUATIONS must be a positive integer.\" >&2; exit 1 ;;",
     "esac",
-    "case \"$pdh_terminal_convergence\" in",
-    "  -[0-9]|-[0-9][0-9]|[0-9]|[0-9][0-9]) ;;",
-    "  *) echo \"BET_PDH_TERMINAL_CONVERGENCE must be numeric, e.g. -5.\" >&2; exit 1 ;;",
-    "esac",
-    "echo \"PDH terminal refinement: ${pdh_terminal_evaluations} evaluations, convergence ${pdh_terminal_convergence}\"",
+    "if [ \"$pdh_terminal_evaluations\" -le 0 ]; then",
+    "  echo \"BET_PDH_TERMINAL_EVALUATIONS must be a positive integer.\" >&2",
+    "  exit 1",
+    "fi",
+    "echo \"PDH PHASE 11 terminal refinement: ${pdh_terminal_evaluations} evaluations, convergence ${phase10_11_convergence}\"",
     "",
-    "# ----------",
-    "#  PHASE 12 - terminal-recruitment penalty refinement",
-    "# ----------",
-    "",
-    "$program_path bet.frq 11.par 12.par -file - <<PHASE12",
+    "$program_path bet.frq 10.par 11.par -file - <<PHASE11",
     sprintf("  1 155 %d  # OPR year effect", year_effect),
     sprintf("  1 221 %d  # compatibility state retained from the reviewed PDH par", compatibility_year_effect),
     sprintf("  1 217 %d   # OPR season effect", season_effect),
@@ -340,11 +343,20 @@ apply_opr <- function(lines, year_effect = 72L, season_effect = 1L,
     "  1 215 0",
     sprintf("  1 397 %d  # terminal-recruitment penalty flag; native weight is flag/10", terminal_penalty_flag),
     "  1 1 $pdh_terminal_evaluations  # default 20000 from the reviewed PDH par",
-    "  1 50 $pdh_terminal_convergence  # default -5 from the reviewed PDH par",
+    "  1 50 $phase10_11_convergence  # shared PHASE 10/11 convergence control",
     "  1 246 1   # indepvar.rpt",
-    "PHASE12"
+    "PHASE11"
   )
-  append(lines, terminal_block, after = phase11_end)
+  trailing_lines <- if (phase11_end < length(lines)) {
+    lines[(phase11_end + 1L):length(lines)]
+  } else {
+    character()
+  }
+  c(
+    lines[seq_len(phase11_cmd - 1L)],
+    terminal_phase11,
+    trailing_lines
+  )
 }
 
 apply_data_weighting <- function(lines) {

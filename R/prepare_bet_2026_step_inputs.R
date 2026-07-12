@@ -1145,12 +1145,12 @@ make_step(
   tag_reporting_cell_repairs = fishery19_reporting_rate_repair,
   doitall_edits = list(time_varying_cv = TRUE, opr = TRUE),
   title = "12 OrthogonalPoly",
-  summary = "Reviewed PDH OPR model with a separate terminal-recruitment penalty refinement.",
+  summary = "Reviewed PDH OPR controls with the terminal-recruitment penalty in final PHASE 11.",
   bullets = c(
     "Uses the same inputs as 11-TimeVaryingCV.",
     "Applies the reviewed OPR setting `72-01-50-50` with a two-calendar-year terminal window.",
     "Keeps time-varying CPUE CV enabled for index fisheries 29-33.",
-    "Fits the base OPR model through PHASE 11, then activates `pf397=100` only in the final terminal-recruitment refinement."
+    "Keeps `pf397=0` during the earlier OPR fit and activates `pf397=100` in the final PHASE 11 refinement."
   ),
   input_notes = c(
     "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
@@ -1163,14 +1163,14 @@ make_step(
     "`1 149 0`, `1 398 0`, `1 400 0`, `2 177 0`, `2 32 0`, and `2 113 0` are applied at PHASE 3 for the OPR transfer.",
     "`1 155 72`, `1 217 1`, `1 216 50`, and `1 218 50` set the OPR year, season, region, and region-season effects.",
     "`1 202 2` defines two terminal calendar years (8 quarters because `age_flag(57)=4`).",
-    "`pf397` remains 0 through the base OPR fit and is set to 100 only in PHASE 12; MFCL 2.2.7.9 uses an effective penalty coefficient of `397/10=10`.",
-    "PHASE 12 starts from `11.par`; defaults of 20,000 evaluations and convergence `-5` reproduce the reviewed PDH optimizer state and can be overridden for smoke tests.",
+    "`pf397` remains 0 through PHASE 10 and is set to 100 in PHASE 11; MFCL 2.2.7.9 uses an effective penalty coefficient of `397/10=10`.",
+    "Final PHASE 11 starts from `10.par`, writes `11.par`, uses 20,000 evaluations by default, and shares the `BET_PHASE10_11_CONVERGENCE` control used by every step.",
     "`2 30 1` is deliberately retained at the OPR phase because current MFCL requires `age_flag(30)=1` to activate the OPR polynomial coefficients."
   ),
   run_notes = c(
     mix_period_alignment_run_notes,
     "The reference fit had no non-positive Hessian eigenvalues (`0 / 1093`) and is used here as the reconstruction target.",
-    "Set `BET_PDH_TERMINAL_EVALUATIONS=1000` for the shorter terminal-penalty check; the default retains the final PDH PAR state."
+    "Set `BET_PDH_TERMINAL_EVALUATIONS=1000` for a shorter final PHASE 11 check; use `BET_PHASE10_11_CONVERGENCE=-5` for the strict reviewed convergence target."
   ),
   input_changes = input_changes_mix_period,
   outstanding = c("After fitting, confirm terminal recruitments remain within the historical range and rerun the Hessian diagnostic.")
@@ -1228,7 +1228,7 @@ make_step(
   summary = "Apply the lower effort-creep level in the diagnostic model path.",
   bullets = c(
     "Uses 13-LengthBasedSel controls and applies an effort-creep transform to index fisheries 29-33 in `bet.frq`.",
-    "Retains the `72-01-50-50` OPR setting, terminal-recruitment penalty refinement, and time-varying CPUE CV controls.",
+    "Retains the `72-01-50-50` OPR setting, final-PHASE-11 terminal-recruitment penalty, and time-varying CPUE CV controls.",
     "The effort-creep transform multiplies index-fishery effort by a piecewise linear multiplier: 1%/yr for 1952-1976 and 0.5%/yr for 1977-2024.",
     "Only positive index-fishery effort values are changed; extraction fisheries and size compositions are untouched."
   ),

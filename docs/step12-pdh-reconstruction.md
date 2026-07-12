@@ -13,7 +13,7 @@ documented `doitall.sh` controls and fitted parameters.
 | `04-NewStructure` | Keeps the first 5-region / 33-fishery model as the clean structural comparison. |
 | `04a-SelectivityReview` | Adds the five reviewed fishery-level LF/selectivity controls without changing any data input. |
 | `05`-`11` | Inherit `04a` and retain each step's original single change. |
-| `12-OrthogonalPoly` | Adds OPR `72-01-50-50`, a two-calendar-year terminal window, and a separate final terminal-recruitment penalty refinement. |
+| `12-OrthogonalPoly` | Adds OPR `72-01-50-50`, a two-calendar-year terminal window, and the terminal-recruitment penalty in final PHASE 11. |
 | `13`-`15` | Inherit the reconstructed Step 12 controls and retain each later step's original change. |
 
 ## Reviewed LF/selectivity controls
@@ -40,12 +40,17 @@ not propagated to additional fisheries in this reconstruction.
 | `pf202` | 2 | Terminal window in calendar years: 8 quarters with `age_flag(57)=4`. |
 | `pf397` | 100 | Activates the terminal-recruitment penalty in MFCL 2.2.7.9; effective coefficient is `100/10=10`. |
 
-The base OPR model is fitted through PHASE 11 with `pf397=0`. PHASE 12 starts
-from `11.par`, sets `pf397=100`, and writes `12.par`. The default PHASE 12
-evaluation ceiling and convergence criterion (`20000`, `-5`) retain the
-optimizer state recorded in the reference PAR. They can be reduced for smoke
-tests with `BET_PDH_TERMINAL_EVALUATIONS` and
-`BET_PDH_TERMINAL_CONVERGENCE`.
+The base OPR controls are fitted through PHASE 10 with `pf397=0`. Final
+PHASE 11 starts from `10.par`, sets `pf397=100`, and writes `11.par`; no
+PHASE 12 or `12.par` is used. Its default evaluation ceiling is `20000`, which
+can be reduced with `BET_PDH_TERMINAL_EVALUATIONS`. Convergence uses the same
+`BET_PHASE10_11_CONVERGENCE` setting as every other final step (`-4` for the
+planned parallel run; `-5` for a stricter reference comparison).
+
+This shorter staging preserves the reviewed final controls but is not the
+same optimizer path as the reference run, which added the penalty after an
+unpenalized `11.par`. The objective and PDH status therefore need to be
+confirmed from the new PHASE-11-only fit rather than assumed from the reference.
 
 `pf221=72` is retained solely for reference-PAR parity. It is obsolete in the
 reviewed source and does not change the verified MFCL 2.2.7.9 objective or

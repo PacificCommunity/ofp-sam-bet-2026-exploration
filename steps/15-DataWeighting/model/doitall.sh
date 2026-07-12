@@ -419,31 +419,20 @@ $program_path bet.frq 09.par 10.par -file - <<PHASE10
 PHASE10
 
 # ----------
-#  PHASE 11
+#  PHASE 11 - terminal-recruitment penalty refinement
 # ----------
 
-$program_path bet.frq 10.par 11.par -file - <<PHASE11
-  1 1 5000
-  1 50 $phase10_11_convergence  # convergence criteria; default quick -3, set BET_PHASE10_11_CONVERGENCE=-5 for strict
-  1 246 1   # indepvar.rpt
-PHASE11
-
 pdh_terminal_evaluations=${BET_PDH_TERMINAL_EVALUATIONS:-20000}
-pdh_terminal_convergence=${BET_PDH_TERMINAL_CONVERGENCE:--5}
 case "$pdh_terminal_evaluations" in
   ''|*[!0-9]*) echo "BET_PDH_TERMINAL_EVALUATIONS must be a positive integer." >&2; exit 1 ;;
 esac
-case "$pdh_terminal_convergence" in
-  -[0-9]|-[0-9][0-9]|[0-9]|[0-9][0-9]) ;;
-  *) echo "BET_PDH_TERMINAL_CONVERGENCE must be numeric, e.g. -5." >&2; exit 1 ;;
-esac
-echo "PDH terminal refinement: ${pdh_terminal_evaluations} evaluations, convergence ${pdh_terminal_convergence}"
+if [ "$pdh_terminal_evaluations" -le 0 ]; then
+  echo "BET_PDH_TERMINAL_EVALUATIONS must be a positive integer." >&2
+  exit 1
+fi
+echo "PDH PHASE 11 terminal refinement: ${pdh_terminal_evaluations} evaluations, convergence ${phase10_11_convergence}"
 
-# ----------
-#  PHASE 12 - terminal-recruitment penalty refinement
-# ----------
-
-$program_path bet.frq 11.par 12.par -file - <<PHASE12
+$program_path bet.frq 10.par 11.par -file - <<PHASE11
   1 155 72  # OPR year effect
   1 221 72  # compatibility state retained from the reviewed PDH par
   1 217 1   # OPR season effect
@@ -459,6 +448,6 @@ $program_path bet.frq 11.par 12.par -file - <<PHASE12
   1 215 0
   1 397 100  # terminal-recruitment penalty flag; native weight is flag/10
   1 1 $pdh_terminal_evaluations  # default 20000 from the reviewed PDH par
-  1 50 $pdh_terminal_convergence  # default -5 from the reviewed PDH par
+  1 50 $phase10_11_convergence  # shared PHASE 10/11 convergence control
   1 246 1   # indepvar.rpt
-PHASE12
+PHASE11

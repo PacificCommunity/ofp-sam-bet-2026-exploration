@@ -1,6 +1,6 @@
 # 12 OrthogonalPoly
 
-Reviewed PDH OPR model with a separate terminal-recruitment penalty refinement.
+Reviewed PDH OPR controls with the terminal-recruitment penalty in final PHASE 11.
 
 ## Snapshot
 
@@ -16,7 +16,7 @@ Reviewed PDH OPR model with a separate terminal-recruitment penalty refinement.
 | 1 | Uses the same inputs as 11-TimeVaryingCV. |
 | 2 | Applies the reviewed OPR setting `72-01-50-50` with a two-calendar-year terminal window. |
 | 3 | Keeps time-varying CPUE CV enabled for index fisheries 29-33. |
-| 4 | Fits the base OPR model through PHASE 11, then activates `pf397=100` only in the final terminal-recruitment refinement. |
+| 4 | Keeps `pf397=0` during the earlier OPR fit and activates `pf397=100` in the final PHASE 11 refinement. |
 
 ## Inputs
 
@@ -57,8 +57,8 @@ Reviewed PDH OPR model with a separate terminal-recruitment penalty refinement.
 |  2 | `1 149 0`, `1 398 0`, `1 400 0`, `2 177 0`, `2 32 0`, and `2 113 0` are applied at PHASE 3 for the OPR transfer. |
 |  3 | `1 155 72`, `1 217 1`, `1 216 50`, and `1 218 50` set the OPR year, season, region, and region-season effects. |
 |  4 | `1 202 2` defines two terminal calendar years (8 quarters because `age_flag(57)=4`). |
-|  5 | `pf397` remains 0 through the base OPR fit and is set to 100 only in PHASE 12; MFCL 2.2.7.9 uses an effective penalty coefficient of `397/10=10`. |
-|  6 | PHASE 12 starts from `11.par`; defaults of 20,000 evaluations and convergence `-5` reproduce the reviewed PDH optimizer state and can be overridden for smoke tests. |
+|  5 | `pf397` remains 0 through PHASE 10 and is set to 100 in PHASE 11; MFCL 2.2.7.9 uses an effective penalty coefficient of `397/10=10`. |
+|  6 | Final PHASE 11 starts from `10.par`, writes `11.par`, uses 20,000 evaluations by default, and shares the `BET_PHASE10_11_CONVERGENCE` control used by every step. |
 |  7 | `2 30 1` is deliberately retained at the OPR phase because current MFCL requires `age_flag(30)=1` to activate the OPR polynomial coefficients. |
 |  8 | `bet.reg_scaling` starts in PHASE 5; flags 77-81 configure the regional-scaling MVN prior with weight 50 (approximately CV 0.1). |
 |  9 | The active prior window is periods 53-72 (1965-1969), derived from parest flags 79-80 for the 292-period model. |
@@ -74,7 +74,7 @@ Reviewed PDH OPR model with a separate terminal-recruitment penalty refinement.
 | 3 | Generation validates tag-control dimensions, shed rates, and reporting-rate matrices; source zero mixing periods are raised to 1 for the current MFCL reader. |
 | 4 | Positive tag recapture RR, active, target, and penalty cells are validated after copying the latest RR groupings; the fishery 19 repair only remains as a fallback for older sources that still need it. |
 | 5 | The reference fit had no non-positive Hessian eigenvalues (`0 / 1093`) and is used here as the reconstruction target. |
-| 6 | Set `BET_PDH_TERMINAL_EVALUATIONS=1000` for the shorter terminal-penalty check; the default retains the final PDH PAR state. |
+| 6 | Set `BET_PDH_TERMINAL_EVALUATIONS=1000` for a shorter final PHASE 11 check; use `BET_PHASE10_11_CONVERGENCE=-5` for the strict reviewed convergence target. |
 
 ## Checks
 
