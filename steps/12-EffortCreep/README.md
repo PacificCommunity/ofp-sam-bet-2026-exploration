@@ -1,20 +1,20 @@
-# 14 EffortCreep
+# 12 EffortCreep
 
-Apply the lower effort-creep level in the diagnostic model path.
+Apply effort creep directly after the time-varying-CV model.
 
 ## Snapshot
 
 | Field | Value |
 | --- | --- |
-| Step folder | `steps/14-EffortCreep/model` |
+| Step folder | `steps/12-EffortCreep/model` |
 | Status | Ready for Kflow smoke runs; full MFCL fit not run here. |
 
 ## Changes
 
 | # | Change |
 | --- | --- |
-| 1 | Uses 13-LengthBasedSel controls and applies an effort-creep transform to index fisheries 29-33 in `bet.frq`. |
-| 2 | Retains the `72-01-50-50` OPR setting, final-PHASE-11 terminal-recruitment penalty, and time-varying CPUE CV controls. |
+| 1 | Continues directly from 11-TimeVaryingCV and applies an effort-creep transform to index fisheries 29-33 in `bet.frq`. |
+| 2 | Does not apply the omitted OPR or length-based-selectivity changes; fish flag 26 remains 2 and OPR flags remain inactive. |
 | 3 | The effort-creep transform multiplies index-fishery effort by a piecewise linear multiplier: 1%/yr for 1952-1976 and 0.5%/yr for 1977-2024. |
 | 4 | Only positive index-fishery effort values are changed; extraction fisheries and size compositions are untouched. |
 
@@ -53,7 +53,7 @@ Apply the lower effort-creep level in the diagnostic model path.
 
 | # | Control |
 | --- | --- |
-| 1 | 13-LengthBasedSel controls are retained. |
+| 1 | 11-TimeVaryingCV controls are retained. |
 | 2 | No extra MFCL flag is used for effort creep; the change is in the index-fishery effort values in `bet.frq`. |
 | 3 | `bet.reg_scaling` starts in PHASE 5; flags 77-81 configure the regional-scaling MVN prior with weight 50 (approximately CV 0.1). |
 | 4 | The active prior window is periods 53-72 (1965-1969), derived from parest flags 79-80 for the 292-period model. |
@@ -74,5 +74,5 @@ Apply the lower effort-creep level in the diagnostic model path.
 
 | # | Check |
 | --- | --- |
-| 1 | After fitting, review index residuals and implied CPUE scaling against 13-LengthBasedSel. |
+| 1 | After fitting, review index residuals and implied CPUE scaling against 11-TimeVaryingCV. |
 | 2 | Local MFCL `-makepar` smoke can still report nonzero tag recapture timing or fishery-realization warnings; review upstream tag prep before final production runs. |

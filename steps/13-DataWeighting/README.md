@@ -1,4 +1,4 @@
-# 15 DataWeighting
+# 13 DataWeighting
 
 Initial selective data-weighting step after the effort-creep model.
 
@@ -6,15 +6,15 @@ Initial selective data-weighting step after the effort-creep model.
 
 | Field | Value |
 | --- | --- |
-| Step folder | `steps/15-DataWeighting/model` |
+| Step folder | `steps/13-DataWeighting/model` |
 | Status | Ready for Kflow smoke runs; full MFCL fit not run here. |
 
 ## Changes
 
 | # | Change |
 | --- | --- |
-| 1 | Uses the same effort-creep `.frq`, mix-period `.ini`, tag, and CAAL as 14-EffortCreep. |
-| 2 | Keeps time-varying CPUE CV, reviewed OPR, terminal-recruitment penalty, and length-based selectivity controls. |
+| 1 | Uses the same effort-creep `.frq`, mix-period `.ini`, tag, and CAAL as 12-EffortCreep. |
+| 2 | Keeps time-varying CPUE CV while retaining the standard recruitment and age-based selectivity controls from Step 11. |
 | 3 | Applies the currently implemented size-composition data-weighting control change. |
 
 ## Inputs
@@ -52,7 +52,7 @@ Initial selective data-weighting step after the effort-creep model.
 
 | # | Control |
 | --- | --- |
-| 1 | 14-EffortCreep controls are retained. |
+| 1 | 12-EffortCreep controls are retained. |
 | 2 | `-999 49 40` and `-999 50 40` replace the global LF/WF divisor-20 settings. |
 | 3 | Fishery-specific divisor-40 settings inherited from the 5-region controls are retained. |
 | 4 | `bet.reg_scaling` starts in PHASE 5; flags 77-81 configure the regional-scaling MVN prior with weight 50 (approximately CV 0.1). |

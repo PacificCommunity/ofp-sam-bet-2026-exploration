@@ -1,4 +1,8 @@
-# OPR Screening Summary
+# Historical OPR Screening Summary (not applied in this branch)
+
+This document records the earlier screening context only. The current branch
+omits OPR and continues directly from `11-TimeVaryingCV` to
+`12-EffortCreep`; none of the settings below are active in its new models.
 
 Source: the BET OPR screening slides and OPR `doitall` example prepared for
 the BET/YFT 2026 assessment work.

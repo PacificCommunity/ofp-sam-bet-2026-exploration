@@ -250,7 +250,7 @@ assert_not_active() {
   done
 
   if (( ${#active[@]} > 0 )); then
-    fail "$step: active OPR pf$flag must not appear before Step 12; found ${active[*]}"
+    fail "$step: active OPR pf$flag is not permitted in this no-OPR lineage; found ${active[*]}"
   else
     pass
   fi
@@ -283,10 +283,8 @@ reviewed_steps=(
   09-NewOtoliths
   10-TagMixingKS
   11-TimeVaryingCV
-  12-OrthogonalPoly
-  13-LengthBasedSel
-  14-EffortCreep
-  15-DataWeighting
+  12-EffortCreep
+  13-DataWeighting
 )
 
 pre_opr_steps=(
@@ -304,18 +302,29 @@ pre_opr_steps=(
   09-NewOtoliths
   10-TagMixingKS
   11-TimeVaryingCV
+  12-EffortCreep
+  13-DataWeighting
 )
 
-opr_steps=(
-  12-OrthogonalPoly
-  13-LengthBasedSel
-  14-EffortCreep
-  15-DataWeighting
-)
+opr_steps=()
 
 for step in "${legacy_steps[@]}"; do
   if require_doitall "$step"; then
     validate_no_review_leakage "$step" "$doitall_path"
+  fi
+done
+
+for step in 12-EffortCreep 13-DataWeighting; do
+  if require_doitall "$step"; then
+    assert_exact_setting "$step" "$doitall_path" -999 26 2 'standard age-based selectivity flag 26'
+  fi
+done
+
+for omitted in 12-OrthogonalPoly 13-LengthBasedSel 14-EffortCreep 15-DataWeighting; do
+  if [[ -e "$steps_root/$omitted" ]]; then
+    fail "$omitted: obsolete step directory remains in the renumbered no-OPR lineage"
+  else
+    pass
   fi
 done
 

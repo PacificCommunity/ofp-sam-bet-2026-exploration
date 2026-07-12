@@ -110,8 +110,8 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   1 111 4     # set likelihood function for tags to negative binomial
   1 141 3     # set likelihood function for LF data to normal
   1 139 3     # set likelihood function for WF data to normal
-  -999 49 40  # divide LF sample sizes by 40
-  -999 50 40  # divide WF sample sizes by 40
+  -999 49 20  # divide LF sample sizes by 20
+  -999 50 20  # divide WF sample sizes by 20
 # Additional LF/WF sample-size reductions retained from the inherited setup.
 # Index fisheries 29-33 are included; extraction labels need the 03 fishery map.
    -1 49 40   -1 50 40
@@ -170,7 +170,7 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -33 32 21  # Index R5
 # Selectivity settings
   -999 3 37  # all selectivities equal for age class 37 and older
-  -999 26 3  # use length-based selectivity
+  -999 26 2  # set length-dependent selectivity option
   -999 57 3  # uses cubic spline selectivity
   -999 61 5  # with 5 nodes for cubic spline
 # Grouping of fisheries with common selectivity, mapped from BET_PHrev_FNL.xlsx.
@@ -270,37 +270,10 @@ PHASE2
 # ---------
 
 $program_path bet.frq 02.par 03.par -file - <<PHASE3
-# OPR settings from the reviewed PDH model: 72-01-50-50.
-  1 149 0   # turn off recruitment-deviation penalty for OPR
-  1 398 0   # turn off arithmetic-mean terminal fixed-recruitment option for OPR
-  1 400 0   # clear fixed terminal recruitment-deviate block for OPR
-  2 177 0   # turn off old total-pop scaling for OPR
-  2 32 0    # turn off overall population scaling parameter for OPR
-  2 113 0   # keep scaling init pop off during OPR transfer
-  1 155 72  # orthogonal polynomial recruitment - year effect
-  1 221 72  # compatibility state retained from the reviewed PDH par
-  1 217 1   # orthogonal polynomial recruitment - season effect
-  1 216 50  # orthogonal polynomial recruitment - region effect
-  1 218 50  # orthogonal polynomial recruitment - region-season interaction effect
-  1 202 2   # OPR end window: last 2 real years use lower-degree/constant-end basis
-  1 203 0   # no separate year-effect end-window override
-  1 210 0   # OPR region end window: 0 inherits parest_flag(202)
-  1 211 0   # no separate region-effect end-window override
-  1 212 0   # OPR season end window: 0 inherits parest_flag(202)
-  1 213 0   # no separate season-effect end-window override
-  1 214 0   # OPR region-season end window: 0 inherits parest_flag(202)
-  1 215 0   # no separate interaction end-window override
-  1 397 0   # terminal-recruitment penalty starts only after the base OPR fit
-  2 30 1    # keep age_flag(30) on so current MFCL activates OPR coefficients
-  2 70 0    # turn off mean+deviate regional recruitment time series
-  2 71 0    # turn off regional recruitment distribution deviations
-  2 178 0   # turn off regional recruitment sum-product constraint
-  -100000 1 0  # turn off time-invariant recruitment distribution, region 1
-  -100000 2 0  # turn off time-invariant recruitment distribution, region 2
-  -100000 3 0  # turn off time-invariant recruitment distribution, region 3
-  -100000 4 0  # turn off time-invariant recruitment distribution, region 4
-  -100000 5 0  # turn off time-invariant recruitment distribution, region 5
-  1 1 500  # function evaluations from the OPR screening doitall example
+  2 70 1   # activate time series of reg recruitment parameters
+  2 71 1   # estimate temporal changes in recruitment distribution
+  2 178 1  # constrain regional recruitments
+  1 1 200
 PHASE3
 
 # ---------
@@ -318,11 +291,11 @@ PHASE4
 # ---------
 
 $program_path bet.frq 04.par 05.par -file - <<PHASE5
-  -100000 1 0 # estimate
-  -100000 2 0 # time-invariant
-  -100000 3 0 # distribution
-  -100000 4 0 # of
-  -100000 5 0 # recruitment
+  -100000 1 1  # estimate
+  -100000 2 1  # time-invariant
+  -100000 3 1  # distribution
+  -100000 4 1  # of
+  -100000 5 1  # recruitment
 # Regional-scaling MVN prior.
 # PHASE 1-4 retain CPUE_scaling; PHASE 5 switches to Prior_reg_biomass.
 # Ungroup index CPUE likelihood and remove grouped-sigma override.
@@ -419,35 +392,11 @@ $program_path bet.frq 09.par 10.par -file - <<PHASE10
 PHASE10
 
 # ----------
-#  PHASE 11 - terminal-recruitment penalty refinement
+#  PHASE 11
 # ----------
 
-pdh_terminal_evaluations=${BET_PDH_TERMINAL_EVALUATIONS:-20000}
-case "$pdh_terminal_evaluations" in
-  ''|*[!0-9]*) echo "BET_PDH_TERMINAL_EVALUATIONS must be a positive integer." >&2; exit 1 ;;
-esac
-if [ "$pdh_terminal_evaluations" -le 0 ]; then
-  echo "BET_PDH_TERMINAL_EVALUATIONS must be a positive integer." >&2
-  exit 1
-fi
-echo "PDH PHASE 11 terminal refinement: ${pdh_terminal_evaluations} evaluations, convergence ${phase10_11_convergence}"
-
 $program_path bet.frq 10.par 11.par -file - <<PHASE11
-  1 155 72  # OPR year effect
-  1 221 72  # compatibility state retained from the reviewed PDH par
-  1 217 1   # OPR season effect
-  1 216 50  # OPR region effect
-  1 218 50  # OPR region-season interaction
-  1 202 2   # terminal window in calendar years
-  1 203 0
-  1 210 0
-  1 211 0
-  1 212 0
-  1 213 0
-  1 214 0
-  1 215 0
-  1 397 100  # terminal-recruitment penalty flag; native weight is flag/10
-  1 1 $pdh_terminal_evaluations  # default 20000 from the reviewed PDH par
-  1 50 $phase10_11_convergence  # shared PHASE 10/11 convergence control
+  1 1 5000
+  1 50 $phase10_11_convergence  # convergence criteria; default quick -3, set BET_PHASE10_11_CONVERGENCE=-5 for strict
   1 246 1   # indepvar.rpt
 PHASE11

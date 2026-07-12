@@ -3,14 +3,14 @@
 
 stepwise_run <- list(
   # Default model when STEP_SELECT is not provided.
-  default_step_select = "all",
+  default_step_select = "12-EffortCreep,13-DataWeighting",
 
   # Short Kflow group label for one stepwise -> results -> report chain.
   # Override per launch when running several chains at once.
-  flow_group = "bet-2026-stepwise-v2",
+  flow_group = "bet-2026-stepwise-skip-opr-lengthsel",
 
   # TRUE runs downstream plot/report after stepwise succeeds.
-  trigger_next = TRUE
+  trigger_next = FALSE
 )
 
 # One row is one independent model folder under steps/<step_id>/model/.
@@ -31,12 +31,10 @@ stepwise_models <- data.frame(
     "09-NewOtoliths",
     "10-TagMixingKS",
     "11-TimeVaryingCV",
-    "12-OrthogonalPoly",
-    "13-LengthBasedSel",
-    "14-EffortCreep",
-    "15-DataWeighting"
+    "12-EffortCreep",
+    "13-DataWeighting"
   ),
-  enabled = rep(TRUE, 18),
+  enabled = rep(TRUE, 16),
 
   # Scientific grouping for reporting/provenance.
   major_step = c(
@@ -54,10 +52,8 @@ stepwise_models <- data.frame(
     "09-NewOtoliths",
     "10-TagMixing",
     "11-TimeVaryingCV",
-    "12-OrthogonalPoly",
-    "13-LengthBasedSel",
-    "14-EffortCreep",
-    "15-DataWeighting"
+    "12-EffortCreep",
+    "13-DataWeighting"
   ),
   substep = c(
     "01a",
@@ -75,9 +71,7 @@ stepwise_models <- data.frame(
     "10a",
     "11a",
     "12a",
-    "13a",
-    "14a",
-    "15a"
+    "13a"
   ),
   change_axis = c(
     "historical diagnostic",
@@ -94,10 +88,8 @@ stepwise_models <- data.frame(
     "new otolith/CAAL input",
     "release-specific tag mixing periods",
     "time-varying CPUE CV",
-    "orthogonal-polynomial recruitment",
-    "length-based selectivity",
-    "effort creep",
-    "data weighting"
+    "effort creep without OPR or length-based selectivity",
+    "data weighting without OPR or length-based selectivity"
   ),
   # Short model label used in logs, plots, and reports.
   model_label = c(
@@ -115,8 +107,6 @@ stepwise_models <- data.frame(
     "New otoliths",
     "Tag mixing KS",
     "Time-varying CV",
-    "Orthogonal polynomial",
-    "Length-based selectivity",
     "Effort creep",
     "Data weighting"
   ),
@@ -137,10 +127,8 @@ stepwise_models <- data.frame(
     "09 New otoliths",
     "10 Tag mixing KS",
     "11 Time-varying CV",
-    "12 Orthogonal polynomial",
-    "13 Length-based selectivity",
-    "14 Effort creep",
-    "15 Data weighting"
+    "12 Effort creep (no OPR/length selectivity)",
+    "13 Data weighting (no OPR/length selectivity)"
   ),
 
   # Stable key used by Kflow dependency links and selectors.
@@ -159,23 +147,21 @@ stepwise_models <- data.frame(
     "09-newotoliths",
     "10-tagmixingks",
     "11-timevaryingcv",
-    "12-orthogonalpoly",
-    "13-lengthbasedsel",
-    "14-effortcreep",
-    "15-dataweighting"
+    "12-effortcreep",
+    "13-dataweighting"
   ),
 
   # Run settings for each model row. All rows use native MFCL for this stepwise run.
-  run_mode = rep("doitall", 18),
-  region_count = c(rep(9L, 5), rep(5L, 13)),
-  kflow_memory = c(rep("12GB", 5), rep("8GB", 13)),
+  run_mode = rep("doitall", 16),
+  region_count = c(rep(9L, 5), rep(5L, 11)),
+  kflow_memory = c(rep("12GB", 5), rep("8GB", 11)),
   mfcl_program_path = c(
     "/home/mfcl/mfclo64_2023_diagnostic_2.2.2.0",
-    rep("", 17)
+    rep("", 15)
   ),
-  input_par = rep("", 18),
-  frq = rep("bet.frq", 18),
-  output_par = rep("", 18),
-  expected_final_par = rep("11.par", 18),
+  input_par = rep("", 16),
+  frq = rep("bet.frq", 16),
+  output_par = rep("", 16),
+  expected_final_par = rep("11.par", 16),
   stringsAsFactors = FALSE
 )

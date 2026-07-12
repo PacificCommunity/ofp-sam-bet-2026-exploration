@@ -31,7 +31,7 @@ expected reporting-rate rows = tag release groups + 1 pooled row
 | `02b-Ini1007`, `02c-LengthWeight`, `03-FixM` | 41 | 118 | 119 | MFCL 1007 layout without changing the diagnostic tag grouping. |
 | `04-NewStructure`, `05-ConvertToLength`, `06-LengthPlusLength` | 33 | 96 | 97 | 5-region tag grouping. |
 | `07-DataTo2024`, `08-RegionalCPUE`, `09-NewOtoliths` | 33 | 98 | 99 | 2026 tag build with aligned reporting-rate matrices. |
-| `10-TagMixingKS` to `15-DataWeighting` | 33 | 98 | 99 | Release-specific mixing periods are read from the mix-period `.ini`. |
+| `10-TagMixingKS` to `13-DataWeighting` | 33 | 98 | 99 | Release-specific mixing periods are read from the mix-period `.ini`. |
 
 ## Alignment Checks
 
@@ -61,9 +61,9 @@ that match the selected `.tag`.
 | Tag flags, steps 04-06 | `bet.2023.new.structure.ini` | Source has 98 identical tag-control rows for a 96-release-group tag file; generated rows are trimmed to 96. |
 | Tag flags, steps 07-09 | `bet.2026.ini` | Latest 98 rows kept; column 2 `tag_flags(it,2)` set from `1` to `0`. |
 | RR matrices, steps 07-09 | `bet.2026.mix-0.2.ini` | Five RR/active/target/penalty blocks copied into the 07-09 `.ini`, then kept at 99 rows. |
-| Tag flags, steps 10-15 | `bet.2026.mix-0.2.ini` | Column 2 `tag_flags(it,2)` set from `1` to `0`. |
-| Mixing periods, steps 10-15 | `bet.2026.mix-0.2.ini` | Source `0` mixing periods are raised to `1` for groups `43` and `46`. |
-| Positive recapture RR check, steps 04-15 | Generated `.ini` and selected `.tag` | Every positive recapture must have nonzero RR, active, target, and penalty cells. |
+| Tag flags, steps 10-13 | `bet.2026.mix-0.2.ini` | Column 2 `tag_flags(it,2)` set from `1` to `0`. |
+| Mixing periods, steps 10-13 | `bet.2026.mix-0.2.ini` | Source `0` mixing periods are raised to `1` for groups `43` and `46`. |
+| Positive recapture RR check, steps 04-13 | Generated `.ini` and selected `.tag` | Every positive recapture must have nonzero RR, active, target, and penalty cells. |
 
 The older fishery 19 repair helper remains available for older upstream inputs
 that still have inactive RR cells, but the latest `386d169` / `471b2fd` source
