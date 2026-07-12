@@ -5,8 +5,8 @@
 # saved outputs, and automatic follow-up tasks.
 
 # Stable task id shown in Kflow and used by the API:
-#   /api/job/ofp-sam-bet-2026-stepwise
-name: ofp-sam-bet-2026-stepwise-pdh-phase11
+#   /api/job/ofp-sam-bet-2026-stepwise-pdh-termpen100-rebuild
+name: ofp-sam-bet-2026-stepwise-pdh-termpen100-rebuild
 description: Run the BET 2026 Phase-11-only PDH stepwise rebuild.
 
 # Command executed inside the Docker container after checkout.
@@ -43,7 +43,8 @@ env:
   JOB_DESCRIPTION: "Run the selected BET model folder and save compact plot-ready payloads."
   MODEL_LABEL: "All 18 Phase-11 stepwise models"
   JOB_KEY: all-18-phase11
-  FLOW_GROUP: bet-2026-stepwise-pdh-phase11
+  FLOW_GROUP: bet-2026-stepwise-pdh-termpen100-rebuild
+  TRIGGER_NEXT: "false"
   FLOW_SPECIES: BET
   FLOW_SPECIES_LABEL: bigeye tuna
   FLOW_ASSESSMENT_YEAR: "2026"
@@ -420,46 +421,9 @@ local_apps:
       )
       RS
 
-# Automatic dependency chain:
-#   stepwise succeeds -> run ofp-sam-bet-2026-results with this job as input
-#   results succeeds  -> run the report task from downstream task config
-#
-# One-off command-line override:
-#   make kflow TRIGGER_NEXT=false STEP_SELECT=08-RegionalCPUE
-triggers:
-  on_success:
-    - key: results-from-stepwise
-      report: ofp-sam-bet-2026-results
-      input_jobs:
-        - "{{ job.job_number }}"
-      env:
-        FLOW_GROUP: "{{ job.config.FLOW_GROUP }}"
-        JOB_TITLE: BET results
-        JOB_KEY: results
-        JOB_DESCRIPTION: Build report-ready figures and tables from the selected stepwise model payload.
-        PLOT_TITLE: "{{ job.config.PLOT_TITLE }}"
-        PLOT_MAX_FISHERIES: "{{ job.config.PLOT_MAX_FISHERIES }}"
-        FLOW_SPECIES: "{{ job.config.FLOW_SPECIES }}"
-        FLOW_SPECIES_LABEL: "{{ job.config.FLOW_SPECIES_LABEL }}"
-        FLOW_ASSESSMENT_YEAR: "{{ job.config.FLOW_ASSESSMENT_YEAR }}"
-        REPORT_QMD: "{{ job.config.REPORT_QMD }}"
-        REPORT_FILE_STEM: "{{ job.config.REPORT_FILE_STEM }}"
-        KFLOW_REPORT_COMMIT_GENERATED: "{{ job.config.KFLOW_REPORT_COMMIT_GENERATED }}"
-        KFLOW_REPORT_PUSH_GENERATED: "{{ job.config.KFLOW_REPORT_PUSH_GENERATED }}"
-        KFLOW_REPORT_PUBLISH_REQUIRED: "{{ job.config.KFLOW_REPORT_PUBLISH_REQUIRED }}"
-        KFLOW_RUNTIME_REQUIRE_PRIVATE_PACKAGES: "true"
-        KFLOW_RUNTIME_UPDATE: never
-        TUNA_FLOW_RUNTIME_UPDATE: never
-        KFLOW_REPO_RUNTIME_UPDATE: auto
-        KFLOW_RUNTIME_PACKAGES: none
-        KFLOW_REPO_RUNTIME_PACKAGES: mfclkit=PacificCommunity/ofp-sam-mfclkit@dcd48acd811781382b77c20cd113186ee37f18b7,mfclshiny=PacificCommunity/mfclshiny@90acece572b41061cf3756bf2b2596eb2f1a43fa
-        MFCLKIT_GITHUB_REF: dcd48acd811781382b77c20cd113186ee37f18b7
-        MFCLSHINY_GITHUB_REF: 90acece572b41061cf3756bf2b2596eb2f1a43fa
-        KFLOW_RUNTIME_GITHUB_AUTH: "true"
-        KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME: "true"
-      tags:
-        auto: "true"
-        stage: results
+# This experiment launches independent model -> Hessian chains explicitly.
+# Disable the normal Results/Report fan-out so one fit never waits on another.
+triggers: {}
 
 # Fields exposed as optional job config in the Kflow UI.
 # Add a field here only if the user should be able to override it at launch.
