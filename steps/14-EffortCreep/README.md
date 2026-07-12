@@ -14,7 +14,7 @@ Apply the lower effort-creep level in the diagnostic model path.
 | # | Change |
 | --- | --- |
 | 1 | Uses 13-LengthBasedSel controls and applies an effort-creep transform to index fisheries 29-33 in `bet.frq`. |
-| 2 | Retains the `69-01-50-50` OPR setting and time-varying CPUE CV controls. |
+| 2 | Retains the `72-01-50-50` OPR setting, terminal-recruitment penalty refinement, and time-varying CPUE CV controls. |
 | 3 | The effort-creep transform multiplies index-fishery effort by a piecewise linear multiplier: 1%/yr for 1952-1976 and 0.5%/yr for 1977-2024. |
 | 4 | Only positive index-fishery effort values are changed; extraction fisheries and size compositions are untouched. |
 

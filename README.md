@@ -21,14 +21,15 @@ traced without guessing.
 | `02c-LengthWeight` | Executable bridge | Applies the BET 2026 bias-corrected length-weight parameters. | 02b. |
 | `03-FixM` | FixM bridge | Applies fixed natural mortality from the 01 diagnostic `mgc=-5` final run. | 02c. |
 | `04-NewStructure` | New structure | Switches to the 5-region / 33-fishery structure with global CPUE. | 2026 new-structure input, terminal year 2021. |
-| `05-ConvertToLength` | Size data | Converts existing weight compositions to length. | 04. |
-| `06-LengthPlusLength` | Size data | Adds the extra length compositions. | 04. |
+| `04a-SelectivityReview` | Selectivity review | Applies the five fishery-level LF/selectivity controls found in the reviewed PDH model. | 04 inputs unchanged. |
+| `05-ConvertToLength` | Size data | Converts existing weight compositions to length. | 04a. |
+| `06-LengthPlusLength` | Size data | Adds the extra length compositions. | 04a. |
 | `07-DataTo2024` | Data update | Extends the global-CPUE input to 2024. | 06. |
 | `08-RegionalCPUE` | CPUE update | Adds regional CPUE and the regional-scaling prior. | 07. |
 | `09-NewOtoliths` | Age data | Adds the updated 2026 CAAL / otolith input. | 08. |
 | `10-TagMixingKS` | Tag mixing | Uses release-specific mixing periods from the KS 0.2 build. | 09. |
 | `11-TimeVaryingCV` | CPUE CV | Adds time-varying CPUE CV. | 10. |
-| `12-OrthogonalPoly` | Recruitment | Applies the orthogonal-polynomial recruitment setting. | 11. |
+| `12-OrthogonalPoly` | Recruitment | Applies OPR `72-01-50-50` and the terminal-recruitment penalty refinement. | 11. |
 | `13-LengthBasedSel` | Selectivity | Adds length-based selectivity. | 12. |
 | `14-EffortCreep` | Effort creep | Applies agreed effort creep to index fisheries. | 13. |
 | `15-DataWeighting` | Weighting | First data-weighting run. | 14. |
@@ -38,6 +39,7 @@ traced without guessing.
 | Block | Substeps | Reason |
 | --- | --- | --- |
 | `02` executable bridge | `02a`, `02b`, `02c` | Separates current executable effects, MFCL 1007 ini conversion, and the BET 2026 bias-corrected L-W parameter update. |
+| `04` structure/selectivity | `04`, `04a` | Separates the new 5-region/33-fishery structure from the reviewed fishery-level LF/selectivity controls. |
 | `05`-`15` | one row each | Each row adds one later assessment change on top of the selected baseline. |
 
 ## Names Used Here
@@ -91,6 +93,7 @@ Latest refresh:
 | `steps/<step_id>/model/` | MFCL-ready model folder |
 | `docs/run-configuration.md` | Kflow/local-run settings and output layout |
 | `docs/input-source-audit.md` | concise source-vs-generated input comparison |
+| `docs/step12-pdh-reconstruction.md` | reviewed PDH Step 12 controls, placement, and validation target |
 | `docs/tag-reporting-groups.md` | short guide to MFCL tag reporting-rate inputs |
 | `R/prepare_bet_2026_step_inputs.R` | reproducible input-generation entry point |
 | `debugging/` | troubleshooting records |

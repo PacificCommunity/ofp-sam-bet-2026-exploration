@@ -224,13 +224,13 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
 # Age-based spline constraints mapped from old fishery recipes.
   -19 16 2  -19 3 25  # PS.ASS.2, old30
   -25 16 2  -25 3 25  # PS.ASS.WEST.3, old13 + old25
-  -26 16 2  -26 3 25  # PS.ASS.EAST.3, old15
-  -20 16 2  -20 3 30  # PS.UNA.2, old31
+  -26 16 2 -26 3 25 -26 75 1  # PS.ASS.EAST.3, old15
+  -20 16 0 -20 3 37  # PS.UNA.2, old31
   -27 16 2  -27 3 30  # PS.UNA.WEST.3, old14 + old26
-  -28 16 2  -28 3 30  # PS.UNA.EAST.3, old16
-  -17 16 2  -17 3 12  # PS.ID.2, split old24
+  -28 16 0 -28 3 37  # PS.UNA.EAST.3, old16
+  -17 16 2 -17 3 6  # PS.ID.2, split old24
   -18 16 2  -18 3 12  # PS.PH.2, split old24
-  -12 16 2  -12 3 25  # PS.JP.1, old19
+  -12 16 2 -12 3 25 -12 75 2  # PS.JP.1, old19
   -13 16 2  -13 3 25  # PL.JP.1, old20
 # Upper-age selectivity constraints mapped from old fishery recipes.
   -22 16 2  -22 3 9   # DOM.PH.2, old17

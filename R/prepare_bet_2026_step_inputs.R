@@ -703,9 +703,97 @@ write_readme(
   source_revisions = input_repo_revision_table()
 )
 
-stepwise_5_region_template_step_id <- "04-NewStructure"
 newstructure_ini <- file.path(newstructure_model_dir, "bet.ini")
 newstructure_tag <- file.path(newstructure_model_dir, "bet.tag")
+
+## Keep 04-NewStructure as the clean structural comparison, then apply the
+## fishery-level LF/selectivity review in a separate substep. Every later step
+## inherits this reviewed template.
+selectivity_step_id <- "04a-SelectivityReview"
+selectivity_step_dir <- file.path(root, "steps", selectivity_step_id)
+selectivity_model_dir <- file.path(selectivity_step_dir, "model")
+dir.create(selectivity_model_dir, recursive = TRUE, showWarnings = FALSE)
+remove_model_par_files(selectivity_model_dir)
+
+selectivity_input_files <- c(
+  "bet.frq", "bet.ini", "bet.tag", "bet.age_length", "mfcl.cfg",
+  "fishery_map.R", "tag_rep_map.R"
+)
+for (file in selectivity_input_files) {
+  copy_one(
+    file.path(newstructure_model_dir, file),
+    file.path(selectivity_model_dir, file)
+  )
+}
+write_doitall(
+  file.path(newstructure_model_dir, "doitall.sh"),
+  file.path(selectivity_model_dir, "doitall.sh"),
+  reviewed_selectivity = TRUE
+)
+
+write_manifest(selectivity_step_dir, c(
+  lapply(c("bet.frq", "bet.ini", "bet.tag", "bet.age_length"), function(file) {
+    list(
+      role = sub("^bet[.]", "", file),
+      file = file,
+      source = file.path(newstructure_model_dir, file),
+      note = "copied byte-for-byte from 04-NewStructure"
+    )
+  }),
+  list(list(
+    role = "doitall",
+    file = "doitall.sh",
+    source = file.path(newstructure_model_dir, "doitall.sh"),
+    note = "only the five reviewed fishery-level LF/selectivity controls are changed"
+  ))
+))
+
+write_readme(
+  selectivity_step_dir,
+  "04a SelectivityReview",
+  "Fishery-level LF/selectivity review on the unchanged 04-NewStructure inputs.",
+  c(
+    "Keeps every MFCL data input identical to 04-NewStructure so this substep isolates the control changes.",
+    "Restores upper-size prediction flexibility for F20 and F28, which have observed large fish outside the previous selectable range.",
+    "Prevents unsupported young-age predictions for F26 (age class 1) and F12 (age classes 1-2).",
+    "Moves the first zero-selectivity age for F17 from 12 to 6 to reduce over-prediction of large fish."
+  ),
+  inputs = c(
+    "bet.frq" = "byte-identical to `steps/04-NewStructure/model/bet.frq`",
+    "bet.ini" = "byte-identical to `steps/04-NewStructure/model/bet.ini`",
+    "bet.tag" = "byte-identical to `steps/04-NewStructure/model/bet.tag`",
+    "bet.age_length" = "byte-identical to `steps/04-NewStructure/model/bet.age_length`",
+    "input_manifest.csv" = "machine-readable source/input notes"
+  ),
+  controls = c(
+    "F20: `ff(16)=0`, `ff(3)=37`; F28: `ff(16)=0`, `ff(3)=37`.",
+    "F26: `ff(75)=1`; F12: `ff(75)=2`.",
+    "F17: `ff(16)=2`, `ff(3)=6`.",
+    "The settings reproduce the reviewed PDH Step 12 parameter state exactly; no additional fisheries are modified."
+  ),
+  input_changes = input_change_table(
+    c(".frq/.ini/.tag/.age_length", "doitall.sh"),
+    c(
+      "No change; files are copied byte-for-byte from 04-NewStructure.",
+      "Applies only the five documented fishery-level LF/selectivity controls."
+    ),
+    c(
+      "All data, tag, growth, mortality, CPUE, and recruitment inputs and controls.",
+      "Every other 04-NewStructure control."
+    )
+  ),
+  run_notes = c(
+    "Compare directly with 04-NewStructure to isolate the likelihood and fit effect of the reviewed LF/selectivity controls.",
+    "Steps 05-15 inherit this substep; OPR and the terminal-recruitment penalty are not activated until Step 12."
+  ),
+  outstanding = c(
+    "Confirm the intended LF fit improvement before promoting the settings beyond this reconstruction branch."
+  ),
+  status = "Reference PDH controls reconstructed; full stepwise rerun pending.",
+  source_revisions = input_repo_revision_table()
+)
+
+stepwise_5_region_template_step_id <- selectivity_step_id
 
 latest_2026_tag_note <- paste(
   "`bet.2026.low.recaps.removed.tag`; latest tag-prep build with updated RR",
@@ -838,10 +926,10 @@ make_step(
     "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
   ),
   control_notes = c(
-    "04-NewStructure 5-region `doitall.sh` controls retained."
+    "04a-SelectivityReview controls retained on the 04-NewStructure inputs."
   ),
   input_changes = input_changes_05_06,
-  run_notes = c("Compare directly with 04-NewStructure to isolate the effect of converting existing weight compositions to length."),
+  run_notes = c("Compare directly with 04a-SelectivityReview to isolate the effect of converting existing weight compositions to length."),
   outstanding = c("Review fit impacts before deciding whether any size-composition weighting needs adjustment at this stage.")
 )
 
@@ -867,7 +955,7 @@ make_step(
     "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
   ),
   control_notes = c(
-    "04-NewStructure 5-region `doitall.sh` controls retained."
+    "04a-SelectivityReview controls retained on the 04-NewStructure inputs."
   ),
   input_changes = input_changes_05_06,
   run_notes = c("Compare directly with 05-ConvertToLength to isolate the extra length-composition records."),
@@ -899,7 +987,7 @@ make_step(
     "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
   ),
   control_notes = c(
-    "04-NewStructure 5-region `doitall.sh` controls retained.",
+    "04a-SelectivityReview controls retained.",
     "The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period.",
     "The latest 2026 RR, active, target, and penalty matrices are copied from `bet.2026.mix-0.2.ini` before final alignment checks."
   ),
@@ -934,7 +1022,7 @@ make_step(
     "bet.age_length" = "`bet.2023.new-structure.age_length` (old CAAL)"
   ),
   control_notes = c(
-    "04-NewStructure 5-region `doitall.sh` controls retained until PHASE 5.",
+    "04a-SelectivityReview controls retained until PHASE 5.",
     "PHASE 5 switches index CPUE/selectivity grouping for the regional-scaling prior.",
     "The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period.",
     "The latest 2026 RR, active, target, and penalty matrices are copied from `bet.2026.mix-0.2.ini` before final alignment checks."
@@ -1057,12 +1145,12 @@ make_step(
   tag_reporting_cell_repairs = fishery19_reporting_rate_repair,
   doitall_edits = list(time_varying_cv = TRUE, opr = TRUE),
   title = "12 OrthogonalPoly",
-  summary = "Orthogonal polynomial recruitment step, ensuring `2 177 0` is used.",
+  summary = "Reviewed PDH OPR model with a separate terminal-recruitment penalty refinement.",
   bullets = c(
     "Uses the same inputs as 11-TimeVaryingCV.",
-    "Applies the BET OPR screening rank-1 model: `69-01-50-50`.",
+    "Applies the reviewed OPR setting `72-01-50-50` with a two-calendar-year terminal window.",
     "Keeps time-varying CPUE CV enabled for index fisheries 29-33.",
-    "OPR controls are applied in PHASE 3 of `doitall.sh`, including `2 177 0`."
+    "Fits the base OPR model through PHASE 11, then activates `pf397=100` only in the final terminal-recruitment refinement."
   ),
   input_notes = c(
     "bet.frq" = paste0("`", basename(frq_regional_2024), "`, full 2024 with regional CPUE"),
@@ -1073,15 +1161,19 @@ make_step(
   control_notes = c(
     "Time-varying CPUE CV flags are retained.",
     "`1 149 0`, `1 398 0`, `1 400 0`, `2 177 0`, `2 32 0`, and `2 113 0` are applied at PHASE 3 for the OPR transfer.",
-    "`1 155 69`, `1 217 1`, `1 216 50`, and `1 218 50` set the OPR year, season, region, and region-season effects.",
+    "`1 155 72`, `1 217 1`, `1 216 50`, and `1 218 50` set the OPR year, season, region, and region-season effects.",
+    "`1 202 2` defines two terminal calendar years (8 quarters because `age_flag(57)=4`).",
+    "`pf397` remains 0 through the base OPR fit and is set to 100 only in PHASE 12; MFCL 2.2.7.9 uses an effective penalty coefficient of `397/10=10`.",
+    "PHASE 12 starts from `11.par`; defaults of 20,000 evaluations and convergence `-5` reproduce the reviewed PDH optimizer state and can be overridden for smoke tests.",
     "`2 30 1` is deliberately retained at the OPR phase because current MFCL requires `age_flag(30)=1` to activate the OPR polynomial coefficients."
   ),
   run_notes = c(
     mix_period_alignment_run_notes,
-    "The OPR transfer follows the BET 4R screening rank-1 AIC setting `69-01-50-50`."
+    "The reference fit had no non-positive Hessian eigenvalues (`0 / 1093`) and is used here as the reconstruction target.",
+    "Set `BET_PDH_TERMINAL_EVALUATIONS=1000` for the shorter terminal-penalty check; the default retains the final PDH PAR state."
   ),
   input_changes = input_changes_mix_period,
-  outstanding = c("After fitting, confirm the 5-region model behaves consistently with the 4R BET OPR screening result.")
+  outstanding = c("After fitting, confirm terminal recruitments remain within the historical range and rerun the Hessian diagnostic.")
 )
 
 make_step(
@@ -1099,7 +1191,7 @@ make_step(
   summary = "Length-based selectivity test after the OPR step.",
   bullets = c(
     "Uses the same inputs as 12-OrthogonalPoly.",
-    "Retains time-varying CPUE CV and OPR controls.",
+    "Retains time-varying CPUE CV, reviewed OPR, and terminal-recruitment penalty controls.",
     "Sets fish flag 26 from 2 to 3 in `doitall.sh` for the length-based selectivity test."
   ),
   input_notes = c(
@@ -1136,7 +1228,7 @@ make_step(
   summary = "Apply the lower effort-creep level in the diagnostic model path.",
   bullets = c(
     "Uses 13-LengthBasedSel controls and applies an effort-creep transform to index fisheries 29-33 in `bet.frq`.",
-    "Retains the `69-01-50-50` OPR setting and time-varying CPUE CV controls.",
+    "Retains the `72-01-50-50` OPR setting, terminal-recruitment penalty refinement, and time-varying CPUE CV controls.",
     "The effort-creep transform multiplies index-fishery effort by a piecewise linear multiplier: 1%/yr for 1952-1976 and 0.5%/yr for 1977-2024.",
     "Only positive index-fishery effort values are changed; extraction fisheries and size compositions are untouched."
   ),
@@ -1179,7 +1271,7 @@ make_step(
   summary = "Initial selective data-weighting step after the effort-creep model.",
   bullets = c(
     "Uses the same effort-creep `.frq`, mix-period `.ini`, tag, and CAAL as 14-EffortCreep.",
-    "Keeps time-varying CPUE CV, OPR, and length-based selectivity controls.",
+    "Keeps time-varying CPUE CV, reviewed OPR, terminal-recruitment penalty, and length-based selectivity controls.",
     "Applies the currently implemented size-composition data-weighting control change."
   ),
   input_notes = c(

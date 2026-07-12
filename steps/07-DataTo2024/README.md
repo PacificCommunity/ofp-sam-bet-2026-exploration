@@ -52,7 +52,7 @@ Data to 2024, global CPUE, isolating the effect of adding three years of data.
 
 | # | Control |
 | --- | --- |
-| 1 | 04-NewStructure 5-region `doitall.sh` controls retained. |
+| 1 | 04a-SelectivityReview controls retained. |
 | 2 | The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period. |
 | 3 | The latest 2026 RR, active, target, and penalty matrices are copied from `bet.2026.mix-0.2.ini` before final alignment checks. |
 | 4 | Generated safeguards cover FRQ regions, MFCL 1007 tag blocks, shed rates, `age_flags(128)`, fail-fast `doitall.sh`, and the PHASE 10/11 env switch. |

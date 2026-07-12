@@ -51,7 +51,7 @@ Data to 2021, global CPUE, adding length compositions that were not used in the 
 
 | # | Control |
 | --- | --- |
-| 1 | 04-NewStructure 5-region `doitall.sh` controls retained. |
+| 1 | 04a-SelectivityReview controls retained on the 04-NewStructure inputs. |
 | 2 | Generated safeguards cover FRQ regions, MFCL 1007 tag blocks, shed rates, `age_flags(128)`, fail-fast `doitall.sh`, and the PHASE 10/11 env switch. |
 
 ## Run Notes

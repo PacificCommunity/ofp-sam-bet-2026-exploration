@@ -23,6 +23,7 @@ stepwise_models <- data.frame(
     "02c-LengthWeight",
     "03-FixM",
     "04-NewStructure",
+    "04a-SelectivityReview",
     "05-ConvertToLength",
     "06-LengthPlusLength",
     "07-DataTo2024",
@@ -35,7 +36,7 @@ stepwise_models <- data.frame(
     "14-EffortCreep",
     "15-DataWeighting"
   ),
-  enabled = rep(TRUE, 17),
+  enabled = rep(TRUE, 18),
 
   # Scientific grouping for reporting/provenance.
   major_step = c(
@@ -45,6 +46,7 @@ stepwise_models <- data.frame(
     "02-Executable",
     "03-FixM",
     "04-NewStructure",
+    "04-SelectivityReview",
     "05-ConvertToLength",
     "06-LengthPlusLength",
     "07-DataTo2024",
@@ -64,6 +66,7 @@ stepwise_models <- data.frame(
     "02c",
     "03a",
     "04",
+    "04a",
     "05a",
     "06a",
     "07a",
@@ -83,6 +86,7 @@ stepwise_models <- data.frame(
     "bias-corrected 2026 length-weight parameters",
     "fixed natural mortality from mgc=-5 diagnostic after 02c",
     "5-region structure with global CPUE",
+    "reviewed fishery-level LF/selectivity controls",
     "convert weight compositions to length",
     "add additional length compositions",
     "2024 data with global CPUE",
@@ -103,6 +107,7 @@ stepwise_models <- data.frame(
     "Length-weight",
     "FixM",
     "New structure",
+    "Selectivity review",
     "Convert to length",
     "Length plus length",
     "Data to 2024",
@@ -124,6 +129,7 @@ stepwise_models <- data.frame(
     "02c Length-weight",
     "03 FixM",
     "04 New structure",
+    "04a Selectivity review",
     "05 Convert to length",
     "06 Length plus length",
     "07 Data to 2024",
@@ -145,6 +151,7 @@ stepwise_models <- data.frame(
     "02c-lengthweight",
     "03-fixm",
     "04-newstructure",
+    "04a-selectivityreview",
     "05-converttolength",
     "06-lengthpluslength",
     "07-datato2024",
@@ -159,15 +166,16 @@ stepwise_models <- data.frame(
   ),
 
   # Run settings for each model row. All rows use native MFCL for this stepwise run.
-  run_mode = rep("doitall", 17),
-  region_count = c(rep(9L, 5), rep(5L, 12)),
-  kflow_memory = c(rep("12GB", 5), rep("8GB", 12)),
+  run_mode = rep("doitall", 18),
+  region_count = c(rep(9L, 5), rep(5L, 13)),
+  kflow_memory = c(rep("12GB", 5), rep("8GB", 13)),
   mfcl_program_path = c(
     "/home/mfcl/mfclo64_2023_diagnostic_2.2.2.0",
-    rep("", 16)
+    rep("", 17)
   ),
-  input_par = rep("", 17),
-  frq = rep("bet.frq", 17),
-  output_par = rep("", 17),
+  input_par = rep("", 18),
+  frq = rep("bet.frq", 18),
+  output_par = rep("", 18),
+  expected_final_par = c(rep("11.par", 14), rep("12.par", 4)),
   stringsAsFactors = FALSE
 )

@@ -53,7 +53,7 @@ Regional CPUE step using the 2024 regional CPUE frequency file and regional-scal
 
 | # | Control |
 | --- | --- |
-| 1 | 04-NewStructure 5-region `doitall.sh` controls retained until PHASE 5. |
+| 1 | 04a-SelectivityReview controls retained until PHASE 5. |
 | 2 | PHASE 5 switches index CPUE/selectivity grouping for the regional-scaling prior. |
 | 3 | The inherited all-release-group `-9999 1 2` mixing-period override is removed; `tag_flags(it,1)=2` in `bet.ini` supplies the same two-quarter mixing period. |
 | 4 | The latest 2026 RR, active, target, and penalty matrices are copied from `bet.2026.mix-0.2.ini` before final alignment checks. |

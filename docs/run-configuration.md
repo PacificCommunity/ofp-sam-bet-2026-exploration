@@ -26,25 +26,26 @@ This file keeps the operational Kflow/local-run details out of the root README.
 
 <!-- This section is generated from job-config.R. It is refreshed by Makefile targets and the local pre-commit hook once a Makefile target has run. -->
 
-| `step_id` | `enabled` | `major_step` | `substep` | `change_axis` | `model_label` | `job_title` | `job_key` | `run_mode` | `mfcl_program_path` | `input_par` | `frq` | `output_par` |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `01-Diag2023` | `TRUE` | 01-Diagnostic | 01a | historical diagnostic | Diag2023 | 01 Diag2023 | `01-diag2023` | `doitall` | /home/mfcl/mfclo64_2023_diagnostic_2.2.2.0 | `blank` | `bet.frq` | `blank` |
-| `02a-NewExe` | `TRUE` | 02-Executable | 02a | current MFCL executable with 1003 ini | NewExe 1003 | 02a NewExe 1003 | `02a-newexe` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `02b-Ini1007` | `TRUE` | 02-Executable | 02b | promote diagnostic ini to 1007 | Ini 1007 | 02b Ini 1007 | `02b-ini1007` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `02c-LengthWeight` | `TRUE` | 02-Executable | 02c | bias-corrected 2026 length-weight parameters | Length-weight | 02c Length-weight | `02c-lengthweight` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `03-FixM` | `TRUE` | 03-FixM | 03a | fixed natural mortality from mgc=-5 diagnostic after 02c | FixM | 03 FixM | `03-fixm` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `04-NewStructure` | `TRUE` | 04-NewStructure | 04 | 5-region structure with global CPUE | New structure | 04 New structure | `04-newstructure` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `05-ConvertToLength` | `TRUE` | 05-ConvertToLength | 05a | convert weight compositions to length | Convert to length | 05 Convert to length | `05-converttolength` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `06-LengthPlusLength` | `TRUE` | 06-LengthPlusLength | 06a | add additional length compositions | Length plus length | 06 Length plus length | `06-lengthpluslength` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `07-DataTo2024` | `TRUE` | 07-DataTo2024 | 07a | 2024 data with global CPUE | Data to 2024 | 07 Data to 2024 | `07-datato2024` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `08-RegionalCPUE` | `TRUE` | 08-RegionalCPUE | 08a | regional CPUE and regional-scaling prior | Regional CPUE | 08 Regional CPUE | `08-regionalcpue` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `09-NewOtoliths` | `TRUE` | 09-NewOtoliths | 09a | new otolith/CAAL input | New otoliths | 09 New otoliths | `09-newotoliths` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `10-TagMixingKS` | `TRUE` | 10-TagMixing | 10a | release-specific tag mixing periods | Tag mixing KS | 10 Tag mixing KS | `10-tagmixingks` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `11-TimeVaryingCV` | `TRUE` | 11-TimeVaryingCV | 11a | time-varying CPUE CV | Time-varying CV | 11 Time-varying CV | `11-timevaryingcv` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `12-OrthogonalPoly` | `TRUE` | 12-OrthogonalPoly | 12a | orthogonal-polynomial recruitment | Orthogonal polynomial | 12 Orthogonal polynomial | `12-orthogonalpoly` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `13-LengthBasedSel` | `TRUE` | 13-LengthBasedSel | 13a | length-based selectivity | Length-based selectivity | 13 Length-based selectivity | `13-lengthbasedsel` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `14-EffortCreep` | `TRUE` | 14-EffortCreep | 14a | effort creep | Effort creep | 14 Effort creep | `14-effortcreep` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
-| `15-DataWeighting` | `TRUE` | 15-DataWeighting | 15a | data weighting | Data weighting | 15 Data weighting | `15-dataweighting` | `doitall` | blank | `blank` | `bet.frq` | `blank` |
+| `step_id` | `enabled` | `major_step` | `substep` | `change_axis` | `model_label` | `job_title` | `job_key` | `run_mode` | `mfcl_program_path` | `input_par` | `frq` | `output_par` | `expected_final_par` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `01-Diag2023` | `TRUE` | 01-Diagnostic | 01a | historical diagnostic | Diag2023 | 01 Diag2023 | `01-diag2023` | `doitall` | /home/mfcl/mfclo64_2023_diagnostic_2.2.2.0 | `blank` | `bet.frq` | `blank` | 11.par |
+| `02a-NewExe` | `TRUE` | 02-Executable | 02a | current MFCL executable with 1003 ini | NewExe 1003 | 02a NewExe 1003 | `02a-newexe` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
+| `02b-Ini1007` | `TRUE` | 02-Executable | 02b | promote diagnostic ini to 1007 | Ini 1007 | 02b Ini 1007 | `02b-ini1007` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
+| `02c-LengthWeight` | `TRUE` | 02-Executable | 02c | bias-corrected 2026 length-weight parameters | Length-weight | 02c Length-weight | `02c-lengthweight` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
+| `03-FixM` | `TRUE` | 03-FixM | 03a | fixed natural mortality from mgc=-5 diagnostic after 02c | FixM | 03 FixM | `03-fixm` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
+| `04-NewStructure` | `TRUE` | 04-NewStructure | 04 | 5-region structure with global CPUE | New structure | 04 New structure | `04-newstructure` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
+| `04a-SelectivityReview` | `TRUE` | 04-SelectivityReview | 04a | reviewed fishery-level LF/selectivity controls | Selectivity review | 04a Selectivity review | `04a-selectivityreview` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
+| `05-ConvertToLength` | `TRUE` | 05-ConvertToLength | 05a | convert weight compositions to length | Convert to length | 05 Convert to length | `05-converttolength` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
+| `06-LengthPlusLength` | `TRUE` | 06-LengthPlusLength | 06a | add additional length compositions | Length plus length | 06 Length plus length | `06-lengthpluslength` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
+| `07-DataTo2024` | `TRUE` | 07-DataTo2024 | 07a | 2024 data with global CPUE | Data to 2024 | 07 Data to 2024 | `07-datato2024` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
+| `08-RegionalCPUE` | `TRUE` | 08-RegionalCPUE | 08a | regional CPUE and regional-scaling prior | Regional CPUE | 08 Regional CPUE | `08-regionalcpue` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
+| `09-NewOtoliths` | `TRUE` | 09-NewOtoliths | 09a | new otolith/CAAL input | New otoliths | 09 New otoliths | `09-newotoliths` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
+| `10-TagMixingKS` | `TRUE` | 10-TagMixing | 10a | release-specific tag mixing periods | Tag mixing KS | 10 Tag mixing KS | `10-tagmixingks` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
+| `11-TimeVaryingCV` | `TRUE` | 11-TimeVaryingCV | 11a | time-varying CPUE CV | Time-varying CV | 11 Time-varying CV | `11-timevaryingcv` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
+| `12-OrthogonalPoly` | `TRUE` | 12-OrthogonalPoly | 12a | orthogonal-polynomial recruitment | Orthogonal polynomial | 12 Orthogonal polynomial | `12-orthogonalpoly` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 12.par |
+| `13-LengthBasedSel` | `TRUE` | 13-LengthBasedSel | 13a | length-based selectivity | Length-based selectivity | 13 Length-based selectivity | `13-lengthbasedsel` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 12.par |
+| `14-EffortCreep` | `TRUE` | 14-EffortCreep | 14a | effort creep | Effort creep | 14 Effort creep | `14-effortcreep` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 12.par |
+| `15-DataWeighting` | `TRUE` | 15-DataWeighting | 15a | data weighting | Data weighting | 15 Data weighting | `15-dataweighting` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 12.par |
 
 
 ## Folder Checks
@@ -59,6 +60,7 @@ This file keeps the operational Kflow/local-run details out of the root README.
 | `02c-LengthWeight` | `steps/02c-LengthWeight/model` | `exists` |
 | `03-FixM` | `steps/03-FixM/model` | `exists` |
 | `04-NewStructure` | `steps/04-NewStructure/model` | `exists` |
+| `04a-SelectivityReview` | `steps/04a-SelectivityReview/model` | `exists` |
 | `05-ConvertToLength` | `steps/05-ConvertToLength/model` | `exists` |
 | `06-LengthPlusLength` | `steps/06-LengthPlusLength/model` | `exists` |
 | `07-DataTo2024` | `steps/07-DataTo2024/model` | `exists` |

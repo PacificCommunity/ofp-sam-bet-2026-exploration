@@ -51,14 +51,14 @@ Data to 2021, global CPUE, converting existing weight compositions to length.
 
 | # | Control |
 | --- | --- |
-| 1 | 04-NewStructure 5-region `doitall.sh` controls retained. |
+| 1 | 04a-SelectivityReview controls retained on the 04-NewStructure inputs. |
 | 2 | Generated safeguards cover FRQ regions, MFCL 1007 tag blocks, shed rates, `age_flags(128)`, fail-fast `doitall.sh`, and the PHASE 10/11 env switch. |
 
 ## Run Notes
 
 | # | Note |
 | --- | --- |
-| 1 | Compare directly with 04-NewStructure to isolate the effect of converting existing weight compositions to length. |
+| 1 | Compare directly with 04a-SelectivityReview to isolate the effect of converting existing weight compositions to length. |
 
 ## Checks
 

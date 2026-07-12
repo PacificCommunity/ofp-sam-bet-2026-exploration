@@ -224,13 +224,13 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
 # Age-based spline constraints mapped from old fishery recipes.
   -19 16 2  -19 3 25  # PS.ASS.2, old30
   -25 16 2  -25 3 25  # PS.ASS.WEST.3, old13 + old25
-  -26 16 2  -26 3 25  # PS.ASS.EAST.3, old15
-  -20 16 2  -20 3 30  # PS.UNA.2, old31
+  -26 16 2 -26 3 25 -26 75 1  # PS.ASS.EAST.3, old15
+  -20 16 0 -20 3 37  # PS.UNA.2, old31
   -27 16 2  -27 3 30  # PS.UNA.WEST.3, old14 + old26
-  -28 16 2  -28 3 30  # PS.UNA.EAST.3, old16
-  -17 16 2  -17 3 12  # PS.ID.2, split old24
+  -28 16 0 -28 3 37  # PS.UNA.EAST.3, old16
+  -17 16 2 -17 3 6  # PS.ID.2, split old24
   -18 16 2  -18 3 12  # PS.PH.2, split old24
-  -12 16 2  -12 3 25  # PS.JP.1, old19
+  -12 16 2 -12 3 25 -12 75 2  # PS.JP.1, old19
   -13 16 2  -13 3 25  # PL.JP.1, old20
 # Upper-age selectivity constraints mapped from old fishery recipes.
   -22 16 2  -22 3 9   # DOM.PH.2, old17
@@ -270,21 +270,27 @@ PHASE2
 # ---------
 
 $program_path bet.frq 02.par 03.par -file - <<PHASE3
-# OPR settings. BET OPR screening rank-1 model: 69-01-50-50.
+# OPR settings from the reviewed PDH model: 72-01-50-50.
   1 149 0   # turn off recruitment-deviation penalty for OPR
   1 398 0   # turn off arithmetic-mean terminal fixed-recruitment option for OPR
   1 400 0   # clear fixed terminal recruitment-deviate block for OPR
   2 177 0   # turn off old total-pop scaling for OPR
   2 32 0    # turn off overall population scaling parameter for OPR
   2 113 0   # keep scaling init pop off during OPR transfer
-  1 155 69  # orthogonal polynomial recruitment - year effect
+  1 155 72  # orthogonal polynomial recruitment - year effect
+  1 221 72  # compatibility state retained from the reviewed PDH par
   1 217 1   # orthogonal polynomial recruitment - season effect
   1 216 50  # orthogonal polynomial recruitment - region effect
   1 218 50  # orthogonal polynomial recruitment - region-season interaction effect
   1 202 2   # OPR end window: last 2 real years use lower-degree/constant-end basis
+  1 203 0   # no separate year-effect end-window override
   1 210 0   # OPR region end window: 0 inherits parest_flag(202)
+  1 211 0   # no separate region-effect end-window override
   1 212 0   # OPR season end window: 0 inherits parest_flag(202)
+  1 213 0   # no separate season-effect end-window override
   1 214 0   # OPR region-season end window: 0 inherits parest_flag(202)
+  1 215 0   # no separate interaction end-window override
+  1 397 0   # terminal-recruitment penalty starts only after the base OPR fit
   2 30 1    # keep age_flag(30) on so current MFCL activates OPR coefficients
   2 70 0    # turn off mean+deviate regional recruitment time series
   2 71 0    # turn off regional recruitment distribution deviations
@@ -421,3 +427,38 @@ $program_path bet.frq 10.par 11.par -file - <<PHASE11
   1 50 $phase10_11_convergence  # convergence criteria; default quick -3, set BET_PHASE10_11_CONVERGENCE=-5 for strict
   1 246 1   # indepvar.rpt
 PHASE11
+
+pdh_terminal_evaluations=${BET_PDH_TERMINAL_EVALUATIONS:-20000}
+pdh_terminal_convergence=${BET_PDH_TERMINAL_CONVERGENCE:--5}
+case "$pdh_terminal_evaluations" in
+  ''|*[!0-9]*) echo "BET_PDH_TERMINAL_EVALUATIONS must be a positive integer." >&2; exit 1 ;;
+esac
+case "$pdh_terminal_convergence" in
+  -[0-9]|-[0-9][0-9]|[0-9]|[0-9][0-9]) ;;
+  *) echo "BET_PDH_TERMINAL_CONVERGENCE must be numeric, e.g. -5." >&2; exit 1 ;;
+esac
+echo "PDH terminal refinement: ${pdh_terminal_evaluations} evaluations, convergence ${pdh_terminal_convergence}"
+
+# ----------
+#  PHASE 12 - terminal-recruitment penalty refinement
+# ----------
+
+$program_path bet.frq 11.par 12.par -file - <<PHASE12
+  1 155 72  # OPR year effect
+  1 221 72  # compatibility state retained from the reviewed PDH par
+  1 217 1   # OPR season effect
+  1 216 50  # OPR region effect
+  1 218 50  # OPR region-season interaction
+  1 202 2   # terminal window in calendar years
+  1 203 0
+  1 210 0
+  1 211 0
+  1 212 0
+  1 213 0
+  1 214 0
+  1 215 0
+  1 397 100  # terminal-recruitment penalty flag; native weight is flag/10
+  1 1 $pdh_terminal_evaluations  # default 20000 from the reviewed PDH par
+  1 50 $pdh_terminal_convergence  # default -5 from the reviewed PDH par
+  1 246 1   # indepvar.rpt
+PHASE12

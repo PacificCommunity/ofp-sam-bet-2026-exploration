@@ -14,7 +14,7 @@ Initial selective data-weighting step after the effort-creep model.
 | # | Change |
 | --- | --- |
 | 1 | Uses the same effort-creep `.frq`, mix-period `.ini`, tag, and CAAL as 14-EffortCreep. |
-| 2 | Keeps time-varying CPUE CV, OPR, and length-based selectivity controls. |
+| 2 | Keeps time-varying CPUE CV, reviewed OPR, terminal-recruitment penalty, and length-based selectivity controls. |
 | 3 | Applies the currently implemented size-composition data-weighting control change. |
 
 ## Inputs

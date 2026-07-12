@@ -44,6 +44,58 @@ set_doitall_fishery_flag <- function(lines, fishery, flag, value) {
   lines
 }
 
+add_doitall_fishery_flag <- function(lines, fishery, flag, value,
+                                      anchor_flag = 16L) {
+  existing <- sprintf(
+    "(^|[[:space:]])-%d[[:space:]]+%d[[:space:]]+",
+    fishery,
+    flag
+  )
+  if (any(grepl(existing, lines))) {
+    return(set_doitall_fishery_flag(lines, fishery, flag, value))
+  }
+
+  anchor <- sprintf(
+    "(^|[[:space:]])-%d[[:space:]]+%d[[:space:]]+",
+    fishery,
+    anchor_flag
+  )
+  hit <- grep(anchor, lines)
+  if (length(hit) != 1L) {
+    stop(
+      "Expected one doitall anchor flag for fishery ", fishery,
+      " and flag ", anchor_flag,
+      call. = FALSE
+    )
+  }
+
+  line <- lines[[hit]]
+  comment <- regmatches(line, regexpr("[[:space:]]+#.*$", line))
+  body <- sub("[[:space:]]+#.*$", "", line)
+  words <- c(read_words(body), paste0("-", fishery), as.character(flag), as.character(value))
+  lines[[hit]] <- paste0(
+    "  ",
+    paste(words, collapse = " "),
+    if (length(comment)) comment else ""
+  )
+  lines
+}
+
+apply_reviewed_selectivity_controls <- function(lines) {
+  # Exact fishery-level controls in the reviewed PDH Step 12 parameter file.
+  # Do not propagate these values to other members of shared selectivity groups:
+  # this helper intentionally reproduces the fitted reference state.
+  lines <- set_doitall_fishery_flag(lines, 20L, 16L, 0L)
+  lines <- set_doitall_fishery_flag(lines, 20L, 3L, 37L)
+  lines <- set_doitall_fishery_flag(lines, 28L, 16L, 0L)
+  lines <- set_doitall_fishery_flag(lines, 28L, 3L, 37L)
+  lines <- add_doitall_fishery_flag(lines, 26L, 75L, 1L)
+  lines <- add_doitall_fishery_flag(lines, 12L, 75L, 2L)
+  lines <- set_doitall_fishery_flag(lines, 17L, 16L, 2L)
+  lines <- set_doitall_fishery_flag(lines, 17L, 3L, 6L)
+  lines
+}
+
 write_program_path_doitall <- function(from, to) {
   lines <- readLines(from, warn = FALSE)
   if (!length(lines) || !grepl("^#!", lines[[1]])) {
@@ -170,9 +222,11 @@ apply_time_varying_cpue_cv <- function(lines, index_fisheries = 29:33) {
   lines
 }
 
-apply_opr <- function(lines, year_effect = 69L, season_effect = 1L,
+apply_opr <- function(lines, year_effect = 72L, season_effect = 1L,
                       region_effect = 50L, region_season_effect = 50L,
-                      terminal_year_constraint = 2L) {
+                      terminal_year_constraint = 2L,
+                      terminal_penalty_flag = 100L,
+                      compatibility_year_effect = year_effect) {
   phase3 <- grep("^[[:space:]]*2[[:space:]]+70[[:space:]]+1[[:space:]]", lines)
   if (length(phase3) != 1L) {
     stop("Expected one phase-3 recruitment flag block for OPR", call. = FALSE)
@@ -185,7 +239,7 @@ apply_opr <- function(lines, year_effect = 69L, season_effect = 1L,
     stop("Unexpected phase-3 recruitment flag block for OPR", call. = FALSE)
   }
   new_block <- c(
-    "# OPR settings. BET OPR screening rank-1 model: 69-01-50-50.",
+    sprintf("# OPR settings from the reviewed PDH model: %02d-%02d-%02d-%02d.", year_effect, season_effect, region_effect, region_season_effect),
     "  1 149 0   # turn off recruitment-deviation penalty for OPR",
     "  1 398 0   # turn off arithmetic-mean terminal fixed-recruitment option for OPR",
     "  1 400 0   # clear fixed terminal recruitment-deviate block for OPR",
@@ -193,13 +247,19 @@ apply_opr <- function(lines, year_effect = 69L, season_effect = 1L,
     "  2 32 0    # turn off overall population scaling parameter for OPR",
     "  2 113 0   # keep scaling init pop off during OPR transfer",
     sprintf("  1 155 %d  # orthogonal polynomial recruitment - year effect", year_effect),
+    sprintf("  1 221 %d  # compatibility state retained from the reviewed PDH par", compatibility_year_effect),
     sprintf("  1 217 %d   # orthogonal polynomial recruitment - season effect", season_effect),
     sprintf("  1 216 %d  # orthogonal polynomial recruitment - region effect", region_effect),
     sprintf("  1 218 %d  # orthogonal polynomial recruitment - region-season interaction effect", region_season_effect),
     sprintf("  1 202 %d   # OPR end window: last %d real years use lower-degree/constant-end basis", terminal_year_constraint, terminal_year_constraint),
+    "  1 203 0   # no separate year-effect end-window override",
     "  1 210 0   # OPR region end window: 0 inherits parest_flag(202)",
+    "  1 211 0   # no separate region-effect end-window override",
     "  1 212 0   # OPR season end window: 0 inherits parest_flag(202)",
+    "  1 213 0   # no separate season-effect end-window override",
     "  1 214 0   # OPR region-season end window: 0 inherits parest_flag(202)",
+    "  1 215 0   # no separate interaction end-window override",
+    "  1 397 0   # terminal-recruitment penalty starts only after the base OPR fit",
     "  2 30 1    # keep age_flag(30) on so current MFCL activates OPR coefficients",
     "  2 70 0    # turn off mean+deviate regional recruitment time series",
     "  2 71 0    # turn off regional recruitment distribution deviations",
@@ -235,7 +295,56 @@ apply_opr <- function(lines, year_effect = 69L, season_effect = 1L,
     words[[3]] <- "0"
     lines[[i]] <- paste0("  ", paste(words, collapse = " "))
   }
-  lines
+
+  if (terminal_penalty_flag <= 0L) {
+    return(lines)
+  }
+
+  if (any(grepl("<<PHASE12$", lines))) {
+    stop("Terminal-recruitment refinement already exists in doitall.sh", call. = FALSE)
+  }
+  phase11_end <- grep("^PHASE11$", lines)
+  if (length(phase11_end) != 1L) {
+    stop("Expected one PHASE11 terminator before adding the terminal penalty", call. = FALSE)
+  }
+  terminal_block <- c(
+    "",
+    "pdh_terminal_evaluations=${BET_PDH_TERMINAL_EVALUATIONS:-20000}",
+    "pdh_terminal_convergence=${BET_PDH_TERMINAL_CONVERGENCE:--5}",
+    "case \"$pdh_terminal_evaluations\" in",
+    "  ''|*[!0-9]*) echo \"BET_PDH_TERMINAL_EVALUATIONS must be a positive integer.\" >&2; exit 1 ;;",
+    "esac",
+    "case \"$pdh_terminal_convergence\" in",
+    "  -[0-9]|-[0-9][0-9]|[0-9]|[0-9][0-9]) ;;",
+    "  *) echo \"BET_PDH_TERMINAL_CONVERGENCE must be numeric, e.g. -5.\" >&2; exit 1 ;;",
+    "esac",
+    "echo \"PDH terminal refinement: ${pdh_terminal_evaluations} evaluations, convergence ${pdh_terminal_convergence}\"",
+    "",
+    "# ----------",
+    "#  PHASE 12 - terminal-recruitment penalty refinement",
+    "# ----------",
+    "",
+    "$program_path bet.frq 11.par 12.par -file - <<PHASE12",
+    sprintf("  1 155 %d  # OPR year effect", year_effect),
+    sprintf("  1 221 %d  # compatibility state retained from the reviewed PDH par", compatibility_year_effect),
+    sprintf("  1 217 %d   # OPR season effect", season_effect),
+    sprintf("  1 216 %d  # OPR region effect", region_effect),
+    sprintf("  1 218 %d  # OPR region-season interaction", region_season_effect),
+    sprintf("  1 202 %d   # terminal window in calendar years", terminal_year_constraint),
+    "  1 203 0",
+    "  1 210 0",
+    "  1 211 0",
+    "  1 212 0",
+    "  1 213 0",
+    "  1 214 0",
+    "  1 215 0",
+    sprintf("  1 397 %d  # terminal-recruitment penalty flag; native weight is flag/10", terminal_penalty_flag),
+    "  1 1 $pdh_terminal_evaluations  # default 20000 from the reviewed PDH par",
+    "  1 50 $pdh_terminal_convergence  # default -5 from the reviewed PDH par",
+    "  1 246 1   # indepvar.rpt",
+    "PHASE12"
+  )
+  append(lines, terminal_block, after = phase11_end)
 }
 
 apply_data_weighting <- function(lines) {
@@ -400,6 +509,7 @@ apply_phase10_11_convergence_switch <- function(lines) {
 }
 
 write_doitall <- function(from, to, mix_from_ini = FALSE,
+                          reviewed_selectivity = FALSE,
                           size_based_selectivity = FALSE,
                           time_varying_cv = FALSE,
                           opr = FALSE,
@@ -416,6 +526,9 @@ write_doitall <- function(from, to, mix_from_ini = FALSE,
   lines <- apply_phase10_11_convergence_switch(lines)
   if (isTRUE(mix_from_ini)) {
     lines <- remove_tag_mixing_override(lines)
+  }
+  if (isTRUE(reviewed_selectivity)) {
+    lines <- apply_reviewed_selectivity_controls(lines)
   }
   if (isTRUE(size_based_selectivity)) {
     lines <- apply_size_based_selectivity(lines)

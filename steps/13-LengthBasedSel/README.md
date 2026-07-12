@@ -14,7 +14,7 @@ Length-based selectivity test after the OPR step.
 | # | Change |
 | --- | --- |
 | 1 | Uses the same inputs as 12-OrthogonalPoly. |
-| 2 | Retains time-varying CPUE CV and OPR controls. |
+| 2 | Retains time-varying CPUE CV, reviewed OPR, and terminal-recruitment penalty controls. |
 | 3 | Sets fish flag 26 from 2 to 3 in `doitall.sh` for the length-based selectivity test. |
 
 ## Inputs
