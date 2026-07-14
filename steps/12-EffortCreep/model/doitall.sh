@@ -55,13 +55,15 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -999 13 0
 # Survey fisheries defined
 # fish flag 92 = round(region sigma * 100), fish flag 94 = allow unequal sigma,
-# fish flag 66 = 0. The freq file supplies the temporal sigma pattern.
-# 2026 index-fishery sigma settings.
-  -29 94 1 -29 92 28 -29 66 1  # Index R1, sigma 0.28
-  -30 94 1 -30 92 20 -30 66 1  # Index R2, sigma 0.20
-  -31 94 1 -31 92 22 -31 66 1  # Index R3, sigma 0.22
-  -32 94 1 -32 92 21 -32 66 1  # Index R4, sigma 0.21
-  -33 94 1 -33 92 24 -33 66 1  # Index R5, sigma 0.24
+# fish flag 66 = 1. The freq file supplies the temporal precision pattern.
+# Sigma values are re-estimated from Step 12 fitted CPUE log residuals using
+# sigma^2 = mean((P - O)^2 / lambda), where lambda is the normalized freq-file
+# precision pattern used by the MFCL catch-conditioned CPUE likelihood.
+  -29 94 1 -29 92 35 -29 66 1  # Index R1, sigma 0.354
+  -30 94 1 -30 92 24 -30 66 1  # Index R2, sigma 0.237
+  -31 94 1 -31 92 21 -31 66 1  # Index R3, sigma 0.212
+  -32 94 1 -32 92 24 -32 66 1  # Index R4, sigma 0.239
+  -33 94 1 -33 92 23 -33 66 1  # Index R5, sigma 0.225
 # Grouping flags for survey CPUE
    -1 99 1
    -2 99 2

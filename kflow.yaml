@@ -16,7 +16,7 @@ command: bash run.sh
 # Change deliberately, for example:
 #   ghcr.io/pacificcommunity/tuna-flow:v2.0
 #   ghcr.io/pacificcommunity/tuna-flow:latest
-docker_image: ghcr.io/pacificcommunity/tuna-flow:v2.2
+docker_image: ghcr.io/pacificcommunity/tuna-flow:v2.4
 
 # HTCondor resource request. Increase memory/disk before increasing CPUs unless
 # the MFCL command itself can use more threads.
@@ -82,9 +82,9 @@ env:
   TUNA_FLOW_RUNTIME_UPDATE: never
   KFLOW_REPO_RUNTIME_UPDATE: auto
   KFLOW_RUNTIME_PACKAGES: none
-  KFLOW_REPO_RUNTIME_PACKAGES: mfclkit=PacificCommunity/ofp-sam-mfclkit@cfddae86da8d3e887a6cc29ee03c3ed18805a78b,mfclshiny=PacificCommunity/mfclshiny@90acece572b41061cf3756bf2b2596eb2f1a43fa
-  MFCLKIT_GITHUB_REF: cfddae86da8d3e887a6cc29ee03c3ed18805a78b
-  MFCLSHINY_GITHUB_REF: 90acece572b41061cf3756bf2b2596eb2f1a43fa
+  KFLOW_REPO_RUNTIME_PACKAGES: mfclkit=PacificCommunity/ofp-sam-mfclkit@963e6f18e70b54fafb3c072ce454f14d6b076821,mfclshiny=PacificCommunity/mfclshiny@558ca51f50d8afb02f537cc6eac9021b232567ce
+  MFCLKIT_GITHUB_REF: 963e6f18e70b54fafb3c072ce454f14d6b076821
+  MFCLSHINY_GITHUB_REF: 558ca51f50d8afb02f537cc6eac9021b232567ce
   KFLOW_RUNTIME_GITHUB_AUTH: "true"
   KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME: "true"
   KFLOW_REPORT_COMMIT_GENERATED: "true"
@@ -113,8 +113,8 @@ local_apps:
       NUMEXPR_NUM_THREADS: "1"
       R_REMOTES_NO_ERRORS_FROM_WARNINGS: "true"
       KFLOW_LOCAL_APP_PACKAGE_UPDATE: "never"
-      MFCLKIT_GITHUB_REF: cfddae86da8d3e887a6cc29ee03c3ed18805a78b
-      MFCLSHINY_GITHUB_REF: 90acece572b41061cf3756bf2b2596eb2f1a43fa
+      MFCLKIT_GITHUB_REF: 963e6f18e70b54fafb3c072ce454f14d6b076821
+      MFCLSHINY_GITHUB_REF: 558ca51f50d8afb02f537cc6eac9021b232567ce
       MFCLSHINY_AUTO_LOAD: "true"
       MFCLSHINY_INITIAL_RENDER: "true"
       MFCLSHINY_LIVE_UPDATE: "false"

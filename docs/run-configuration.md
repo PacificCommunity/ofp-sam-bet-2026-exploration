@@ -11,7 +11,7 @@ This file keeps the operational Kflow/local-run details out of the root README.
 | `default_step_select` | `12-EffortCreep,13-DataWeighting` | Model selection used when `STEP_SELECT` is not supplied. |
 | `flow_group` | `bet-2026-stepwise-skip-opr-lengthsel` | Kflow group label used to connect stepwise, results, and report jobs. |
 | `trigger_next` | `false` | Whether command-line Kflow submissions keep the downstream results/report chain. |
-| `docker_image` | `ghcr.io/pacificcommunity/tuna-flow:v2.2` | Docker image used by Kflow and local Docker runs. |
+| `docker_image` | `ghcr.io/pacificcommunity/tuna-flow:v2.4` | Docker image used by Kflow and local Docker runs. |
 | `program_path` | `/home/mfcl/mfclo64` | MFCL executable path inside the Docker image. |
 | `stepwise_save_final_par` | `false` | Optional: copy the final `.par` back into `steps/<step_id>/model/`. Off by default; Kflow outputs always include `outputs/models/<step_id>/final.par`. |
 | `stepwise_save_raw_mfcl_inputs` | `true` | Preserve the full raw MFCL input folder under `outputs/models/<step_id>/mfcl-inputs/` for native-style auditability. |

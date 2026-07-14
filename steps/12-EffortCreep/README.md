@@ -59,6 +59,56 @@ Apply effort creep directly after the time-varying-CV model.
 | 4 | The active prior window is periods 53-72 (1965-1969), derived from parest flags 79-80 for the 292-period model. |
 | 5 | PHASE 1-4 retain CPUE_scaling; PHASE 5 switches to Prior_reg_biomass with index CPUE groups 29-33, fish flag 94 set to 0, and index selectivity groups 25-29. |
 | 6 | Generated safeguards cover FRQ regions, MFCL 1007 tag blocks, shed rates, `age_flags(128)`, fail-fast `doitall.sh`, and the PHASE 10/11 env switch. |
+| 7 | Index-fishery CPUE sigma is re-estimated from the fitted Step 12 residuals and applied through fish flag 92. |
+
+## CPUE Sigma Sensitivity
+
+The index-fishery sigma values are recalibrated from the fitted Step 12 CPUE
+residuals on the same scale used by the MFCL catch-conditioned CPUE likelihood.
+MFCL stores the reported CPUE observations and predictions for this likelihood as
+normalised log-scale values, so the residual is calculated as `pred - obs`, not as
+`log(pred) - log(obs)`.
+
+This sensitivity follows a fitted-residual calibration approach: the assessment
+model is first fitted with the prior regional CPUE sigma settings, then the
+log-scale residual variance implied by that fitted model is used to update the
+region-specific sigma values. This keeps the `.frq` time-varying precision
+pattern intact while allowing the regional average sigma to reflect the
+empirical residual scale of the current model fit. It is intended as a model
+weighting sensitivity, not as a change to the CPUE index values themselves.
+
+For index fishery `k`, the fitted residual sigma is:
+
+```text
+sigma_k = sqrt(mean((P_ki - O_ki)^2 / lambda_ki))
+```
+
+where `P_ki` and `O_ki` are the MFCL reported normalised log prediction and
+observation, and `lambda_ki` is the time-varying precision pattern from the
+`.frq` fishery-data column used when fish flag 66 is active. The pattern is
+normalised within each index fishery before the calculation, matching the MFCL
+likelihood implementation.
+
+The resulting values from the fitted Step 12 reference model are:
+
+| Region | Fishery | Fitted sigma | `fish_flags(92)` |
+| --- | ---: | ---: | ---: |
+| R1 | 29 | 0.354 | 35 |
+| R2 | 30 | 0.237 | 24 |
+| R3 | 31 | 0.212 | 21 |
+| R4 | 32 | 0.239 | 24 |
+| R5 | 33 | 0.225 | 23 |
+
+The doitall entries therefore use `fish_flags(92)=35,24,21,24,23` for
+fisheries 29-33, with fish flag 66 retained so the `.frq` time pattern still
+controls relative annual precision.
+
+Report wording:
+
+> Regional CPUE index sigmas were recalibrated from the fitted model residuals
+> on the MFCL catch-conditioned CPUE likelihood scale. The time-varying
+> precision pattern supplied in the `.frq` file was retained, and only the
+> regional average sigma values applied through `fish_flags(92)` were updated.
 
 ## Run Notes
 
