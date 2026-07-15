@@ -169,14 +169,19 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
   has_reg_scaling <- nzchar(reg_scaling_source)
   if (has_reg_scaling) {
     regional_scaling_periods <- length(readLines(reg_scaling_source, warn = FALSE))
-    copy_one(reg_scaling_source, file.path(model_dir, "bet.reg_scaling"))
+    copy_regional_scaling_window(
+      reg_scaling_source,
+      file.path(model_dir, "bet.reg_scaling"),
+      start_period = reg_scaling_active_start_period,
+      end_period = reg_scaling_active_end_period
+    )
     if (!"bet.reg_scaling" %in% names(input_notes)) {
       input_notes[["bet.reg_scaling"]] <-
         paste0(
-          "Full `bet.2026.reg_scaling` global CPUE regional-scaling matrix; ",
-          "parest flags select active periods ",
+          "`bet.2026.reg_scaling` global CPUE regional-scaling matrix, rows ",
           reg_scaling_active_start_period, "-", reg_scaling_active_end_period,
-          " (", reg_scaling_active_years, ") for the prior"
+          " only (", reg_scaling_active_years, "), matching the model-prediction ",
+          "window defined by parest flags 79-80"
         )
     }
   }
@@ -261,10 +266,12 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
       file = "bet.reg_scaling",
       source = reg_scaling_source,
       note = paste0(
-        "full global CPUE regional-scaling matrix copied unchanged; parest ",
-        "flags 77-81 define active periods ", reg_scaling_window$start, "-",
+        "rows ", reg_scaling_active_start_period, "-",
+        reg_scaling_active_end_period,
+        " extracted from the global CPUE regional-scaling matrix; parest ",
+        "flags 77-81 define matching model periods ", reg_scaling_window$start, "-",
         reg_scaling_window$end,
-        " so native MFCL takes only the flagged rows internally"
+        "; the compact file contains one row per period used by the prior"
       )
     )), after = 4L)
   }

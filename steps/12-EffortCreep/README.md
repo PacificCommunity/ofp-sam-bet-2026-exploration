@@ -26,7 +26,7 @@ Apply effort creep directly after the time-varying-CV model.
 | `.ini` | `bet.2026.mix-0.2.ini`, FixM M row applied from the 01-Diag2023 mgc=-5 diagnostic final par; raised 2 zero tag mixing periods to 1 because MFCL >=2.2.7.5 disallows 0; normalized MFCL 1007 tag-control rows for 98 release groups |
 | `.tag` | `bet.2026.low.recaps.removed.tag`; latest tag-prep build with updated RR groups and canneries-based reassignment of recaptures with missing gear to purse-seine fisheries before low-recap filtering |
 | `.age_length` | `bet.2026.age_length` (updated CAAL); set age_length effective sample size to 0.75 for 181 records |
-| `.reg_scaling` | Full `bet.2026.reg_scaling` global CPUE regional-scaling matrix; parest flags select active periods 53-72 (1965-1969) for the prior |
+| `.reg_scaling` | Rows 53-72 of `bet.2026.reg_scaling`, a compact 20-row matrix matching the model-prediction window selected by parest flags 79-80 |
 | `input_manifest.csv` | machine-readable source/input notes |
 
 ## Generated Input Changes
@@ -37,6 +37,7 @@ Apply effort creep directly after the time-varying-CV model.
 | `.ini` | Uses release-specific mixing and latest RR/active/target/penalty matrices from `mix-0.2`, aligns tag-control rows to the selected tag release groups, sets `tag_flags(it,2)=0`, raises source zero mixing periods to `1`, applies fixed M, and validates positive recapture cells. | Positive release-specific mixing values and RR matrix structure. |
 | `.tag` | No generated edit. | 2026 low-recapture-removed source tag file. |
 | `.age_length` | Changes effective sample size from `1` to `0.75`. | 2026 CAAL records themselves. |
+| `.reg_scaling` | Extracts source periods 53-72 into the 20-row matrix read by native MFCL. | Regional CPUE values and period order within the selected window. |
 
 ## Source Revisions
 

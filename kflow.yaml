@@ -1,13 +1,13 @@
-# Kflow task defaults for the BET 2026 stepwise model runner.
+# Kflow task defaults for the BET 2026 regional-scaling exploration.
 #
 # This file describes how Kflow should run the repo. Most model-specific edits
 # belong in job-config.R; this file is for Docker, resources, default env,
 # saved outputs, and automatic follow-up tasks.
 
 # Stable task id shown in Kflow and used by the API:
-#   /api/job/ofp-sam-bet-2026-stepwise-no-opr-no-lengthsel
-name: ofp-sam-bet-2026-stepwise-no-opr-no-lengthsel
-description: Run only the renumbered effort-creep and data-weighting models after Step 11, without OPR or length-based selectivity.
+#   /api/job/ofp-sam-bet-2026-regscaling-aligned
+name: ofp-sam-bet-2026-regscaling-aligned
+description: Run one BET 2026 sensitivity with the regional-scaling input aligned to model periods 53-72.
 
 # Command executed inside the Docker container after checkout.
 command: bash run.sh
@@ -33,17 +33,17 @@ exclude_slots: []
 env:
   # Default selected model folder. Override per job in the Kflow job config.
   # Examples: 01-Diag2023, 08-RegionalCPUE, 01-Diag2023,09-NewOtoliths, all
-  STEP_SELECT: "12-EffortCreep,13-DataWeighting"
+  STEP_SELECT: "12-EffortCreep"
 
   # Default Kflow display labels for the default model. `make kflow` computes
   # these from job-config.R. When launching directly from the Kflow UI and
   # changing STEP_SELECT, update these fields too if the job list should show
   # the selected model label before the run starts.
-  JOB_TITLE: "Steps 12-13 without OPR or length-based selectivity"
-  JOB_DESCRIPTION: "Run the two downstream BET models that continue directly from Step 11."
-  MODEL_LABEL: "Effort creep and data weighting without OPR or length-based selectivity"
-  JOB_KEY: downstream-12-13-no-opr-lengthsel
-  FLOW_GROUP: bet-2026-stepwise-no-opr-no-lengthsel
+  JOB_TITLE: "BET 2026 regional-scaling alignment"
+  JOB_DESCRIPTION: "Run the Step 12 sensitivity with a compact 20-period regional-scaling input."
+  MODEL_LABEL: "Regional scaling aligned"
+  JOB_KEY: regscaling-aligned
+  FLOW_GROUP: bet-2026-regscaling-exploration
   TRIGGER_NEXT: "false"
   FLOW_SPECIES: BET
   FLOW_SPECIES_LABEL: bigeye tuna
