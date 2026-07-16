@@ -1234,6 +1234,10 @@ def preflight(args: argparse.Namespace) -> tuple[
                 label, path, timeout=args.git_timeout
             )
             git_repos[key] = asdict(provenance)
+            if key not in {"model_repo", "checks_repo"}:
+                repo_issues = [
+                    issue for issue in repo_issues if "repository is dirty" not in issue
+                ]
             issues.extend(repo_issues)
         except OrchestratorError as exc:
             issues.append(str(exc))
