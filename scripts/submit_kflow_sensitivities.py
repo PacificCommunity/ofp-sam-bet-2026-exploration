@@ -296,7 +296,16 @@ def discover_models(repo_commit: str, *, git_timeout: float) -> list[ModelSpec]:
         if not manifest_path.is_file() or not readme_path.is_file():
             raise OrchestratorError(f"{directory.name} lacks README.md or input_manifest.csv.")
         readme = readme_path.read_text(encoding="utf-8").lower()
-        if "effort creep" not in readme or "already applied once" not in readme:
+        no_reapplication_markers = (
+            "already applied once",
+            "already contains effort creep",
+            "effort creep is not reapplied",
+            "effort creep was not reapplied",
+            "never reapplies effort creep",
+        )
+        if "effort creep" not in readme or not any(
+            marker in readme for marker in no_reapplication_markers
+        ):
             raise OrchestratorError(
                 f"{directory.name} does not record that effort creep was already applied once."
             )
