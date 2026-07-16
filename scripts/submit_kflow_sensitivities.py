@@ -1437,6 +1437,47 @@ def submit_graph(
         retries=args.api_retries,
         semaphore=semaphore,
     )
+    task_response = api.request(
+        "POST",
+        f"/api/report/{urllib.parse.quote(TASK_NAME, safe='')}",
+        {
+            "name": "BET 2026 LF conflict sensitivities",
+            "description": (
+                "Evaluate LF tail compression, upper-tail observed-count cutoffs, "
+                "and F21/F22/F23 LF downweighting from committed Job 5319-derived inputs."
+            ),
+            "owner_login": "kyuhank",
+            "repo": source["model_repo"]["repo"],
+            "branch": source["model_repo"]["branch"],
+            "command": "bash run.sh",
+            "checkout": {"mode": "full", "paths": []},
+            "remote_user": SUVA_USER,
+            "remote_host": SUVA_HOST,
+            "remote_base_dir": SUVA_BASE_DIR,
+            "docker_image": runtime["container_image"],
+            "cpus": CPUS,
+            "memory": MEMORY,
+            "disk": DISK,
+            "slot_requirements": SUVA_SLOT_REQUIREMENT,
+            "env": {},
+            "tags": {"assessment": "BET 2026", "campaign": CAMPAIGN},
+            "metadata": {
+                "graph_id": graph_id,
+                "model_count": len(models),
+                "model_source_commit": source["model_repo"]["commit"],
+                "provenance_job_number": input_job["job_number"],
+                "standalone_inputs": True,
+            },
+            "output_patterns": ["outputs/**"],
+            "input_jobs": [],
+            "triggers": {},
+        },
+        retry=True,
+    )
+    registered_task = task_response.get("report", {})
+    if not isinstance(registered_task, dict) or registered_task.get("code") != TASK_NAME:
+        raise OrchestratorError(f"Kflow did not confirm task registration for {TASK_NAME}.")
+    print(f"task {TASK_NAME}: registered")
     failures: list[str] = []
     fit_numbers: dict[str, str] = {}
     state_path = args.state_file.expanduser().resolve()
