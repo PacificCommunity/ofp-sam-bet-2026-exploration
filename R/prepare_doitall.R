@@ -372,6 +372,48 @@ apply_data_weighting <- function(lines) {
   lines
 }
 
+apply_lf_tail_compression_percent <- function(lines, percent = 0L) {
+  value <- suppressWarnings(as.numeric(percent))
+  if (length(value) != 1L || is.na(value) || !is.finite(value) ||
+      value < 0 || value > 49 || value != floor(value)) {
+    stop("LF tail-compression percent must be one integer from 0 to 49", call. = FALSE)
+  }
+  hit <- grep("^[[:space:]]*1[[:space:]]+313[[:space:]]+[-0-9.]+", lines)
+  if (length(hit) != 1L) {
+    stop("Expected one parest flag 313 line in doitall.sh", call. = FALSE)
+  }
+  lines[[hit]] <- sprintf(
+    "  1 313 %d   # observed LF proportion pooled into each compressed tail",
+    as.integer(value)
+  )
+  lines
+}
+
+apply_fishery_lf_size_divisors <- function(lines, divisors = numeric()) {
+  if (!length(divisors)) return(lines)
+  if (is.null(names(divisors)) || any(!nzchar(names(divisors)))) {
+    stop("LF size divisors must be named by fishery", call. = FALSE)
+  }
+  fisheries <- suppressWarnings(as.integer(names(divisors)))
+  values <- suppressWarnings(as.numeric(divisors))
+  if (anyNA(fisheries) || anyNA(values) || any(!is.finite(values)) ||
+      any(values <= 0) || any(values != floor(values)) || anyDuplicated(fisheries)) {
+    stop("Invalid fishery-specific LF size divisor", call. = FALSE)
+  }
+
+  global <- grep("^[[:space:]]*-999[[:space:]]+49[[:space:]]+", lines)
+  if (length(global) != 1L) {
+    stop("Expected one global fish flag 49 line in doitall.sh", call. = FALSE)
+  }
+  block <- sprintf(
+    "  -%d 49 %d  # fishery-specific LF effective-sample-size divisor",
+    fisheries,
+    as.integer(values)
+  )
+  lines <- append(lines, block, after = global)
+  lines
+}
+
 apply_regional_scaling_phase5 <- function(lines, weight = 50L,
                                           use_mean = TRUE,
                                           use_mvn = TRUE,
@@ -409,7 +451,7 @@ apply_regional_scaling_phase5 <- function(lines, weight = 50L,
     "  -32 24 28  # Index R4",
     "  -33 24 29  # Index R5",
     "# MFCL reads bet.reg_scaling when parest flag 77 is > 0.",
-    sprintf("  1 77 %d   # MVN regional-scaling penalty weight; CV about 0.1", as.integer(weight)),
+    sprintf("  1 77 %d   # configured MVN regional-scaling penalty weight", as.integer(weight)),
     sprintf("  1 78 %d    # use mean regional-scaling target", as.integer(isTRUE(use_mean))),
     sprintf(
       "  1 79 %d  # start regional-scaling prior at period %d; 1965-1969 CPUE covariance window",
@@ -527,9 +569,12 @@ write_doitall <- function(from, to, mix_from_ini = FALSE,
                           opr = FALSE,
                           data_weighting = FALSE,
                           regional_scaling = FALSE,
+                          regional_scaling_weight = 50L,
                           regional_scaling_periods = 292L,
                           regional_scaling_start_period = reg_scaling_active_start_period,
-                          regional_scaling_end_period = reg_scaling_active_end_period) {
+                          regional_scaling_end_period = reg_scaling_active_end_period,
+                          lf_tail_compression_percent = 0L,
+                          lf_size_divisors = numeric()) {
   # Start from the prior doitall and patch only the current step's controls.
   lines <- readLines(from, warn = FALSE)
   if (!any(grepl("^set -eu$", lines))) {
@@ -554,9 +599,12 @@ write_doitall <- function(from, to, mix_from_ini = FALSE,
   if (isTRUE(data_weighting)) {
     lines <- apply_data_weighting(lines)
   }
+  lines <- apply_lf_tail_compression_percent(lines, lf_tail_compression_percent)
+  lines <- apply_fishery_lf_size_divisors(lines, lf_size_divisors)
   if (isTRUE(regional_scaling)) {
     lines <- apply_regional_scaling_phase5(
       lines,
+      weight = regional_scaling_weight,
       periods_from_end = regional_scaling_periods - regional_scaling_start_period + 1L,
       end_periods_from_end = regional_scaling_periods - regional_scaling_end_period,
       start_period = regional_scaling_start_period,

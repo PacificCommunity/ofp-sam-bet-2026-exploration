@@ -1198,7 +1198,9 @@ frq_dataset_shape <- function(lines, path = "<frq>") {
   }
   list(
     n_lf = as.integer(words[[2L]]),
-    n_wf = as.integer(words[[6L]])
+    n_wf = as.integer(words[[6L]]),
+    lf_first = as.numeric(words[[3L]]),
+    lf_width = as.numeric(words[[4L]])
   )
 }
 
@@ -1242,6 +1244,85 @@ normalize_frq_absent_lf_records <- function(path) {
     writeLines(lines, path, sep = eol, useBytes = TRUE)
   }
   invisible(changed)
+}
+
+apply_lf_upper_cutoffs <- function(path, max_bin_by_fishery,
+                                   min_sample_size = 50) {
+  # Remove only observed LF counts above a declared fishery-specific cutoff.
+  # Counts are not moved to the cutoff bin or normalized here; MFCL normalizes
+  # the retained composition. Catch, effort, CPUE, and WF fields are untouched.
+  if (is.null(names(max_bin_by_fishery)) || any(!nzchar(names(max_bin_by_fishery)))) {
+    stop("max_bin_by_fishery must be a named vector, e.g. c(`21` = 100)", call. = FALSE)
+  }
+  fisheries <- suppressWarnings(as.integer(names(max_bin_by_fishery)))
+  cutoffs <- suppressWarnings(as.numeric(max_bin_by_fishery))
+  if (anyNA(fisheries) || anyNA(cutoffs) || any(!is.finite(cutoffs))) {
+    stop("Invalid fishery or cutoff in max_bin_by_fishery", call. = FALSE)
+  }
+  if (anyDuplicated(fisheries)) {
+    stop("Each fishery may have only one LF upper cutoff", call. = FALSE)
+  }
+
+  eol <- file_eol(path)
+  lines <- readLines(path, warn = FALSE)
+  shape <- frq_dataset_shape(lines, path)
+  lf_bins <- shape$lf_first + (seq_len(shape$n_lf) - 1L) * shape$lf_width
+  lf_start <- 8L
+  lf_end <- 7L + shape$n_lf
+  stats <- data.frame(
+    fishery = fisheries,
+    cutoff_cm = cutoffs,
+    removed_count = numeric(length(fisheries)),
+    affected_records = integer(length(fisheries)),
+    emptied_records = integer(length(fisheries)),
+    newly_below_minimum = integer(length(fisheries)),
+    stringsAsFactors = FALSE
+  )
+
+  for (i in seq.int(frq_record_start(lines), length(lines))) {
+    if (!is_frq_record(lines[[i]])) next
+    words <- read_words(lines[[i]])
+    if (length(words) < 8L || identical(words[[8L]], "-1")) next
+    fishery <- suppressWarnings(as.integer(words[[4L]]))
+    stat_i <- match(fishery, fisheries)
+    if (is.na(stat_i)) next
+    if (length(words) < lf_end) {
+      stop("Truncated LF record in ", path, " at line ", i, call. = FALSE)
+    }
+
+    lf <- suppressWarnings(as.numeric(words[lf_start:lf_end]))
+    if (anyNA(lf)) {
+      stop("Non-numeric LF count in ", path, " at line ", i, call. = FALSE)
+    }
+    remove <- lf_bins > cutoffs[[stat_i]]
+    removed <- sum(lf[remove])
+    if (removed <= 0) next
+
+    before <- sum(lf)
+    lf[remove] <- 0
+    after <- sum(lf)
+    stats$removed_count[[stat_i]] <- stats$removed_count[[stat_i]] + removed
+    stats$affected_records[[stat_i]] <- stats$affected_records[[stat_i]] + 1L
+    if (before >= min_sample_size && after > 0 && after < min_sample_size) {
+      stats$newly_below_minimum[[stat_i]] <-
+        stats$newly_below_minimum[[stat_i]] + 1L
+    }
+
+    if (after <= 0) {
+      # Preserve the catch/effort record and any WF block, but mark LF absent.
+      suffix <- if (lf_end < length(words)) words[(lf_end + 1L):length(words)] else "-1"
+      words <- c(words[1:7], "-1", suffix)
+      stats$emptied_records[[stat_i]] <- stats$emptied_records[[stat_i]] + 1L
+    } else {
+      words[lf_start:lf_end] <- vapply(lf, format_mfcl_number, character(1))
+    }
+    lines[[i]] <- paste(words, collapse = " ")
+  }
+
+  if (sum(stats$affected_records) > 0L) {
+    writeLines(lines, path, sep = eol, useBytes = TRUE)
+  }
+  invisible(stats)
 }
 
 format_mfcl_number <- function(x) {

@@ -1,6 +1,0 @@
-"role","file","source","source_commit","note"
-"frq","bet.frq","input-repos/ofp-sam-2026-BET-YFT-frq-build/BET/bet.2026.new-structure.global-cpue.wt-as-len-plus-len.frq","f89e066","copied without year chopping"
-"ini","bet.ini","input-repos/ofp-sam-2026-BET-YFT-build-ini/BET/bet.2026.ini","386d169","FixM M row applied from the 01-Diag2023 mgc=-5 diagnostic final par; normalized MFCL 1007 tag-control rows for 98 release groups"
-"tag","bet.tag","input-repos/ofp-sam-2026-BET-YFT-tag-prep/BET/bet.2026.low.recaps.removed.tag","471b2fd","tag reporting map regenerated from ini/tag; five MFCL reporting-rate matrices parsed"
-"age_length","bet.age_length","input-repos/ofp-sam-2026-BET-YFT-age-length-build/BET/bet.2023.new-structure.age_length","a26b694","CAAL input; set age_length effective sample size to 0.75 for 112 records"
-"doitall","doitall.sh","steps/04a-SelectivityReview/model/doitall.sh","a8e9784","mixing override removed; doitall exits immediately on MFCL command failure"

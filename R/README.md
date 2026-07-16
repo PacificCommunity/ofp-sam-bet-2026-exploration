@@ -5,7 +5,7 @@ reproducible.
 
 | Script | Purpose |
 | --- | --- |
-| `prepare_bet_2026_step_inputs.R` | Entry point for rebuilding `steps/`; holds input-root setup and the step definitions. |
+| `prepare_bet_2026_step_inputs.R` | Entry point for rebuilding `sensitivity/`; historical lineage is generated only in temporary staging. |
 | `prepare_common.R` | Shared file, provenance, regional-scaling, and small text helpers. |
 | `prepare_mfcl_inputs.R` | MFCL `.frq`, `.ini`, `.tag`, tag-reporting, and effort-creep input helpers. |
 | `prepare_readme_manifest.R` | Writers for `input_manifest.csv` and per-step README files. |

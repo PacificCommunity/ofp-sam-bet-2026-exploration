@@ -669,7 +669,9 @@ step_select <- trimws(step_select[nzchar(trimws(step_select))])
 default_input_dir <- env("DEFAULT_INPUT_DIR", "")
 
 config_path <- env("CONFIG_R", "job-config.R")
-step_table <- read_step_table(file.path(root, config_path), file.path(root, "steps"))
+model_root_name <- env("MODEL_ROOT", "sensitivity")
+model_root <- file.path(root, model_root_name)
+step_table <- read_step_table(file.path(root, config_path), model_root)
 if (length(step_select) && !any(tolower(step_select) %in% c("all", "*"))) {
   unknown <- setdiff(step_select, step_table$step_id)
   if (length(unknown)) stop("Unknown STEP_SELECT value(s): ", paste(unknown, collapse = ", "), call. = FALSE)
@@ -783,8 +785,10 @@ saved_par_rows <- list()
 build_payloads <- truthy(env("STEPWISE_BUILD_PAYLOAD", "true"), default = TRUE)
 for (i in seq_len(nrow(step_table))) {
   step_id <- step_table$step_id[[i]]
-  step_dir <- file.path(root, "steps", step_id)
-  if (!dir.exists(step_dir)) stop("Step folder not found: steps/", step_id, call. = FALSE)
+  step_dir <- file.path(model_root, step_id)
+  if (!dir.exists(step_dir)) {
+    stop("Sensitivity folder not found: ", model_root_name, "/", step_id, call. = FALSE)
+  }
   cfg <- read_config(file.path(step_dir, "config.env"))
   cfg <- modifyList(cfg, row_to_config(step_table, i))
   cfg <- apply_env_overrides(cfg, c("RUN_MODE", "INPUT_PAR", "FRQ", "OUTPUT_PAR", "PAR_SOURCE_JOB"))

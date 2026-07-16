@@ -7,33 +7,84 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
                       tag_reporting_source = "",
                       tag_reporting_cell_repairs = list(),
                       frq_tag_groups = NA_integer_,
-                      frq_transform = NULL, index_cpue_source = "",
+                      frq_transform = NULL, frq_transforms = list(),
+                      index_cpue_source = "",
                       doitall_edits = list(),
                       reg_scaling_source = "",
                       title, summary, bullets, input_notes, control_notes,
                       input_changes = NULL,
                       run_notes = character(),
                       outstanding = character(),
-                      status = "Ready for Kflow smoke runs; full MFCL fit not run here.") {
+                      status = "Ready for Kflow smoke runs; full MFCL fit not run here.",
+                      collection_root = staging_steps_root,
+                      template_model_dir_override = "") {
   # Main constructor for generated 2026 step folders.
-  step_dir <- file.path(root, "steps", step_id)
+  step_dir <- file.path(collection_root, step_id)
   model_dir <- file.path(step_dir, "model")
   dir.create(model_dir, recursive = TRUE, showWarnings = FALSE)
   remove_model_par_files(model_dir)
 
+  if (!is.null(frq_transform) && length(frq_transforms)) {
+    stop("Use frq_transform or frq_transforms, not both", call. = FALSE)
+  }
+  if (!is.null(frq_transform)) {
+    frq_transforms <- list(list(type = frq_transform))
+  }
+  if (is.null(frq_transforms)) frq_transforms <- list()
+  if (!is.list(frq_transforms)) {
+    stop("frq_transforms must be a list of typed transform specifications", call. = FALSE)
+  }
+
   frq_out <- file.path(model_dir, "bet.frq")
-  if (identical(frq_transform, "effort_creep")) {
-    if (!is.na(frq_chop_year)) {
-      stop("Effort-creep transform is only implemented for full-year frq files", call. = FALSE)
-    }
-    write_frq_with_effort_creep(frq_source, frq_out)
-    frq_note <- "copied with agreed effort-creep multiplier applied to index fisheries 29-33: 1%/yr for 1952-1976 and 0.5%/yr for 1977-2024"
-  } else if (is.na(frq_chop_year)) {
+  if (is.na(frq_chop_year)) {
     copy_one(frq_source, frq_out)
     frq_note <- "copied without year chopping"
   } else {
     chop_frq(frq_source, frq_out, max_year = frq_chop_year)
     frq_note <- paste0("chopped to records with year <= ", frq_chop_year)
+  }
+  lf_cutoff_audit <- NULL
+  for (transform in frq_transforms) {
+    if (is.character(transform) && length(transform) == 1L) {
+      transform <- list(type = transform)
+    }
+    if (!is.list(transform) || is.null(transform$type) || length(transform$type) != 1L) {
+      stop("Each frq transform requires one type", call. = FALSE)
+    }
+    transform_type <- as.character(transform$type)
+    if (identical(transform_type, "effort_creep")) {
+      if (!is.na(frq_chop_year)) {
+        stop("Effort-creep transform is only implemented for full-year frq files", call. = FALSE)
+      }
+      write_frq_with_effort_creep(frq_out, frq_out)
+      frq_note <- paste0(
+        frq_note,
+        "; applied agreed effort-creep multiplier to index fisheries 29-33: ",
+        "1%/yr for 1952-1976 and 0.5%/yr for 1977-2024"
+      )
+    } else if (identical(transform_type, "lf_upper_cutoff")) {
+      if (is.null(transform$max_bin_by_fishery)) {
+        stop("lf_upper_cutoff requires max_bin_by_fishery", call. = FALSE)
+      }
+      audit <- apply_lf_upper_cutoffs(
+        frq_out,
+        max_bin_by_fishery = transform$max_bin_by_fishery
+      )
+      audit$transform <- "lf_upper_cutoff"
+      lf_cutoff_audit <- rbind(lf_cutoff_audit, audit)
+      summaries <- sprintf(
+        "F%d > %g cm removed %s counts from %d records (%d empty; %d newly below 50)",
+        audit$fishery,
+        audit$cutoff_cm,
+        format(audit$removed_count, digits = 12L, trim = TRUE),
+        audit$affected_records,
+        audit$emptied_records,
+        audit$newly_below_minimum
+      )
+      frq_note <- paste(frq_note, paste(summaries, collapse = "; "), sep = "; ")
+    } else {
+      stop("Unknown frq transform type: ", transform_type, call. = FALSE)
+    }
   }
   if (nzchar(index_cpue_source)) {
     replaced_cpue <- replace_frq_index_cpue_records(
@@ -55,6 +106,14 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
       frq_note,
       "; normalized ", n_normalized,
       " records with stray absent-LF bins"
+    )
+  }
+  if (!is.null(lf_cutoff_audit)) {
+    utils::write.csv(
+      lf_cutoff_audit,
+      file.path(model_dir, "lf_cutoff_audit.csv"),
+      row.names = FALSE,
+      na = ""
     )
   }
   fixed_fishery_regions <- ensure_frq_fishery_region_locations(frq_out)
@@ -194,7 +253,11 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     "PHASE 10/11 convergence is controlled by `BET_PHASE10_11_CONVERGENCE`; default is quick `-3`, and strict production runs can set `-5` without editing model folders."
   )
   template_step_id <- get0("stepwise_5_region_template_step_id", ifnotfound = "04-NewStructure")
-  template_model_dir <- file.path(root, "steps", template_step_id, "model")
+  template_model_dir <- if (nzchar(template_model_dir_override)) {
+    template_model_dir_override
+  } else {
+    file.path(staging_steps_root, template_step_id, "model")
+  }
   copy_one(file.path(template_model_dir, "mfcl.cfg"), file.path(model_dir, "mfcl.cfg"))
   fishery_map_out <- file.path(model_dir, "fishery_map.R")
   copy_one(file.path(template_model_dir, "fishery_map.R"), fishery_map_out)
@@ -212,7 +275,22 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
     opr = isTRUE(doitall_edits$opr),
     data_weighting = isTRUE(doitall_edits$data_weighting),
     regional_scaling = has_reg_scaling,
-    regional_scaling_periods = if (has_reg_scaling) regional_scaling_periods else 292L
+    regional_scaling_weight = if (is.null(doitall_edits$regional_scaling_weight)) {
+      50L
+    } else {
+      as.integer(doitall_edits$regional_scaling_weight)
+    },
+    regional_scaling_periods = if (has_reg_scaling) regional_scaling_periods else 292L,
+    lf_tail_compression_percent = if (is.null(doitall_edits$lf_tail_compression_percent)) {
+      0L
+    } else {
+      as.integer(doitall_edits$lf_tail_compression_percent)
+    },
+    lf_size_divisors = if (is.null(doitall_edits$lf_size_divisors)) {
+      numeric()
+    } else {
+      doitall_edits$lf_size_divisors
+    }
   )
   reg_scaling_flags <- NULL
   reg_scaling_window <- NULL
@@ -249,9 +327,29 @@ make_step <- function(step_id, frq_source, ini_source, tag_source, age_source,
       if (isTRUE(doitall_edits$time_varying_cv)) "index fishery time-varying CPUE CV flags enabled",
       if (isTRUE(doitall_edits$size_based_selectivity)) "fish flag 26 set to 3",
       if (isTRUE(doitall_edits$opr)) "OPR recruitment flags applied",
-      if (isTRUE(doitall_edits$data_weighting)) "global LF/WF divisors set to 40"
+      if (isTRUE(doitall_edits$data_weighting)) "global LF/WF divisors set to 40",
+      paste0(
+        "parest flag 313 set to ",
+        if (is.null(doitall_edits$lf_tail_compression_percent)) 0L else as.integer(doitall_edits$lf_tail_compression_percent),
+        "% in each observed LF tail"
+      ),
+      if (!is.null(doitall_edits$lf_size_divisors)) paste0(
+        "fishery-specific LF size divisors: ",
+        paste(
+          paste0(names(doitall_edits$lf_size_divisors), "=", doitall_edits$lf_size_divisors),
+          collapse = ", "
+        )
+      )
     ), collapse = "; "))
   )
+  if (!is.null(lf_cutoff_audit)) {
+    entries <- append(entries, list(list(
+      role = "frq_transform_audit",
+      file = "lf_cutoff_audit.csv",
+      source = frq_source,
+      note = "machine-readable removed counts, affected records, empty LF records, and minimum-sample crossings for each cutoff fishery"
+    )), after = 1L)
+  }
   if (nzchar(index_cpue_source)) {
     entries <- append(entries, list(list(
       role = "frq_cpue",

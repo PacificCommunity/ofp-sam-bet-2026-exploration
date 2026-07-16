@@ -1,6 +1,0 @@
-"role","file","source","source_commit","note"
-"frq","bet.frq","input-repos/ofp-sam-2026-BET-YFT-frq-build/BET/bet.2023.new-structure.global-cpue.frq","f89e066","5-region 2021-terminal new-structure frq with global CPUE"
-"ini","bet.ini","input-repos/ofp-sam-2026-BET-YFT-build-ini/BET/bet.2023.new.structure.ini","386d169","FixM M row applied from the 01-Diag2023 mgc=-5 diagnostic final par; set Length-weight parameters from `3.063397e-05 2.932384` to `3.073533e-05 2.932410`; normalized MFCL 1007 tag-control rows for 96 release groups; harmonized initial RR values only in 1 tag reporting-rate group(s) so grouped starts are native-MFCL compatible; group flags, targets, and penalties unchanged"
-"tag","bet.tag","input-repos/ofp-sam-2026-BET-YFT-tag-prep/BET/bet.2023.new.structure-low.recaps.removed.tag","471b2fd","low-recapture-removed 2023 new-structure tag input; tag reporting map regenerated from ini/tag"
-"age_length","bet.age_length","input-repos/ofp-sam-2026-BET-YFT-age-length-build/BET/bet.2023.new-structure.age_length","a26b694","old CAAL / age_length reassigned to the new fisheries; set age_length effective sample size to 0.75 for 112 records"
-"doitall","doitall.sh","steps/04-NewStructure/model/doitall.sh","a8e9784","5-region controls retained; tag mixing periods read from MFCL 1007 ini tag flags; made fail-fast for Kflow"

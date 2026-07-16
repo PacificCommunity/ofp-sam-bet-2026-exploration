@@ -135,7 +135,7 @@ defaults <- data.frame(
     "Whether command-line Kflow submissions keep the downstream results/report chain.",
     "Docker image used by Kflow and local Docker runs.",
     "MFCL executable path inside the Docker image.",
-    "Optional: copy the final `.par` back into `steps/<step_id>/model/`. Off by default; Kflow outputs always include `outputs/models/<step_id>/final.par`.",
+    "Optional: copy the final `.par` back into `sensitivity/<step_id>/model/`. Off by default; Kflow outputs always include `outputs/models/<step_id>/final.par`.",
     "Preserve the full raw MFCL input folder under `outputs/models/<step_id>/mfcl-inputs/` for native-style auditability.",
     "Optional: create a narrow KflowBot commit containing saved final `.par` files. Off by default to avoid concurrent job push conflicts.",
     "Optional: push the saved final `.par` commit to the current branch. Off by default.",
