@@ -34,7 +34,7 @@ import urllib.request
 from typing import Any, Iterable
 
 
-TASK_NAME = "ofp-sam-bet-2026-lf-conflict-sensitivities"
+TASK_NAME = "ofp-sam-bet-2026-lf-conflict-sensitivity-study"
 CHECK_TASK_PREFIX = f"{TASK_NAME}-check"
 CAMPAIGN = "lf-conflict-sensitivities-v1"
 INPUT_JOB = "5319"
