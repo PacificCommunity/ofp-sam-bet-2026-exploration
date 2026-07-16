@@ -34,7 +34,7 @@ import urllib.request
 from typing import Any, Iterable
 
 
-TASK_NAME = "ofp-sam-bet-2026-lf-conflict-sensitivity-study"
+TASK_NAME = "ofp-sam-bet-2026-lf-conflict-sensitivities-standalone"
 CHECK_TASK_PREFIX = f"{TASK_NAME}-check"
 CAMPAIGN = "lf-conflict-sensitivities-v1"
 INPUT_JOB = "5319"
@@ -647,8 +647,6 @@ def fit_payload(
         "STEPWISE_SAVE_RAW_MFCL_INPUTS": "true",
         "STEPWISE_SAVE_FINAL_PAR": "false",
         "STEPWISE_SINGLE_PAR_REPORT": "true",
-        "KFLOW_INPUT_JOBS": INPUT_JOB,
-        "STEPWISE_BASE_INPUT_JOB": INPUT_JOB,
         "STEPWISE_CHECK_INPUT_JOBS": "",
         "INPUT_PAR": "",
         "PAR_SOURCE_JOB": "",
@@ -672,7 +670,7 @@ def fit_payload(
         "remote_base_dir": SUVA_BASE_DIR,
         "slot_requirements": SUVA_SLOT_REQUIREMENT,
         "output_patterns": ["outputs/**"],
-        "input_jobs": [INPUT_JOB],
+        "input_jobs": [],
         "title": title,
         "description": f"Run {model.name} through the repository-supported bash run.sh runner.",
         "batch_name": f"{TASK_NAME}-{model.name}",
