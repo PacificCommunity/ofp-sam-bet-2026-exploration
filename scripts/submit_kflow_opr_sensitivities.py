@@ -29,7 +29,7 @@ from typing import Any, Iterable
 
 TASK_CODE = "ofp-sam-bet-2026-opr-recruitment-sensitivities"
 TASK_NAME = "BET 2026 OPR recruitment sensitivities"
-CAMPAIGN = "opr-recruitment-sensitivities-v1"
+CAMPAIGN = "opr-recruitment-sensitivities-v2"
 MODEL_REPO = "PacificCommunity/ofp-sam-bet-2026-exploration"
 MODEL_BRANCH = "experiment/opr-recruitment-sensitivities"
 MODEL_ROOT = "opr-sensitivity"
@@ -306,6 +306,7 @@ def fit_payload(
         "MFCL_LIVE_LOG": "true",
         "MODEL_LABEL": model,
         "MODEL_ROOT": MODEL_ROOT,
+        "CONFIG_R": "opr-job-config.R",
         "RUN_MODE": "doitall",
         "STEPWISE_BUILD_PAYLOAD": "true",
         "STEPWISE_SAVE_FINAL_PAR": "false",

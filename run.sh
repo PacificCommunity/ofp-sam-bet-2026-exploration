@@ -568,7 +568,7 @@ rm -rf "${WORK_DIR}/inputs"
 mkdir -p "${WORK_DIR}/inputs"
 
 echo "BET stepwise task"
-echo "Model folders: steps/<step-id>/model"
+echo "Model folders: ${MODEL_ROOT:-sensitivity}/<model-id>/model"
 echo "MFCL program: ${PROGRAM_PATH}"
 
 case "${RUN_MODE:-}" in
