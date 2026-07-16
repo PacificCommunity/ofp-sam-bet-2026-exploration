@@ -661,7 +661,7 @@ def fit_payload(
     }
     return {
         "repo": source["model_repo"]["repo"],
-        "branch": source_sha,
+        "branch": source["model_repo"]["branch"],
         "command": "bash run.sh",
         "docker_image": runtime["container_image"],
         "cpus": CPUS,
@@ -988,7 +988,7 @@ def checks_command(
         "--repo-full-name",
         source["checks_repo"]["repo"],
         "--branch",
-        source["checks_repo"]["commit"],
+        source["checks_repo"]["branch"],
         "--docker-image",
         runtime["container_image"],
         "--cpus",
