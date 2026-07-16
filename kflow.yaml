@@ -102,6 +102,15 @@ local_apps:
     icon: chart-no-axes-combined
     runner: local-docker-ssh
     memory: 8g
+    package_sources:
+      - name: mfclkit
+        type: github
+        repo: PacificCommunity/ofp-sam-mfclkit
+        ref_env: MFCLKIT_GITHUB_REF
+      - name: mfclshiny
+        type: github
+        repo: PacificCommunity/mfclshiny
+        ref_env: MFCLSHINY_GITHUB_REF
     archive_sources:
       - outputs
     container_port: 3838
