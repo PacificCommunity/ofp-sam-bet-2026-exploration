@@ -33,6 +33,8 @@ import urllib.parse
 import urllib.request
 from typing import Any, Iterable
 
+import yaml
+
 
 TASK_NAME = "ofp-sam-bet-2026-lf-conflict-sensitivities-standalone"
 CHECK_TASK_PREFIX = f"{TASK_NAME}-check"
@@ -51,6 +53,7 @@ PROGRAM_PATH = "/home/mfcl/mfclo64"
 DOCKER_IMAGE = "ghcr.io/pacificcommunity/tuna-flow:v2.4"
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+KFLOW_CONFIG = REPO_ROOT / "kflow.yaml"
 SENSITIVITY_ROOT = REPO_ROOT / "sensitivity"
 CHECKS_REPO = Path("/home/kyuhank/Desktop/SPC/ofp-sam-bet-2026-checks")
 CHECKS_HELPER = CHECKS_REPO / "scripts/submit_kflow_checks.py"
@@ -608,6 +611,39 @@ def runtime_env(runtime: dict[str, Any]) -> dict[str, str]:
         "KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME": "true",
         "MFCL_EXECUTABLE_SHA256": runtime["mfcl"]["sha256"],
     }
+
+
+def local_apps_for_runtime(runtime: dict[str, Any]) -> list[dict[str, Any]]:
+    """Load the canonical task apps and pin them to this submission runtime."""
+    if not KFLOW_CONFIG.is_file():
+        raise OrchestratorError(f"Kflow configuration is missing: {KFLOW_CONFIG}")
+    try:
+        with KFLOW_CONFIG.open(encoding="utf-8") as handle:
+            config = yaml.safe_load(handle) or {}
+    except (OSError, yaml.YAMLError) as exc:
+        raise OrchestratorError(f"Could not read {KFLOW_CONFIG}: {exc}") from exc
+    if not isinstance(config, dict):
+        raise OrchestratorError(f"{KFLOW_CONFIG} must contain a YAML mapping.")
+    raw_apps = config.get("local_apps")
+    if not isinstance(raw_apps, list):
+        raise OrchestratorError(f"{KFLOW_CONFIG} must define local_apps as a list.")
+
+    refs = {
+        "MFCLKIT_GITHUB_REF": str(runtime["mfclkit"]["commit"]).lower(),
+        "MFCLSHINY_GITHUB_REF": str(runtime["mfclshiny"]["commit"]).lower(),
+    }
+    if any(not SHA40_RE.fullmatch(ref) for ref in refs.values()):
+        raise OrchestratorError("MFCL local-app package commits are unresolved.")
+
+    apps = json.loads(json.dumps(raw_apps))
+    for app in apps:
+        if not isinstance(app, dict):
+            raise OrchestratorError(f"{KFLOW_CONFIG} contains an invalid local app.")
+        env = app.get("env") if isinstance(app.get("env"), dict) else {}
+        app["env"] = {**env, **refs}
+    if not any(str(app.get("key") or "").strip() == "mfclshiny" for app in apps):
+        raise OrchestratorError(f"{KFLOW_CONFIG} does not define the mfclshiny local app.")
+    return apps
 
 
 def fit_tags(model: ModelSpec, source_sha: str) -> dict[str, str]:
@@ -1467,6 +1503,7 @@ def submit_graph(
                 "model_source_commit": source["model_repo"]["commit"],
                 "provenance_job_number": input_job["job_number"],
                 "standalone_inputs": True,
+                "local_apps": local_apps_for_runtime(runtime),
             },
             "output_patterns": ["outputs/**"],
             "input_jobs": [],
