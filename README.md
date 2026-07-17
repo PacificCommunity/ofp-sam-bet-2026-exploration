@@ -1,6 +1,6 @@
-# BET 2026 LF and age-length sensitivity grid
+# BET 2026 LF and age-length sensitivity set
 
-This branch crosses the 17 reviewed LF sensitivities with five age-length levels, producing an explicit `17 x 5 = 85` model factorial. S001:S017 retain the existing BASE075 names and files. S018:S085 pair each base configuration with REG075, REG100, SUB075, or SUB100 while changing only `model/bet.age_length`.
+This branch retains the explicit `17 x 5 = 85` LF-age-length factorial and adds six focused BASE075 DM grouping models, for 91 models in total. S001:S017 retain the existing BASE075 names and files. S018:S085 pair each base configuration with REG075, REG100, SUB075, or SUB100 while changing only `model/bet.age_length`. S086:S091 change only the sharing of DM dispersion parameters and the established cutoff treatment.
 
 ## Age-length factorial
 
@@ -14,7 +14,7 @@ This branch crosses the 17 reviewed LF sensitivities with five age-length levels
 
 The four alternatives are vendored under `reference-inputs/age-length-variants` from `PacificCommunity/ofp-sam-2026-BET-YFT-age-length-build` commit `96a06d21ef3c666f39ce456d3a6818b6c17324c4`. The plain source `BET/bet.2026.age_length` is used only to document the BASE075 derivation and is not included as a sixth BASE100 factorial level.
 
-The 17 LF configurations comprise the focused `3 x 3` TC1 cutoff/downweight design and eight LF Dirichlet-multinomial-noRE sensitivities: the balanced NOCUT factorial `G1/G2/G4 x C0/CEST`, plus focused G4-CEST CUT70 and CUT90 variants. The full 36-model LF design remains on `main`.
+The 17 factorial LF configurations comprise the focused `3 x 3` TC1 cutoff/downweight design and eight LF Dirichlet-multinomial-noRE sensitivities: the balanced NOCUT factorial `G1/G2/G4 x C0/CEST`, plus focused G4-CEST CUT70 and CUT90 variants. Six additional models evaluate the primary `G5PROC` and secondary `G7QUAL` groupings at NOCUT, CUT70, and CUT90 without multiplying them across age-length inputs. The full 36-model LF design remains on `main`.
 
 ## Selected models
 
@@ -37,12 +37,28 @@ The 17 LF configurations comprise the focused `3 x 3` TC1 cutoff/downweight desi
 | `S015-DM-G4-C0-NOCUT` | DM-noRE | None | n/a | Not run | - | - |
 | `S016-DM-G4-CEST-CUT70` | DM-noRE | 70 cm | n/a | Not run | - | - |
 | `S017-DM-G4-CEST-CUT90` | DM-noRE | 90 cm | n/a | Not run | - | - |
+| `S086-DM-G5PROC-CEST-NOCUT` | DM-noRE | None | n/a | Not run | - | - |
+| `S087-DM-G5PROC-CEST-CUT70` | DM-noRE | 70 cm | n/a | Not run | - | - |
+| `S088-DM-G5PROC-CEST-CUT90` | DM-noRE | 90 cm | n/a | Not run | - | - |
+| `S089-DM-G7QUAL-CEST-NOCUT` | DM-noRE | None | n/a | Not run | - | - |
+| `S090-DM-G7QUAL-CEST-CUT70` | DM-noRE | 70 cm | n/a | Not run | - | - |
+| `S091-DM-G7QUAL-CEST-CUT90` | DM-noRE | 90 cm | n/a | Not run | - | - |
 
 ## Dirichlet-multinomial pilot
 
 All eight DM models use MFCL LF likelihood option 11. The group scalar `d` is estimated from PHASE1. In C0 models, the relative sample-size exponent `c` stays fixed at the MFCL default zero in every phase; in CEST models it is fixed at zero in PHASE1 and estimated from PHASE2. The inherited minimum sample-size filter remains active, percentage tail compression is disabled, DM-specific tail compression retains at least five class intervals (`parest flag 320 = 5`), the DM effective-sample-size upper bound is 1000, and no weight-frequency DM controls are activated.
 
 The NOCUT factorial uses three groupings. G1 pools F1:F33. G2 separates extraction F1:F28 from index F29:F33. G4 separates longline F1:F11; purse seine F12, F17:F20, and F25:F28; other extraction F13:F16 and F21:F24; and index F29:F33. S016 and S017 retain G4-CEST and reuse exactly the established F21/F22/F23 CUT70 and CUT90 transformations from the corresponding normal-likelihood models. No G1, G2, or C0 cutoff variants are included.
+
+### Evidence-based grouping additions
+
+`G5PROC` is the recommended primary grouping. It shares DM dispersion within five observation processes: longline extraction F1:F11; large-scale purse seine F12/F19:F20/F25:F28; domestic purse seine F17:F18; other extraction F13:F16/F21:F24; and abundance-reweighted index F29:F33. This reflects the distinct sampling, filtering, and reweighting procedures used to construct the 2026 LF inputs while retaining enough observations per group for stable estimation.
+
+`G7QUAL` is a secondary challenge model. It separates associated purse seine F19/F25:F26 from unassociated purse seine F20/F27:F28, retains domestic purse seine F17:F18, pools the low-catch and multimodal Japanese PS/PL F12:F13, pools the remaining other extraction F14:F16/F21:F24, and keeps longline extraction and index fisheries separate. It is deliberately not the default because grouping on observed fit quality can absorb structural selectivity mismatch as apparent overdispersion.
+
+The design follows the 2023 assessment distinction between extraction and index compositions, including the duplicated-source concern and the documented poorer aggregate fits for Japanese PS/PL and index LF. It also uses the 2026 input-preparation evidence that longline, large-scale purse seine, domestic purse seine, other small-scale fisheries, and index fisheries have materially different sampling and reweighting processes. See [WCPFC-SC19-2023/SA-WP-05](https://meetings.wcpfc.int/node/19353) and [WCPFC-SC22-2026/SA-IP06](https://meetings.wcpfc.int/node/32346).
+
+The 2023 DM pilot increased the effective weight of composition data and degraded CPUE fits, so improved LF fit alone is not an acceptance criterion. Compare fitted `dmsizemult`, quarterly LF residuals, CPUE fits, convergence, Hessian PDH, and key management quantities. Sparse series such as region-2 purse seine and index region 5 are pooled rather than assigned singleton DM parameters.
 
 All index LF observations are retained. The normal-likelihood models use flag 49 to apply an extra `/2` to LF streams used as both extraction and index data, but MFCL option 11 ignores flag 49 and has no fixed `0.5` LF-contribution control. These are therefore deliberate grouping, self-weighting, and overdispersion sensitivities, not exact duplicate-use corrections. The retained LF representations can differ through aggregation, and the groups do not model their correlation. Their `dmsizemult`, convergence, Hessian, LF residuals, index fits, and key quantities should be reviewed together; raw objective values are not directly ranked against the normal-likelihood models.
 
@@ -68,4 +84,4 @@ The corresponding flag-49 divisors are 20, 100, and 200 for F21/F22/F23 only. Ev
 - The archived Job 5319 FRQ and `doitall.sh` are retained; effort creep is not reapplied.
 - Active regional scaling is `20 x 5`; the complete `292 x 5` source matrix is retained for alternative period sensitivities.
 
-All 85 directories are explicit run candidates on this branch. The 68 alternative age-length models have not been submitted to Kflow. Use `main` to inspect the complete 36-model LF design.
+All 91 directories are explicit run candidates on this branch. The 68 alternative age-length models and six focused grouping models have not been submitted to Kflow. Use `main` to inspect the complete 36-model LF design.

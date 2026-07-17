@@ -1,4 +1,5 @@
-## Rebuild the 17 x 5 BET 2026 MFCL LF and age-length sensitivity folders.
+## Rebuild the 17 x 5 BET 2026 LF-age-length factorial plus six focused
+## BASE075 DM grouping sensitivity folders.
 ##
 ## Every cell retains the exact effort-crept FRQ archived by Kflow Job 5319.
 ## Tag-group controls, display metadata, and regional-scaling inputs are
@@ -116,9 +117,9 @@ if (!identical(tag_sha256, expected_tag_sha256)) {
   fail("Refreshed bet.tag SHA-256 mismatch: ", tag_sha256)
 }
 
-if (!is.data.frame(models) || nrow(models) != 85L ||
+if (!is.data.frame(models) || nrow(models) != 91L ||
     anyDuplicated(models$step_id) || any(!models$enabled)) {
-  fail("job-config.R must define exactly 85 unique enabled sensitivity cells")
+  fail("job-config.R must define exactly 91 unique enabled sensitivity cells")
 }
 if (!all(models$run_mode == "doitall") ||
     !all(models$regional_scaling_weight == 50L)) {
@@ -137,13 +138,17 @@ if (!all(models$lf_likelihood %in% c("normal", "dm_nore"))) {
 dm_rows <- models$lf_likelihood == "dm_nore"
 expected_age_levels <- c("BASE075", "REG075", "REG100", "SUB075", "SUB100")
 age_level_counts <- table(factor(models$age_length_variant, levels = expected_age_levels))
-if (!identical(as.integer(age_level_counts), rep(17L, 5L)) ||
+if (!identical(as.integer(age_level_counts), c(23L, rep(17L, 4L))) ||
     anyDuplicated(models[, c("base_sensitivity", "age_length_variant")])) {
-  fail("Age-length factorial must contain each of 17 base configurations once at all five levels")
+  fail("Expected the 17 x 5 factorial plus six focused BASE075 grouping models")
 }
 base_rows <- models$age_length_variant == "BASE075"
-if (!identical(as.character(models$step_id[base_rows]), sprintf("S%03d-%s", 1:17, sub(
-  "^S[0-9]{3}-", "", models$base_sensitivity[base_rows]
+factorial_base_rows <- base_rows & grepl(
+  "^S(00[1-9]|01[0-7])-",
+  models$step_id
+)
+if (!identical(as.character(models$step_id[factorial_base_rows]), sprintf("S%03d-%s", 1:17, sub(
+  "^S[0-9]{3}-", "", models$base_sensitivity[factorial_base_rows]
 )))) {
   fail("BASE075 identities must remain S001:S017")
 }
@@ -153,7 +158,7 @@ inherit_columns <- c(
   "lf_downweight_factor", "lf_size_divisor", "lf_likelihood",
   "dm_grouping", "dm_estimate_relative_sample_size"
 )
-base_by_id <- models[base_rows, c("base_sensitivity", inherit_columns), drop = FALSE]
+base_by_id <- models[factorial_base_rows, c("base_sensitivity", inherit_columns), drop = FALSE]
 for (level in expected_age_levels[-1L]) {
   level_rows <- models$age_length_variant == level
   level_models <- models[level_rows, c("base_sensitivity", inherit_columns), drop = FALSE]
@@ -186,16 +191,29 @@ expected_dm_ids <- c(
   "S014-DM-G2-CEST-NOCUT",
   "S015-DM-G4-C0-NOCUT",
   "S016-DM-G4-CEST-CUT70",
-  "S017-DM-G4-CEST-CUT90"
+  "S017-DM-G4-CEST-CUT90",
+  "S086-DM-G5PROC-CEST-NOCUT",
+  "S087-DM-G5PROC-CEST-CUT70",
+  "S088-DM-G5PROC-CEST-CUT90",
+  "S089-DM-G7QUAL-CEST-NOCUT",
+  "S090-DM-G7QUAL-CEST-CUT70",
+  "S091-DM-G7QUAL-CEST-CUT90"
 )
 expected_dm_grouping <- c(
-  "gear4", "gear1", "gear1", "gear2", "gear2", "gear4", "gear4", "gear4"
+  "gear4", "gear1", "gear1", "gear2", "gear2", "gear4", "gear4", "gear4",
+  rep("process5", 3L), rep("quality7", 3L)
 )
-expected_dm_c_estimated <- c(TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, TRUE, TRUE)
-expected_dm_cutoff <- c(rep(NA_real_, 6L), 70, 90)
+expected_dm_c_estimated <- c(
+  TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, TRUE, TRUE,
+  rep(TRUE, 6L)
+)
+expected_dm_cutoff <- c(
+  rep(NA_real_, 6L), 70, 90,
+  NA_real_, 70, 90, NA_real_, 70, 90
+)
 base_dm_rows <- dm_rows & base_rows
-if (sum(dm_rows) != 40L ||
-    sum(base_dm_rows) != 8L ||
+if (sum(dm_rows) != 46L ||
+    sum(base_dm_rows) != 14L ||
     !identical(as.character(models$step_id[base_dm_rows]), expected_dm_ids) ||
     !identical(as.character(models$dm_grouping[base_dm_rows]), expected_dm_grouping) ||
     !identical(
@@ -206,7 +224,7 @@ if (sum(dm_rows) != 40L ||
     any(!is.na(models$lf_downweight_factor[dm_rows])) ||
     any(!is.na(models$lf_size_divisor[dm_rows])) ||
     any(models$tail_compression_percent[dm_rows] != 0L)) {
-  fail("DM sensitivities must match the reviewed G1/G2/G4, C0/CEST, and cutoff design")
+  fail("DM sensitivities must match the reviewed grouping, C0/CEST, and cutoff design")
 }
 
 fishery_map_env <- new.env(parent = globalenv())
@@ -239,6 +257,26 @@ dm_group_ids_for <- function(grouping) {
         )
       )
     ),
+    process5 = {
+      out <- rep(NA_integer_, length(fishery))
+      out[fishery %in% 1:11] <- 1L
+      out[fishery %in% c(12L, 19:20, 25:28)] <- 2L
+      out[fishery %in% 17:18] <- 3L
+      out[fishery %in% c(13:16, 21:24)] <- 4L
+      out[fishery %in% 29:33] <- 5L
+      out
+    },
+    quality7 = {
+      out <- rep(NA_integer_, length(fishery))
+      out[fishery %in% 1:11] <- 1L
+      out[fishery %in% c(19L, 25:26)] <- 2L
+      out[fishery %in% c(20L, 27:28)] <- 3L
+      out[fishery %in% 17:18] <- 4L
+      out[fishery %in% 12:13] <- 5L
+      out[fishery %in% c(14:16, 21:24)] <- 6L
+      out[fishery %in% 29:33] <- 7L
+      out
+    },
     fail("Unknown DM grouping: ", grouping)
   )
   ids <- as.integer(ids)
@@ -253,6 +291,14 @@ dm_group_names_for <- function(grouping) {
     gear1 = "All LF",
     gear2 = c("Extraction", "Index"),
     gear4 = c("Longline", "Purse seine", "Other extraction", "Index"),
+    process5 = c(
+      "Longline extraction", "Large-scale purse seine", "Domestic purse seine",
+      "Other extraction", "Index"
+    ),
+    quality7 = c(
+      "Longline extraction", "Associated purse seine", "Unassociated purse seine",
+      "Domestic purse seine", "Japanese PS/PL", "Other extraction", "Index"
+    ),
     fail("Unknown DM grouping")
   )
 }
@@ -260,7 +306,9 @@ dm_group_names_for <- function(grouping) {
 expected_dm_group_counts <- list(
   gear1 = 33L,
   gear2 = c(28L, 5L),
-  gear4 = c(11L, 9L, 8L, 5L)
+  gear4 = c(11L, 9L, 8L, 5L),
+  process5 = c(11L, 7L, 2L, 8L, 5L),
+  quality7 = c(11L, 3L, 3L, 2L, 2L, 7L, 5L)
 )
 for (grouping in names(expected_dm_group_counts)) {
   ids <- dm_group_ids_for(grouping)
@@ -380,8 +428,8 @@ write_sensitivity_doitall <- function(
   }
 
   if (identical(lf_likelihood, "dm_nore")) {
-    if (!dm_grouping %in% c("gear1", "gear2", "gear4")) {
-      fail("DM sensitivity requires a reviewed gear1, gear2, or gear4 mapping")
+    if (!dm_grouping %in% c("gear1", "gear2", "gear4", "process5", "quality7")) {
+      fail("DM sensitivity requires a reviewed grouping mapping")
     }
     dm_group_ids <- dm_group_ids_for(dm_grouping)
     dm_group_names <- dm_group_names_for(dm_grouping)
@@ -775,7 +823,32 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       gear4 = paste(
         "G4: longline F1:F11; purse seine F12/F17:F20/F25:F28;",
         "other extraction F13:F16/F21:F24; index F29:F33"
+      ),
+      process5 = paste(
+        "G5PROC: longline F1:F11; large-scale purse seine F12/F19:F20/F25:F28;",
+        "domestic purse seine F17:F18; other extraction F13:F16/F21:F24;",
+        "index F29:F33"
+      ),
+      quality7 = paste(
+        "G7QUAL: longline F1:F11; associated purse seine F19/F25:F26;",
+        "unassociated purse seine F20/F27:F28; domestic purse seine F17:F18;",
+        "Japanese PS/PL F12:F13; other extraction F14:F16/F21:F24;",
+        "index F29:F33"
       )
+    )
+    grouping_basis <- switch(
+      grouping,
+      process5 = paste(
+        "This primary grouping follows observation and reweighting processes:",
+        "catch-reweighted longline, large-scale purse seine, domestic purse seine,",
+        "unreweighted or small-scale extraction, and abundance-reweighted index LF."
+      ),
+      quality7 = paste(
+        "This secondary grouping challenges G5PROC by separating associated and",
+        "unassociated purse seine LF and pooling the low-catch, multimodal Japanese",
+        "PS/PL series identified in the 2023 assessment."
+      ),
+      ""
     )
     c_text <- if (isTRUE(row$dm_estimate_relative_sample_size[[1L]])) {
       "CEST: c is fixed at zero in PHASE1 and estimated from PHASE2"
@@ -822,6 +895,17 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       "| Index LF | F29:F33 retained unchanged |",
       "| Regional-scaling penalty weight | 50 |",
       "",
+      if (nzchar(grouping_basis)) c(
+        "## Grouping rationale",
+        "",
+        grouping_basis,
+        paste(
+          "The grouping is informed by WCPFC-SC19-2023/SA-WP-05 and",
+          "WCPFC-SC22-2026/SA-IP06; it changes DM dispersion sharing only,",
+          "not fishery definitions, selectivity sharing, or LF observations."
+        ),
+        ""
+      ) else character(),
       "## Interpretation",
       "",
       paste(

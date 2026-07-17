@@ -1,8 +1,7 @@
-# Curated BET 2026 MFCL LF sensitivity grid.
-# Nine TC1 models cross three cutoff treatments with target-fishery downweight
-# factors 1, 5, and 10. Eight additional models evaluate the modern MFCL
-# Dirichlet-multinomial-noRE LF likelihood across a focused grouping, relative
-# sample-size, and cutoff design while retaining all index LF observations.
+# Curated BET 2026 MFCL LF sensitivity set.
+# The original 17 LF configurations are crossed with five age-length inputs.
+# Six focused BASE075 models add observation-process and quality-informed
+# Dirichlet-multinomial groupings without expanding the age-length factorial.
 
 stepwise_run <- list(
   default_step_select = "all",
@@ -137,6 +136,37 @@ sensitivity_grid <- do.call(
 )
 rownames(sensitivity_grid) <- NULL
 
+focused_grouping_specs <- data.frame(
+  source_id = rep(
+    c(
+      "S010-DM-G4-CEST-NOCUT",
+      "S016-DM-G4-CEST-CUT70",
+      "S017-DM-G4-CEST-CUT90"
+    ),
+    2L
+  ),
+  step_id = c(
+    "S086-DM-G5PROC-CEST-NOCUT",
+    "S087-DM-G5PROC-CEST-CUT70",
+    "S088-DM-G5PROC-CEST-CUT90",
+    "S089-DM-G7QUAL-CEST-NOCUT",
+    "S090-DM-G7QUAL-CEST-CUT70",
+    "S091-DM-G7QUAL-CEST-CUT90"
+  ),
+  dm_grouping = rep(c("process5", "quality7"), each = 3L),
+  stringsAsFactors = FALSE
+)
+focused_grouping_grid <- sensitivity_grid[
+  match(focused_grouping_specs$source_id, sensitivity_grid$step_id),
+  ,
+  drop = FALSE
+]
+focused_grouping_grid$step_id <- focused_grouping_specs$step_id
+focused_grouping_grid$base_sensitivity <- focused_grouping_specs$step_id
+focused_grouping_grid$dm_grouping <- focused_grouping_specs$dm_grouping
+sensitivity_grid <- rbind(sensitivity_grid, focused_grouping_grid)
+rownames(sensitivity_grid) <- NULL
+
 generated_ids <- sensitivity_grid$step_id
 
 model_labels <- sprintf(
@@ -156,6 +186,14 @@ dm_group_labels <- c(
   gear4 = paste(
     "four gear/data-source groups separating longline, purse seine,",
     "other extraction, and index fisheries"
+  ),
+  process5 = paste(
+    "five observation-process groups separating longline extraction,",
+    "large-scale purse seine, domestic purse seine, other extraction, and index fisheries"
+  ),
+  quality7 = paste(
+    "seven quality-informed groups separating longline, associated purse seine,",
+    "unassociated purse seine, domestic purse seine, Japanese PS/PL, other extraction, and index fisheries"
   )
 )
 model_labels[dm_rows] <- paste0(
