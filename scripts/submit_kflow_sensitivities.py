@@ -50,13 +50,14 @@ CPUS = 2
 MEMORY = "8GB"
 DISK = "10GB"
 PROGRAM_PATH = "/home/mfcl/mfclo64"
-DOCKER_IMAGE = "ghcr.io/pacificcommunity/tuna-flow:v2.4"
+DOCKER_IMAGE = "ghcr.io/pacificcommunity/tuna-flow:v2.5@sha256:c87f1f6d9d4f62dc447844b58afe35f96af175bf933cb6cffbbbe39a59172360"
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 KFLOW_CONFIG = REPO_ROOT / "kflow.yaml"
 SENSITIVITY_ROOT = REPO_ROOT / "sensitivity"
 CHECKS_REPO = Path("/home/kyuhank/Desktop/SPC/ofp-sam-bet-2026-checks")
 CHECKS_HELPER = CHECKS_REPO / "scripts/submit_kflow_checks.py"
+CHECKS_BRANCH = os.environ.get("KFLOW_CHECKS_BRANCH", "main").strip() or "main"
 KFLOW_REPO = Path("/home/kyuhank/Desktop/SPC/Kflow")
 MFCLKIT_REPO = Path("/home/kyuhank/Desktop/SPC/ofp-sam-mfclkit")
 MFCLSHINY_REPO = Path("/home/kyuhank/Desktop/SPC/mfclshiny")
@@ -1022,7 +1023,7 @@ def checks_command(
         "--repo-full-name",
         source["checks_repo"]["repo"],
         "--branch",
-        source["checks_repo"]["branch"],
+        CHECKS_BRANCH,
         "--docker-image",
         runtime["container_image"],
         "--cpus",
