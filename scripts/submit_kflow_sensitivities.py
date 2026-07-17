@@ -65,6 +65,47 @@ MFCL_IMAGE_REPO = Path("/home/kyuhank/Desktop/SPC/ofp-sam-docker-images")
 MFCL_BINARY = MFCL_IMAGE_REPO / "tuna-flow/mfclo64"
 MFCL_DOCKERFILE = MFCL_IMAGE_REPO / "tuna-flow/Dockerfile"
 
+
+def runtime_github_token() -> str:
+    """Return a local GitHub token for one-request Kflow forwarding."""
+
+    for name in ("KFLOW_GITHUB_TOKEN", "GITHUB_PAT", "GIT_PAT", "GH_TOKEN", "GITHUB_TOKEN"):
+        value = str(os.environ.get(name) or "").strip()
+        if value:
+            return value
+    try:
+        result = subprocess.run(
+            ["gh", "auth", "token"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        value = result.stdout.strip()
+        if result.returncode == 0 and re.fullmatch(r"(?:gh[pousr]_[A-Za-z0-9]+|github_pat_[A-Za-z0-9_]+)", value):
+            return value
+    except (FileNotFoundError, subprocess.SubprocessError):
+        pass
+    config_roots = [
+        Path(os.environ.get("GH_CONFIG_DIR", "")),
+        Path(os.environ.get("XDG_CONFIG_HOME", "")) / "gh",
+        Path.home() / ".config" / "gh",
+        Path(os.environ.get("APPDATA", "")) / "GitHub CLI",
+        Path.home() / "Library" / "Application Support" / "gh",
+    ]
+    for root in config_roots:
+        if not str(root).strip() or str(root) == ".":
+            continue
+        path = root / "hosts.yml"
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        match = re.search(r"^\s*oauth_token:\s*['\"]?([^'\"#\s]+)", text, re.MULTILINE)
+        if match:
+            return match.group(1)
+    return ""
+
 DEFAULT_STATE = (
     Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
     / TASK_NAME
@@ -397,6 +438,7 @@ class KflowApi:
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.token = token
+        self.github_token = runtime_github_token()
         self.timeout = timeout
         self.retries = retries
         self.semaphore = semaphore
@@ -412,6 +454,8 @@ class KflowApi:
         url = f"{self.base_url}/{path.lstrip('/')}"
         data = None
         headers = {"Authorization": f"Bearer {self.token}", "Accept": "application/json"}
+        if self.github_token:
+            headers["X-GitHub-Token"] = self.github_token
         if payload is not None:
             data = json.dumps(payload).encode("utf-8")
             headers["Content-Type"] = "application/json"
@@ -433,14 +477,18 @@ class KflowApi:
                 return parsed
             except urllib.error.HTTPError as exc:
                 transient = exc.code in {408, 425, 429, 500, 502, 503, 504}
-                detail = redact(exc.read(4096).decode("utf-8", errors="replace"), [self.token])
+                detail = redact(
+                    exc.read(4096).decode("utf-8", errors="replace"),
+                    [self.token, self.github_token],
+                )
                 last_error = ApiError(
                     f"{method} {path} failed with HTTP {exc.code}: {detail[:500]}",
                     transient=transient,
                 )
             except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
                 last_error = ApiError(
-                    f"{method} {path} failed: {redact(str(exc), [self.token])}", transient=True
+                    f"{method} {path} failed: {redact(str(exc), [self.token, self.github_token])}",
+                    transient=True,
                 )
             if not last_error.transient or attempt + 1 >= attempts:
                 raise last_error
@@ -1327,6 +1375,11 @@ def preflight(args: argparse.Namespace) -> tuple[
             issues.append("KFLOW_URL must be an http(s) URL without embedded credentials.")
     if not token:
         issues.append("KFLOW_API_TOKEN is required.")
+    if not args.offline and not runtime_github_token():
+        issues.append(
+            "GitHub authentication is required for private runtime packages. "
+            "Run `gh auth login` or set KFLOW_GITHUB_TOKEN/GITHUB_PAT."
+        )
 
     workers, worker_source = resolve_workers(args.submit_workers)
     input_job = {
