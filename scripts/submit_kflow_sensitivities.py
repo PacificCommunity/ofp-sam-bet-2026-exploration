@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Safely submit the 36 BET LF-conflict sensitivity fits and diagnostics.
+"""Safely submit selected BET sensitivity fits and diagnostics.
 
 The default action is an audit-only dry run.  Real Kflow POST requests require
-``--submit`` as well as a clean, pushed source/runtime checkout.  Reruns use a
-locked atomic JSON state file and reconcile deterministic fit/diagnostic tags
-with Kflow before creating more work.
+``--submit`` as well as an explicitly pinned source commit and a clean, pushed
+source/runtime checkout.  Reruns use a locked atomic JSON state file and
+reconcile deterministic fit/diagnostic tags with Kflow before creating more
+work.
 """
 
 from __future__ import annotations
@@ -36,11 +37,19 @@ from typing import Any, Iterable
 import yaml
 
 
-TASK_NAME = "ofp-sam-bet-2026-lf-conflict-sensitivities-standalone"
-CHECK_TASK_PREFIX = f"{TASK_NAME}-check"
-CAMPAIGN = "lf-conflict-sensitivities-v1"
+DEFAULT_TASK_CODE = "ofp-sam-bet-2026-lf-conflict-sensitivities-standalone"
+DEFAULT_TASK_NAME = "BET 2026 LF conflict sensitivities"
+DEFAULT_TASK_TITLE = "LF conflict sensitivity fit"
+DEFAULT_TASK_DESCRIPTION = (
+    "Evaluate LF tail compression, upper-tail observed-count cutoffs, "
+    "and F21/F22/F23 LF downweighting from committed Job 5319-derived inputs."
+)
+DEFAULT_CAMPAIGN = "lf-conflict-sensitivities-v1"
+DEFAULT_MODEL_SELECTOR = "S001:S036"
+DEFAULT_EXPECTED_MODELS = 36
+CURRENT_AGE_LENGTH_MODEL_SELECTOR = "S001:S017,S035:S051,S069:S085"
+CURRENT_AGE_LENGTH_FORBIDDEN = "S018:S034,S052:S068"
 INPUT_JOB = "5319"
-EXPECTED_MODELS = 36
 
 SUVA_HOST = "suvofpsubmit.corp.spc.int"
 SUVA_USER = "kyuhank"
@@ -55,6 +64,7 @@ DOCKER_IMAGE = "ghcr.io/pacificcommunity/tuna-flow:v2.4"
 REPO_ROOT = Path(__file__).resolve().parents[1]
 KFLOW_CONFIG = REPO_ROOT / "kflow.yaml"
 SENSITIVITY_ROOT = REPO_ROOT / "sensitivity"
+SENSITIVITY_SELECTION_CSV = REPO_ROOT / "SENSITIVITY_SELECTION.csv"
 CHECKS_REPO = Path("/home/kyuhank/Desktop/SPC/ofp-sam-bet-2026-checks")
 CHECKS_HELPER = CHECKS_REPO / "scripts/submit_kflow_checks.py"
 KFLOW_REPO = Path("/home/kyuhank/Desktop/SPC/Kflow")
@@ -64,15 +74,22 @@ MFCL_IMAGE_REPO = Path("/home/kyuhank/Desktop/SPC/ofp-sam-docker-images")
 MFCL_BINARY = MFCL_IMAGE_REPO / "tuna-flow/mfclo64"
 MFCL_DOCKERFILE = MFCL_IMAGE_REPO / "tuna-flow/Dockerfile"
 
-DEFAULT_STATE = (
-    Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
-    / TASK_NAME
-    / "submission-state.json"
-)
 SHA40_RE = re.compile(r"^[0-9a-f]{40}$", re.IGNORECASE)
 SHA256_RE = re.compile(r"^(?:sha256:)?([0-9a-f]{64})$", re.IGNORECASE)
 MODEL_RE = re.compile(r"^S([0-9]{3})-[A-Z0-9-]+$")
+MODEL_ID_RE = re.compile(r"^S([0-9]{3})(?:-[A-Za-z0-9-]+)?$")
 ACTIVE_JOB_STATES = {"waiting", "pending", "queued", "submitted", "running", "completed"}
+
+
+def default_state_path(task_code: str) -> Path:
+    return (
+        Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
+        / task_code
+        / "submission-state.json"
+    )
+
+
+DEFAULT_STATE = default_state_path(DEFAULT_TASK_CODE)
 
 
 class OrchestratorError(RuntimeError):
@@ -188,6 +205,186 @@ class GitProvenance:
     clean: bool
 
 
+@dataclass(frozen=True)
+class RequestedModel:
+    selector_id: str
+    explicit_name: str = ""
+
+
+@dataclass(frozen=True)
+class SubmitConfig:
+    task_code: str
+    task_name: str
+    task_title: str
+    task_description: str
+    campaign: str
+    flow_group: str
+    selection_text: str
+    forbidden_text: str
+    expected_count: int
+    legacy_job_text: bool
+
+    @property
+    def check_task_prefix(self) -> str:
+        return f"{self.task_code}-check"
+
+
+def model_selector_id(text: str) -> str:
+    match = MODEL_ID_RE.fullmatch(str(text or "").strip())
+    if not match:
+        raise OrchestratorError(f"Malformed model selector {text!r}; use S001 or S001-full-name.")
+    return f"S{int(match.group(1)):03d}"
+
+
+def parse_model_selector(raw: str) -> list[RequestedModel]:
+    text = str(raw or "").strip()
+    if not text:
+        raise OrchestratorError("Model selection is empty.")
+    selected: list[RequestedModel] = []
+    seen: dict[str, str] = {}
+    for part in text.split(","):
+        token = part.strip()
+        if not token:
+            raise OrchestratorError(f"Malformed model selection {raw!r}: empty item.")
+        if ":" in token:
+            pieces = token.split(":")
+            if len(pieces) != 2 or not pieces[0] or not pieces[1]:
+                raise OrchestratorError(f"Malformed model range {token!r}; use S001:S017.")
+            start_id = model_selector_id(pieces[0])
+            end_id = model_selector_id(pieces[1])
+            start = int(start_id[1:])
+            end = int(end_id[1:])
+            if start > end:
+                raise OrchestratorError(f"Malformed model range {token!r}: start is after end.")
+            for number in range(start, end + 1):
+                selector_id = f"S{number:03d}"
+                if selector_id in seen:
+                    raise OrchestratorError(
+                        f"Duplicate model ID {selector_id} in selection {raw!r}."
+                    )
+                seen[selector_id] = token
+                selected.append(RequestedModel(selector_id))
+            continue
+        selector_id = model_selector_id(token)
+        explicit_name = token if "-" in token else ""
+        if selector_id in seen:
+            raise OrchestratorError(f"Duplicate model ID {selector_id} in selection {raw!r}.")
+        seen[selector_id] = token
+        selected.append(RequestedModel(selector_id, explicit_name))
+    return selected
+
+
+def slugify(text: str) -> str:
+    value = re.sub(r"[^A-Za-z0-9]+", "-", str(text or "").strip()).strip("-").lower()
+    return value or "model"
+
+
+def load_selection_metadata() -> dict[str, dict[str, str]]:
+    if not SENSITIVITY_SELECTION_CSV.is_file():
+        return {}
+    try:
+        with SENSITIVITY_SELECTION_CSV.open(newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            if not reader.fieldnames or "model" not in reader.fieldnames:
+                raise OrchestratorError(
+                    f"{SENSITIVITY_SELECTION_CSV} must contain a model column."
+                )
+            rows: dict[str, dict[str, str]] = {}
+            for row in reader:
+                model = str(row.get("model") or "").strip()
+                if not model:
+                    continue
+                if model in rows:
+                    raise OrchestratorError(
+                        f"{SENSITIVITY_SELECTION_CSV} contains duplicate row {model}."
+                    )
+                rows[model] = {
+                    str(key): str(value or "").strip()
+                    for key, value in row.items()
+                    if key is not None
+                }
+            return rows
+    except OSError as exc:
+        raise OrchestratorError(f"Could not read {SENSITIVITY_SELECTION_CSV}: {exc}") from exc
+
+
+def infer_age_length_variant(model_name: str) -> str:
+    match = re.search(r"-AL([A-Z0-9]+)$", model_name)
+    return match.group(1) if match else "BASE075"
+
+
+def cutoff_label(value: str) -> str:
+    text = str(value or "").strip()
+    return f"F21/F22/F23 cutoff above {text} cm" if text else "no F21/F22/F23 cutoff"
+
+
+def derive_model_label(model_name: str, row: dict[str, str]) -> str:
+    variant = row.get("age_length_variant") or infer_age_length_variant(model_name)
+    age_file = row.get("age_length_source_file") or (
+        "bet.age_length" if variant == "BASE075" else "age-length variant input"
+    )
+    parts = [
+        f"age-length {variant} from {age_file}",
+        f"base {row.get('base_sensitivity') or model_name}",
+    ]
+    likelihood = (row.get("lf_likelihood") or "").lower()
+    if likelihood == "normal":
+        downweight = row.get("downweight") or "1"
+        divisor = ""
+        try:
+            divisor = str(int(float(downweight)) * 20)
+        except ValueError:
+            pass
+        parts.extend(
+            [
+                "normal LF likelihood",
+                f"tail compression {row.get('tail_compression_percent') or '0'}%",
+                cutoff_label(row.get("cutoff_cm", "")),
+                f"F21/F22/F23 LF downweight {downweight}x"
+                + (f" with flag-49 divisor {divisor}" if divisor else ""),
+            ]
+        )
+    elif likelihood == "dm_nore":
+        grouping = row.get("dm_grouping") or "unspecified grouping"
+        estimated = (row.get("dm_relative_sample_size_estimated") or "").upper() == "TRUE"
+        parts.extend(
+            [
+                "MFCL LF Dirichlet-multinomial noRE",
+                f"grouping {grouping}",
+                "relative sample-size exponent estimated"
+                if estimated
+                else "relative sample-size exponent fixed",
+                cutoff_label(row.get("cutoff_cm", "")),
+                f"DM nmax {row.get('dm_nmax') or 'default'}",
+            ]
+        )
+    elif likelihood:
+        parts.append(f"LF likelihood {likelihood}")
+    basis = row.get("basis")
+    if basis:
+        parts.append(basis)
+    return "; ".join(part for part in parts if part)
+
+
+def derive_model_description(model_name: str, row: dict[str, str]) -> str:
+    if not row:
+        return (
+            f"Independent production fit for {model_name}; label derived from the "
+            "model ID because SENSITIVITY_SELECTION.csv did not contain this model."
+        )
+    fields = [
+        f"Selection row {model_name}",
+        f"base={row.get('base_sensitivity') or model_name}",
+        f"age_length_variant={row.get('age_length_variant') or infer_age_length_variant(model_name)}",
+        f"age_length_source={row.get('age_length_source_file') or 'unknown'}",
+        f"lf_likelihood={row.get('lf_likelihood') or 'unknown'}",
+        f"status={row.get('status') or 'unknown'}",
+    ]
+    if row.get("basis"):
+        fields.append(row["basis"])
+    return "; ".join(fields) + "."
+
+
 def resolve_git_provenance(
     name: str,
     repo: Path,
@@ -257,30 +454,176 @@ def resolve_git_provenance(
     )
 
 
+def resolve_ref_commit(repo: Path, ref: str, *, timeout: float) -> str:
+    result = git(
+        repo,
+        "rev-parse",
+        "--verify",
+        f"{ref}^{{commit}}",
+        timeout=timeout,
+        check=False,
+    )
+    if result.returncode != 0:
+        return ""
+    value = result.stdout.strip().lower()
+    return value if SHA40_RE.fullmatch(value) else ""
+
+
+def resolve_remote_ref_commit(repo: Path, ref: str, expected_commit: str, *, timeout: float) -> str:
+    result = git(
+        repo,
+        "ls-remote",
+        "--exit-code",
+        "origin",
+        ref,
+        f"{ref}^{{}}",
+        f"refs/heads/{ref}",
+        f"refs/tags/{ref}",
+        f"refs/tags/{ref}^{{}}",
+        timeout=timeout,
+        check=False,
+    )
+    if result.returncode != 0:
+        return ""
+    for line in result.stdout.splitlines():
+        fields = line.split()
+        if fields and fields[0].lower() == expected_commit:
+            return fields[0].lower()
+    return ""
+
+
+def apply_source_pin(
+    args: argparse.Namespace,
+    git_repos: dict[str, dict[str, Any]],
+    issues: list[str],
+) -> None:
+    model_repo = git_repos["model_repo"]
+    current_commit = str(model_repo.get("commit") or "").lower()
+    branch = str(args.source_branch or model_repo.get("branch") or "").strip()
+    expected_commit = str(args.source_commit or "").strip().lower()
+    selected_ref = str(args.source_ref or branch or current_commit or "HEAD").strip()
+    resolved_ref_commit = ""
+
+    if expected_commit:
+        if not args.source_ref:
+            issues.append(
+                "--source-ref is required with --source-commit; use a cloneable "
+                "immutable tag/ref, not the raw commit SHA."
+            )
+        if SHA40_RE.fullmatch(selected_ref):
+            issues.append(
+                "--source-ref must be a cloneable immutable tag/ref for git clone "
+                "--branch; do not pass a raw commit SHA."
+            )
+        resolved_ref_commit = resolve_ref_commit(
+            REPO_ROOT, selected_ref, timeout=args.git_timeout
+        )
+        if not resolved_ref_commit:
+            issues.append(
+                f"Selected source ref {selected_ref!r} did not resolve to a local commit."
+            )
+        elif resolved_ref_commit != expected_commit:
+            issues.append(
+                f"Selected source ref {selected_ref!r} resolves to "
+                f"{resolved_ref_commit}, not --source-commit {expected_commit}."
+            )
+        if args.submit and args.source_ref and not SHA40_RE.fullmatch(selected_ref):
+            remote_ref_commit = resolve_remote_ref_commit(
+                REPO_ROOT, selected_ref, expected_commit, timeout=args.git_timeout
+            )
+            if not remote_ref_commit:
+                issues.append(
+                    f"Origin does not expose source ref {selected_ref!r} at "
+                    f"--source-commit {expected_commit}; push the immutable tag/ref first."
+                )
+        model_repo["commit"] = expected_commit
+        model_repo["checkout_ref"] = selected_ref
+        model_repo["ref"] = selected_ref
+        model_repo["branch"] = branch
+        model_repo["verified_ref_commit"] = resolved_ref_commit or "UNRESOLVED"
+        model_repo["immutable_source_pin"] = True
+    else:
+        if not SHA40_RE.fullmatch(current_commit):
+            issues.append("Cannot resolve a current model-repository commit.")
+        model_repo["checkout_ref"] = selected_ref
+        model_repo["ref"] = selected_ref
+        model_repo["branch"] = branch
+        model_repo["verified_ref_commit"] = current_commit or "UNRESOLVED"
+        model_repo["immutable_source_pin"] = False
+        issues.append(
+            "Live submission requires --source-commit with a full 40-character SHA; "
+            "dry-run used the current local ref only."
+        )
+
+
 @dataclass(frozen=True)
 class ModelSpec:
     order: int
+    selector_id: str
     name: str
     source_path: str
+    label: str
+    description: str
+    job_key: str
+    base_sensitivity: str
+    age_length_variant: str
+    selection_metadata: dict[str, str]
     git_tree_sha256: str
     manifest_sha256: str
     doitall_sha256: str
 
 
-def discover_models(repo_commit: str, *, git_timeout: float) -> list[ModelSpec]:
+def discover_models(
+    repo_commit: str,
+    *,
+    requested: list[RequestedModel],
+    expected_count: int,
+    forbidden: list[RequestedModel],
+    git_timeout: float,
+) -> list[ModelSpec]:
+    if expected_count <= 0:
+        raise OrchestratorError("--expected-count must be positive.")
+    if len(requested) != expected_count:
+        raise OrchestratorError(
+            f"Model count mismatch: selection contains {len(requested)} model(s), "
+            f"expected {expected_count}."
+        )
+    forbidden_ids = {item.selector_id for item in forbidden}
+    forbidden_selected = [item.selector_id for item in requested if item.selector_id in forbidden_ids]
+    if forbidden_selected:
+        raise OrchestratorError(
+            "Forbidden model ID(s) selected: " + ", ".join(forbidden_selected)
+        )
     if not SENSITIVITY_ROOT.is_dir():
         raise OrchestratorError(f"Sensitivity directory is missing: {SENSITIVITY_ROOT}")
     dirs = sorted(path for path in SENSITIVITY_ROOT.iterdir() if path.is_dir())
-    if len(dirs) != EXPECTED_MODELS:
-        raise OrchestratorError(
-            f"Expected exactly {EXPECTED_MODELS} sensitivity model directories; found {len(dirs)}."
-        )
-    models: list[ModelSpec] = []
-    for expected_order, directory in enumerate(dirs, 1):
+    directories_by_id: dict[str, Path] = {}
+    for directory in dirs:
         match = MODEL_RE.fullmatch(directory.name)
-        if not match or int(match.group(1)) != expected_order:
+        if not match:
+            raise OrchestratorError(f"Malformed sensitivity directory name: {directory.name}")
+        selector_id = f"S{int(match.group(1)):03d}"
+        if selector_id in directories_by_id:
+            raise OrchestratorError(f"Duplicate sensitivity directory ID {selector_id}.")
+        directories_by_id[selector_id] = directory
+
+    missing = [item.selector_id for item in requested if item.selector_id not in directories_by_id]
+    if missing:
+        raise OrchestratorError("Missing selected model ID(s): " + ", ".join(missing))
+
+    selection_metadata = load_selection_metadata()
+    models: list[ModelSpec] = []
+    for request in requested:
+        directory = directories_by_id[request.selector_id]
+        if request.explicit_name and directory.name != request.explicit_name:
             raise OrchestratorError(
-                f"Non-deterministic model set at position {expected_order}: {directory.name}"
+                f"Directory/name mismatch for {request.selector_id}: "
+                f"requested {request.explicit_name}, found {directory.name}."
+            )
+        match = MODEL_RE.fullmatch(directory.name)
+        if not match or f"S{int(match.group(1)):03d}" != request.selector_id:
+            raise OrchestratorError(
+                f"Directory/name mismatch for {request.selector_id}: {directory.name}."
             )
         model_dir = directory / "model"
         required = (
@@ -330,11 +673,21 @@ def discover_models(repo_commit: str, *, git_timeout: float) -> list[ModelSpec]:
         ).stdout
         if not tree.strip():
             raise OrchestratorError(f"{rel_model} is not tracked by commit {repo_commit[:12]}.")
+        row = selection_metadata.get(directory.name, {})
+        label = derive_model_label(directory.name, row)
         models.append(
             ModelSpec(
-                order=expected_order,
+                order=int(request.selector_id[1:]),
+                selector_id=request.selector_id,
                 name=directory.name,
                 source_path=rel_model,
+                label=label,
+                description=derive_model_description(directory.name, row),
+                job_key=slugify(directory.name),
+                base_sensitivity=row.get("base_sensitivity") or directory.name,
+                age_length_variant=row.get("age_length_variant")
+                or infer_age_length_variant(directory.name),
+                selection_metadata=row,
                 git_tree_sha256=hashlib.sha256(tree.encode("utf-8")).hexdigest(),
                 manifest_sha256=file_sha256(manifest_path),
                 doitall_sha256=file_sha256(model_dir / "doitall.sh"),
@@ -646,13 +999,15 @@ def local_apps_for_runtime(runtime: dict[str, Any]) -> list[dict[str, Any]]:
     return apps
 
 
-def fit_tags(model: ModelSpec, source_sha: str) -> dict[str, str]:
+def fit_tags(model: ModelSpec, source_sha: str, config: SubmitConfig) -> dict[str, str]:
     return {
-        "campaign": CAMPAIGN,
-        "flow": TASK_NAME,
+        "campaign": config.campaign,
+        "flow": config.task_code,
+        "flow_group": config.flow_group,
         "stage": "fit",
         "model": model.name,
         "source_sha": source_sha[:12],
+        "source_commit": source_sha,
     }
 
 
@@ -663,20 +1018,36 @@ def fit_payload(
     source: dict[str, Any],
     runtime: dict[str, Any],
     input_job: dict[str, str],
+    config: SubmitConfig,
 ) -> dict[str, Any]:
     source_sha = source["model_repo"]["commit"]
-    title = f"LF conflict sensitivity fit: {model.name}"
-    key = json_sha256({"graph": graph_id, "stage": "fit", "model": model.name})
+    if config.legacy_job_text:
+        title = f"{config.task_title}: {model.name}"
+        description = f"Independent production fit for {model.name}."
+    else:
+        title = f"{config.task_title}: {model.name} - {model.label}"
+        description = model.description
+    key = json_sha256(
+        {
+            "graph": graph_id,
+            "task": config.task_code,
+            "campaign": config.campaign,
+            "source_commit": source_sha,
+            "stage": "fit",
+            "model": model.name,
+        }
+    )
     env = {
         "STEP_SELECT": model.name,
         "MODEL_ROOT": "sensitivity",
         "RUN_MODE": "doitall",
         "TRIGGER_NEXT": "false",
-        "FLOW_GROUP": TASK_NAME,
+        "FLOW_GROUP": config.flow_group,
         "JOB_TITLE": title,
-        "JOB_DESCRIPTION": f"Independent production fit for {model.name}.",
-        "JOB_KEY": model.name.lower(),
+        "JOB_DESCRIPTION": description,
+        "JOB_KEY": model.job_key,
         "MODEL_LABEL": model.name,
+        "MODEL_DESCRIPTION": model.label,
         "PROGRAM_PATH": PROGRAM_PATH,
         "MFCL_LIVE_LOG": "true",
         "STEPWISE_BUILD_PAYLOAD": "true",
@@ -695,7 +1066,7 @@ def fit_payload(
     }
     return {
         "repo": source["model_repo"]["repo"],
-        "branch": source["model_repo"]["branch"],
+        "branch": source["model_repo"]["checkout_ref"],
         "command": "bash run.sh",
         "docker_image": runtime["container_image"],
         "cpus": CPUS,
@@ -708,17 +1079,33 @@ def fit_payload(
         "output_patterns": ["outputs/**"],
         "input_jobs": [],
         "title": title,
-        "description": f"Run {model.name} through the repository-supported bash run.sh runner.",
-        "batch_name": f"{TASK_NAME}-{model.name}",
+        "description": (
+            f"Run {model.name} through the repository-supported bash run.sh runner. "
+            f"{description}"
+        ),
+        "batch_name": f"{config.task_code}-{model.name}",
         "env": {key_: value for key_, value in env.items() if value != ""},
         "metadata": {
-            "campaign": CAMPAIGN,
+            "task": config.task_code,
+            "task_name": config.task_name,
+            "campaign": config.campaign,
+            "flow_group": config.flow_group,
             "graph_id": graph_id,
             "submission_key": key,
             "stage": "fit",
+            "selection_id": model.selector_id,
             "model_selector": model.name,
+            "model_label": model.label,
+            "model_description": model.description,
+            "base_sensitivity": model.base_sensitivity,
+            "age_length_variant": model.age_length_variant,
+            "selection_metadata": model.selection_metadata,
             "model_source_path": model.source_path,
             "model_source_commit": source_sha,
+            "model_source_branch": source["model_repo"]["branch"],
+            "model_source_ref": source["model_repo"]["ref"],
+            "model_source_checkout_ref": source["model_repo"]["checkout_ref"],
+            "model_source_verified_ref_commit": source["model_repo"]["verified_ref_commit"],
             "model_git_tree_sha256": model.git_tree_sha256,
             "input_manifest_sha256": model.manifest_sha256,
             "doitall_sha256": model.doitall_sha256,
@@ -732,7 +1119,7 @@ def fit_payload(
             "runner": "bash run.sh",
             "runtime_provenance": runtime,
         },
-        "tags": fit_tags(model, source_sha),
+        "tags": fit_tags(model, source_sha, config),
     }
 
 
@@ -741,10 +1128,19 @@ def graph_material(
     source: dict[str, Any],
     runtime: dict[str, Any],
     input_job: dict[str, str],
+    config: SubmitConfig,
 ) -> dict[str, Any]:
     return {
         "schema": 1,
-        "task": TASK_NAME,
+        "task": config.task_code,
+        "task_name": config.task_name,
+        "task_title": config.task_title,
+        "task_description": config.task_description,
+        "campaign": config.campaign,
+        "flow_group": config.flow_group,
+        "selection": config.selection_text,
+        "forbidden": config.forbidden_text,
+        "expected_count": config.expected_count,
         "input_job": input_job,
         "source": source,
         "runtime": runtime,
@@ -765,14 +1161,18 @@ def graph_material(
             "parallel_units": True,
             "auto_merge": True,
             "auto_attach": True,
+            "profile_name": "likelihood",
+            "profile_quantity_type": "2",
+            "profile_convergence": "-3",
+            "profile_target_rel_tolerance": "1e-3",
         },
     }
 
 
-def diagnostic_nodes(model: str, fit_ref: str) -> list[dict[str, Any]]:
+def diagnostic_nodes(model: str, fit_ref: str, config: SubmitConfig) -> list[dict[str, Any]]:
     nodes = [
         {
-            "task": f"{CHECK_TASK_PREFIX}-hessian",
+            "task": f"{config.check_task_prefix}-hessian",
             "kind": "hessian-part",
             "unit": str(part),
             "input_jobs": [fit_ref],
@@ -781,22 +1181,26 @@ def diagnostic_nodes(model: str, fit_ref: str) -> list[dict[str, Any]]:
     ]
     nodes.extend(
         {
-            "task": f"{CHECK_TASK_PREFIX}-profile",
+            "task": f"{config.check_task_prefix}-profile",
             "kind": "profile-chain",
             "unit": side,
             "input_jobs": [fit_ref],
+            "profile_name": "likelihood",
+            "profile_quantity_type": "2",
+            "profile_convergence": "-3",
+            "profile_target_rel_tolerance": "1e-3",
         }
         for side in ("downstream", "upstream")
     )
     nodes.extend(
         [
             {
-                "task": f"{CHECK_TASK_PREFIX}-hessian-merge",
+                "task": f"{config.check_task_prefix}-hessian-merge",
                 "kind": "hessian-merge-attach",
                 "input_jobs": [fit_ref, "five hessian partition jobs"],
             },
             {
-                "task": f"{CHECK_TASK_PREFIX}-profile-merge",
+                "task": f"{config.check_task_prefix}-profile-merge",
                 "kind": "profile-merge-attach",
                 "input_jobs": [fit_ref, "two profile chain jobs"],
             },
@@ -811,17 +1215,20 @@ def diagnostic_nodes(model: str, fit_ref: str) -> list[dict[str, Any]]:
 
 
 class StateStore:
-    def __init__(self, path: Path, graph_id: str, initial: dict[str, Any]) -> None:
+    def __init__(
+        self, path: Path, graph_id: str, initial: dict[str, Any], config: SubmitConfig
+    ) -> None:
         self.path = path
         self.graph_id = graph_id
         self.initial = initial
+        self.config = config
         self.data: dict[str, Any] = {}
         self._mutex = threading.RLock()
         self._lock_handle: Any = None
 
     def __enter__(self) -> "StateStore":
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        lock_path = self.path.parent / f"{TASK_NAME}.lock"
+        lock_path = self.path.parent / f"{self.config.task_code}.lock"
         self._lock_handle = lock_path.open("a+", encoding="ascii")
         try:
             fcntl.flock(self._lock_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -835,6 +1242,14 @@ class StateStore:
             if self.data.get("graph_id") != self.graph_id:
                 raise OrchestratorError(
                     f"State graph mismatch in {self.path}; do not reuse it for a changed commit/input graph."
+                )
+            if self.data.get("task") != self.config.task_code:
+                raise OrchestratorError(
+                    f"State task mismatch in {self.path}; refusing cross-task reconciliation."
+                )
+            if self.data.get("campaign") != self.config.campaign:
+                raise OrchestratorError(
+                    f"State campaign mismatch in {self.path}; refusing cross-campaign reconciliation."
                 )
         else:
             self.data = self.initial
@@ -878,15 +1293,23 @@ class StateStore:
 
 
 def validate_existing_fit(
-    jobs: list[dict[str, Any]], model: ModelSpec, payload: dict[str, Any]
+    jobs: list[dict[str, Any]],
+    model: ModelSpec,
+    payload: dict[str, Any],
+    config: SubmitConfig,
 ) -> dict[str, Any] | None:
     title = payload["title"]
     source_sha = payload["metadata"]["model_source_commit"]
+    submission_key = payload["metadata"]["submission_key"]
     matching: list[dict[str, Any]] = []
     for job in jobs:
         metadata = job_metadata(job)
         if (
             str(job.get("title") or metadata.get("job_title") or "") == title
+            and str(metadata.get("task") or "") == config.task_code
+            and str(metadata.get("campaign") or "") == config.campaign
+            and str(metadata.get("flow_group") or "") == config.flow_group
+            and str(metadata.get("submission_key") or "") == submission_key
             and str(metadata.get("model_selector") or "") == model.name
             and str(metadata.get("model_source_commit") or "") == source_sha
             and str(metadata.get("input_job") or "") == INPUT_JOB
@@ -918,16 +1341,17 @@ def submit_or_reconcile_fit(
     model: ModelSpec,
     payload: dict[str, Any],
     *,
+    config: SubmitConfig,
     number_timeout: float,
 ) -> tuple[str, str]:
     tags = payload["tags"]
-    existing = validate_existing_fit(api.jobs_by_tags(TASK_NAME, tags), model, payload)
+    existing = validate_existing_fit(api.jobs_by_tags(config.task_code, tags), model, payload, config)
     if existing is None:
         store.update_stage("fits", model.name, {"status": "submitting", "started_at": utc_now()})
         try:
             response = api.request(
                 "POST",
-                f"/api/job/{urllib.parse.quote(TASK_NAME, safe='')}",
+                f"/api/job/{urllib.parse.quote(config.task_code, safe='')}",
                 payload,
                 retry=False,
             )
@@ -938,7 +1362,9 @@ def submit_or_reconcile_fit(
         except Exception:
             # A timeout may occur after Kflow committed the job. Reconcile once
             # before reporting failure; never blindly repeat the POST.
-            reconciled = validate_existing_fit(api.jobs_by_tags(TASK_NAME, tags), model, payload)
+            reconciled = validate_existing_fit(
+                api.jobs_by_tags(config.task_code, tags), model, payload, config
+            )
             if reconciled is None:
                 raise
             existing = reconciled
@@ -960,13 +1386,13 @@ def submit_or_reconcile_fit(
 
 
 def diagnostic_inventory(
-    api: KflowApi, model: str, flow_group: str
+    api: KflowApi, model: str, flow_group: str, config: SubmitConfig
 ) -> tuple[str, dict[str, list[str]]]:
     expected = {
-        f"{CHECK_TASK_PREFIX}-hessian": {"1", "2", "3", "4", "5"},
-        f"{CHECK_TASK_PREFIX}-profile": {"downstream", "upstream"},
-        f"{CHECK_TASK_PREFIX}-hessian-merge": {"merge"},
-        f"{CHECK_TASK_PREFIX}-profile-merge": {"merge"},
+        f"{config.check_task_prefix}-hessian": {"1", "2", "3", "4", "5"},
+        f"{config.check_task_prefix}-profile": {"downstream", "upstream"},
+        f"{config.check_task_prefix}-hessian-merge": {"merge"},
+        f"{config.check_task_prefix}-profile-merge": {"merge"},
     }
     inventory: dict[str, list[str]] = {}
     total = 0
@@ -1003,6 +1429,7 @@ def checks_command(
     flow_group: str,
     source: dict[str, Any],
     runtime: dict[str, Any],
+    config: SubmitConfig,
 ) -> list[str]:
     return [
         sys.executable,
@@ -1010,7 +1437,7 @@ def checks_command(
         "--kflow-url",
         kflow_url,
         "--task-prefix",
-        CHECK_TASK_PREFIX,
+        config.check_task_prefix,
         "--checks",
         "hessian profile",
         "--models",
@@ -1034,7 +1461,7 @@ def checks_command(
         "--model-source-repo",
         source["model_repo"]["repo"],
         "--model-source-ref",
-        source["model_repo"]["commit"],
+        source["model_repo"]["checkout_ref"],
         "--model-source-path",
         model.source_path,
         "--program-path",
@@ -1069,6 +1496,10 @@ def checks_environment(token: str, runtime: dict[str, Any]) -> dict[str, str]:
             "HESSIAN_PART": "",
             "PROFILE_PARALLEL_MODE": "chains",
             "PROFILE_EXECUTION_MODE": "continuation",
+            "PROFILE_NAME": "likelihood",
+            "PROFILE_LABEL": "likelihood Profile2",
+            "PROFILE_QUANTITY": "likelihood",
+            "PROFILE_QUANTITY_TYPE": "2",
             "PROFILE_VALUE_MODE": "percent",
             "PROFILE_CENTER": "100",
             "PROFILE_VALUES": " ".join(
@@ -1076,6 +1507,9 @@ def checks_environment(token: str, runtime: dict[str, Any]) -> dict[str, str]:
                 + [f"{value / 2:g}" for value in range(205, 281, 5)]
             ),
             "PROFILE_INCLUDE_BASE_ANCHOR": "false",
+            "PROFILE_DOITALL_CONVERGENCE": "-3",
+            "PROFILE_CONVERGENCE_EXPONENT": "-3",
+            "PROFILE_TARGET_REL_TOLERANCE": "1e-3",
             "ATTACH_OUTPUT_MODE": "delta",
             "FLOW_SPECIES": "BET",
             "FLOW_SPECIES_LABEL": "bigeye tuna",
@@ -1129,11 +1563,12 @@ def submit_diagnostics(
     flow_group: str,
     source: dict[str, Any],
     runtime: dict[str, Any],
+    config: SubmitConfig,
     token: str,
     kflow_url: str,
     timeout: float,
 ) -> str:
-    inventory_status, inventory = diagnostic_inventory(api, model.name, flow_group)
+    inventory_status, inventory = diagnostic_inventory(api, model.name, flow_group, config)
     if inventory_status == "complete":
         store.update_stage(
             "diagnostics",
@@ -1153,6 +1588,7 @@ def submit_diagnostics(
         flow_group=flow_group,
         source=source,
         runtime=runtime,
+        config=config,
     )
     store.update_stage(
         "diagnostics",
@@ -1166,7 +1602,7 @@ def submit_diagnostics(
     output = run_checks_helper(
         command, checks_environment(token, runtime), timeout=timeout, token=token
     )
-    inventory_status, inventory = diagnostic_inventory(api, model.name, flow_group)
+    inventory_status, inventory = diagnostic_inventory(api, model.name, flow_group, config)
     if inventory_status != "complete":
         raise OrchestratorError(
             f"Checks helper returned successfully for {model.name}, but its 9-job graph is {inventory_status}."
@@ -1192,10 +1628,12 @@ def parse_args() -> argparse.Namespace:
         epilog=(
             "Examples:\n"
             "  submit_kflow_sensitivities.py --offline\n"
-            "  submit_kflow_sensitivities.py --submit --fits-only\n"
-            "  submit_kflow_sensitivities.py --submit --diagnostics-only --resume\n\n"
-            "KFLOW_URL and KFLOW_API_TOKEN are required for every run. Tokens are read only\n"
-            "from the environment and are never printed or stored. --offline is dry-run only."
+            "  submit_kflow_sensitivities.py --offline --models S001:S017,S035:S051,S069:S085 --expected-count 51\n"
+            "  submit_kflow_sensitivities.py --submit --fits-only --source-commit <40-char-sha>\n"
+            "  submit_kflow_sensitivities.py --submit --diagnostics-only --resume --source-commit <40-char-sha>\n\n"
+            "KFLOW_URL and KFLOW_API_TOKEN are required for online dry-runs and submit runs.\n"
+            "Tokens are read only from the environment and are never printed or stored.\n"
+            "--offline is dry-run only and performs no Kflow, SSH, MFCL, or R calls."
         ),
     )
     parser.add_argument(
@@ -1219,11 +1657,62 @@ def parse_args() -> argparse.Namespace:
         help="Do not contact Kflow or SSH; valid only for a dry-run graph audit.",
     )
     parser.add_argument(
+        "--models",
+        default=DEFAULT_MODEL_SELECTOR,
+        help=(
+            "Comma-separated model IDs or inclusive ranges, e.g. "
+            "S001:S017,S035:S051,S069:S085 "
+            f"(default legacy selector: {DEFAULT_MODEL_SELECTOR})."
+        ),
+    )
+    parser.add_argument(
+        "--expected-count",
+        type=int,
+        default=DEFAULT_EXPECTED_MODELS,
+        help=f"Required selected-model count (default: {DEFAULT_EXPECTED_MODELS}).",
+    )
+    parser.add_argument(
+        "--forbid-models",
+        default="",
+        help=(
+            "Comma-separated model IDs/ranges that must not be selected, e.g. "
+            f"{CURRENT_AGE_LENGTH_FORBIDDEN}."
+        ),
+    )
+    parser.add_argument("--task-code", default=DEFAULT_TASK_CODE)
+    parser.add_argument("--task-name", default=DEFAULT_TASK_NAME)
+    parser.add_argument("--task-title", default=DEFAULT_TASK_TITLE)
+    parser.add_argument("--task-description", default=DEFAULT_TASK_DESCRIPTION)
+    parser.add_argument("--campaign", default=DEFAULT_CAMPAIGN)
+    parser.add_argument(
+        "--flow-group",
+        default="",
+        help="Kflow diagnostic flow-group; default is <task-code>-<source-commit12>.",
+    )
+    parser.add_argument(
+        "--source-branch",
+        default="",
+        help="Human/source branch label to record; defaults to the current model repo branch.",
+    )
+    parser.add_argument(
+        "--source-ref",
+        default="",
+        help=(
+            "Local branch/ref to verify against --source-commit before submit. "
+            "If omitted with --source-commit, the commit itself is used as the checkout ref."
+        ),
+    )
+    parser.add_argument(
+        "--source-commit",
+        default="",
+        help="Full 40-character model source commit required for live submission.",
+    )
+    parser.add_argument(
         "--submit-workers",
         default=os.environ.get("KFLOW_SUBMIT_WORKERS", "auto"),
         help="Bounded local fit/helper concurrency: auto or 1-32 (default: auto).",
     )
-    parser.add_argument("--state-file", type=Path, default=DEFAULT_STATE)
+    parser.add_argument("--state-file", type=Path, default=None)
     parser.add_argument("--api-timeout", type=float, default=60.0)
     parser.add_argument("--api-retries", type=int, default=3)
     parser.add_argument("--git-timeout", type=float, default=30.0)
@@ -1236,6 +1725,37 @@ def parse_args() -> argparse.Namespace:
 def validate_args(args: argparse.Namespace) -> None:
     if args.submit and args.offline:
         raise OrchestratorError("--offline cannot be combined with --submit.")
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+", args.task_code):
+        raise OrchestratorError("--task-code must contain only letters, numbers, dot, underscore, or hyphen.")
+    if not args.task_name.strip():
+        raise OrchestratorError("--task-name must not be empty.")
+    if not args.task_title.strip():
+        raise OrchestratorError("--task-title must not be empty.")
+    if not args.task_description.strip():
+        raise OrchestratorError("--task-description must not be empty.")
+    if not re.fullmatch(r"[A-Za-z0-9_.:-]+", args.campaign):
+        raise OrchestratorError("--campaign must contain only letters, numbers, dot, colon, underscore, or hyphen.")
+    if args.flow_group and not re.fullmatch(r"[A-Za-z0-9_.:-]+", args.flow_group):
+        raise OrchestratorError("--flow-group must contain only letters, numbers, dot, colon, underscore, or hyphen.")
+    parse_model_selector(args.models)
+    if args.forbid_models:
+        parse_model_selector(args.forbid_models)
+    if args.expected_count <= 0:
+        raise OrchestratorError("--expected-count must be positive.")
+    if args.source_commit and not SHA40_RE.fullmatch(args.source_commit.strip()):
+        raise OrchestratorError("--source-commit must be a full 40-character SHA.")
+    if args.submit and not args.source_commit:
+        raise OrchestratorError("--submit requires --source-commit with a full 40-character SHA.")
+    if args.submit and not args.source_ref:
+        raise OrchestratorError(
+            "--submit requires --source-ref with a cloneable immutable tag/ref."
+        )
+    if args.submit and SHA40_RE.fullmatch(args.source_ref.strip()):
+        raise OrchestratorError(
+            "--source-ref is used for git clone --branch and must not be a raw commit SHA."
+        )
+    if args.state_file is None:
+        args.state_file = default_state_path(args.task_code)
     for name in (
         "api_timeout",
         "git_timeout",
@@ -1250,9 +1770,18 @@ def validate_args(args: argparse.Namespace) -> None:
 
 
 def preflight(args: argparse.Namespace) -> tuple[
-    list[ModelSpec], dict[str, Any], dict[str, Any], dict[str, str], list[str], int, str
+    SubmitConfig,
+    list[ModelSpec],
+    dict[str, Any],
+    dict[str, Any],
+    dict[str, str],
+    list[str],
+    int,
+    str,
 ]:
     issues: list[str] = []
+    requested = parse_model_selector(args.models)
+    forbidden = parse_model_selector(args.forbid_models) if args.forbid_models else []
     git_repos: dict[str, dict[str, Any]] = {}
     repo_specs = (
         ("model_repo", "model", REPO_ROOT),
@@ -1286,10 +1815,35 @@ def preflight(args: argparse.Namespace) -> tuple[
                 "clean": False,
             }
 
+    apply_source_pin(args, git_repos, issues)
     model_commit = git_repos["model_repo"]["commit"]
     if not SHA40_RE.fullmatch(model_commit):
         raise OrchestratorError("Cannot audit models without the committed model-repository SHA.")
-    models = discover_models(model_commit, git_timeout=args.git_timeout)
+    flow_group = args.flow_group or f"{args.task_code}-{model_commit[:12]}"
+    config = SubmitConfig(
+        task_code=args.task_code,
+        task_name=args.task_name.strip(),
+        task_title=args.task_title.strip(),
+        task_description=args.task_description.strip(),
+        campaign=args.campaign,
+        flow_group=flow_group,
+        selection_text=args.models,
+        forbidden_text=args.forbid_models,
+        expected_count=args.expected_count,
+        legacy_job_text=(
+            args.task_code == DEFAULT_TASK_CODE
+            and args.task_title == DEFAULT_TASK_TITLE
+            and args.campaign == DEFAULT_CAMPAIGN
+            and args.models == DEFAULT_MODEL_SELECTOR
+        ),
+    )
+    models = discover_models(
+        model_commit,
+        requested=requested,
+        expected_count=args.expected_count,
+        forbidden=forbidden,
+        git_timeout=args.git_timeout,
+    )
 
     try:
         mfcl = resolve_mfcl_provenance()
@@ -1318,13 +1872,13 @@ def preflight(args: argparse.Namespace) -> tuple[
 
     url = str(os.environ.get("KFLOW_URL") or "").strip()
     token = str(os.environ.get("KFLOW_API_TOKEN") or "").strip()
-    if not url:
+    if not args.offline and not url:
         issues.append("KFLOW_URL is required.")
-    else:
+    elif url:
         parsed = urllib.parse.urlsplit(url)
         if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username:
             issues.append("KFLOW_URL must be an http(s) URL without embedded credentials.")
-    if not token:
+    if not args.offline and not token:
         issues.append("KFLOW_API_TOKEN is required.")
 
     workers, worker_source = resolve_workers(args.submit_workers)
@@ -1355,11 +1909,12 @@ def preflight(args: argparse.Namespace) -> tuple[
                 "source_commit": "UNRESOLVED",
                 "archive_sha256": "UNRESOLVED",
             }
-    return models, source, runtime, input_job, issues, workers, worker_source
+    return config, models, source, runtime, input_job, issues, workers, worker_source
 
 
 def dry_run_audit(
     args: argparse.Namespace,
+    config: SubmitConfig,
     models: list[ModelSpec],
     source: dict[str, Any],
     runtime: dict[str, Any],
@@ -1368,9 +1923,9 @@ def dry_run_audit(
     workers: int,
     worker_source: str,
 ) -> int:
-    material = graph_material(models, source, runtime, input_job)
+    material = graph_material(models, source, runtime, input_job, config)
     graph_id = json_sha256(material)
-    flow_group = f"{TASK_NAME}-{source['model_repo']['commit'][:12]}"
+    flow_group = config.flow_group
     entries: list[dict[str, Any]] = []
     for model in models:
         payload = fit_payload(
@@ -1379,6 +1934,7 @@ def dry_run_audit(
             source=source,
             runtime=runtime,
             input_job=input_job,
+            config=config,
         )
         fit_ref = f"FIT_JOB_NUMBER({model.name})"
         command = checks_command(
@@ -1388,12 +1944,13 @@ def dry_run_audit(
             flow_group=flow_group,
             source=source,
             runtime=runtime,
+            config=config,
         )
         entries.append(
             {
                 "order": model.order,
                 "model": model.name,
-                "fit": {"task": TASK_NAME, "payload": payload},
+                "fit": {"task": config.task_code, "payload": payload},
                 "diagnostics": {
                     "helper_invocations": 0 if args.fits_only else 1,
                     "one_parent_only": fit_ref,
@@ -1403,24 +1960,64 @@ def dry_run_audit(
                         "HESSIAN_NSPLIT": "5",
                         "PROFILE_PARALLEL_MODE": "chains",
                         "PROFILE_EXECUTION_MODE": "continuation",
+                        "PROFILE_NAME": "likelihood",
+                        "PROFILE_LABEL": "likelihood Profile2",
+                        "PROFILE_QUANTITY": "likelihood",
+                        "PROFILE_QUANTITY_TYPE": "2",
+                        "PROFILE_DOITALL_CONVERGENCE": "-3",
+                        "PROFILE_CONVERGENCE_EXPONENT": "-3",
+                        "PROFILE_TARGET_REL_TOLERANCE": "1e-3",
                         "ATTACH_OUTPUT_MODE": "delta",
                     },
-                    "nodes": diagnostic_nodes(model.name, fit_ref) if not args.fits_only else [],
+                    "nodes": diagnostic_nodes(model.name, fit_ref, config) if not args.fits_only else [],
                 },
             }
         )
+    fit_count = 0 if args.diagnostics_only else len(models)
+    diagnostic_count = 0 if args.fits_only else len(models) * 9
     audit = {
         "schema": "kflow-sensitivity-orchestrator-audit/v1",
         "action": "DRY_RUN_NO_SUBMISSION",
         "offline": args.offline,
         "ready_for_submit": not issues,
         "issues": issues,
-        "task": TASK_NAME,
+        "task": config.task_code,
+        "task_name": config.task_name,
+        "task_title": config.task_title,
+        "task_description": config.task_description,
+        "campaign": config.campaign,
+        "flow_group": config.flow_group,
         "graph_id": graph_id,
         "mode": "fits-only" if args.fits_only else "diagnostics-only" if args.diagnostics_only else "fits-and-diagnostics",
         "state_file": str(args.state_file.expanduser()),
         "workers": {"value": workers, "source": worker_source},
         "model_count": len(models),
+        "expected_count": config.expected_count,
+        "selected_models": [model.name for model in models],
+        "selected_model_ids": [model.selector_id for model in models],
+        "forbidden_models": args.forbid_models,
+        "planned_counts": {
+            "fit_posts": fit_count,
+            "diagnostic_parent_fits": 0 if args.fits_only else len(models),
+            "diagnostic_jobs_per_parent": 9,
+            "diagnostic_posts": diagnostic_count,
+            "hessian_parts_per_parent": 5,
+            "profile_chains_per_parent": 2,
+            "merge_attach_jobs_per_parent": 2,
+        },
+        "task_site_image_ref": {
+            "remote_host": SUVA_HOST,
+            "remote_user": SUVA_USER,
+            "remote_base_dir": SUVA_BASE_DIR,
+            "cpus": CPUS,
+            "memory": MEMORY,
+            "disk": DISK,
+            "docker_image": runtime["container_image"],
+            "source_checkout_ref": source["model_repo"].get("checkout_ref"),
+            "source_branch": source["model_repo"].get("branch"),
+            "source_ref": source["model_repo"].get("ref"),
+            "source_commit": source["model_repo"].get("commit"),
+        },
         "source": source,
         "runtime": runtime,
         "input_job": input_job,
@@ -1431,15 +2028,30 @@ def dry_run_audit(
     return 0 if not issues else 2
 
 
-def assert_submit_preflight(issues: list[str], runtime: dict[str, Any]) -> None:
+def assert_submit_preflight(
+    issues: list[str], runtime: dict[str, Any], source: dict[str, Any]
+) -> None:
     if issues:
         raise OrchestratorError("Submission preflight failed:\n- " + "\n- ".join(issues))
     if "@sha256:" not in str(runtime.get("container_image") or ""):
         raise OrchestratorError("Submission requires an immutable container image digest.")
+    model_repo = source["model_repo"]
+    if not model_repo.get("immutable_source_pin"):
+        raise OrchestratorError("Submission requires an immutable --source-commit pin.")
+    checkout_ref = str(model_repo.get("checkout_ref") or "")
+    if not checkout_ref or SHA40_RE.fullmatch(checkout_ref):
+        raise OrchestratorError(
+            "Submission checkout ref must be a cloneable immutable tag/ref, not a raw SHA."
+        )
+    if str(model_repo.get("verified_ref_commit") or "").lower() != str(
+        model_repo.get("commit") or ""
+    ).lower():
+        raise OrchestratorError("Submission source ref was not verified against --source-commit.")
 
 
 def submit_graph(
     args: argparse.Namespace,
+    config: SubmitConfig,
     models: list[ModelSpec],
     source: dict[str, Any],
     runtime: dict[str, Any],
@@ -1448,12 +2060,17 @@ def submit_graph(
 ) -> int:
     url = os.environ["KFLOW_URL"].strip()
     token = os.environ["KFLOW_API_TOKEN"].strip()
-    material = graph_material(models, source, runtime, input_job)
+    material = graph_material(models, source, runtime, input_job, config)
     graph_id = json_sha256(material)
-    flow_group = f"{TASK_NAME}-{source['model_repo']['commit'][:12]}"
+    flow_group = config.flow_group
     state_initial = {
         "schema": "kflow-sensitivity-orchestrator-state/v1",
-        "task": TASK_NAME,
+        "task": config.task_code,
+        "task_name": config.task_name,
+        "task_title": config.task_title,
+        "task_description": config.task_description,
+        "campaign": config.campaign,
+        "flow_group": config.flow_group,
         "graph_id": graph_id,
         "created_at": utc_now(),
         "updated_at": utc_now(),
@@ -1475,16 +2092,13 @@ def submit_graph(
     )
     task_response = api.request(
         "POST",
-        f"/api/report/{urllib.parse.quote(TASK_NAME, safe='')}",
+        f"/api/report/{urllib.parse.quote(config.task_code, safe='')}",
         {
-            "name": "BET 2026 LF conflict sensitivities",
-            "description": (
-                "Evaluate LF tail compression, upper-tail observed-count cutoffs, "
-                "and F21/F22/F23 LF downweighting from committed Job 5319-derived inputs."
-            ),
+            "name": config.task_name,
+            "description": config.task_description,
             "owner_login": "kyuhank",
             "repo": source["model_repo"]["repo"],
-            "branch": source["model_repo"]["branch"],
+            "branch": source["model_repo"]["checkout_ref"],
             "command": "bash run.sh",
             "checkout": {"mode": "full", "paths": []},
             "remote_user": SUVA_USER,
@@ -1496,11 +2110,24 @@ def submit_graph(
             "disk": DISK,
             "slot_requirements": SUVA_SLOT_REQUIREMENT,
             "env": {},
-            "tags": {"assessment": "BET 2026", "campaign": CAMPAIGN},
+            "tags": {
+                "assessment": "BET 2026",
+                "campaign": config.campaign,
+                "flow_group": config.flow_group,
+                "source_commit": source["model_repo"]["commit"],
+            },
             "metadata": {
+                "task_title": config.task_title,
+                "campaign": config.campaign,
+                "flow_group": config.flow_group,
                 "graph_id": graph_id,
                 "model_count": len(models),
+                "model_selection": config.selection_text,
                 "model_source_commit": source["model_repo"]["commit"],
+                "model_source_branch": source["model_repo"]["branch"],
+                "model_source_ref": source["model_repo"]["ref"],
+                "model_source_checkout_ref": source["model_repo"]["checkout_ref"],
+                "model_source_verified_ref_commit": source["model_repo"]["verified_ref_commit"],
                 "provenance_job_number": input_job["job_number"],
                 "standalone_inputs": True,
                 "local_apps": local_apps_for_runtime(runtime),
@@ -1512,13 +2139,13 @@ def submit_graph(
         retry=True,
     )
     registered_task = task_response.get("report", {})
-    if not isinstance(registered_task, dict) or registered_task.get("code") != TASK_NAME:
-        raise OrchestratorError(f"Kflow did not confirm task registration for {TASK_NAME}.")
-    print(f"task {TASK_NAME}: registered")
+    if not isinstance(registered_task, dict) or registered_task.get("code") != config.task_code:
+        raise OrchestratorError(f"Kflow did not confirm task registration for {config.task_code}.")
+    print(f"task {config.task_code}: registered")
     failures: list[str] = []
     fit_numbers: dict[str, str] = {}
     state_path = args.state_file.expanduser().resolve()
-    with StateStore(state_path, graph_id, state_initial) as store:
+    with StateStore(state_path, graph_id, state_initial, config) as store:
         if not args.diagnostics_only:
             payloads = {
                 model.name: fit_payload(
@@ -1527,6 +2154,7 @@ def submit_graph(
                     source=source,
                     runtime=runtime,
                     input_job=input_job,
+                    config=config,
                 )
                 for model in models
             }
@@ -1538,6 +2166,7 @@ def submit_graph(
                         store,
                         model,
                         payloads[model.name],
+                        config=config,
                         number_timeout=args.job_number_timeout,
                     ): model
                     for model in models
@@ -1562,10 +2191,11 @@ def submit_graph(
                     source=source,
                     runtime=runtime,
                     input_job=input_job,
+                    config=config,
                 )
                 try:
                     existing = validate_existing_fit(
-                        api.jobs_by_tags(TASK_NAME, payload["tags"]), model, payload
+                        api.jobs_by_tags(config.task_code, payload["tags"]), model, payload, config
                     )
                     if existing is None:
                         raise OrchestratorError("fit job not found")
@@ -1589,6 +2219,7 @@ def submit_graph(
                         flow_group=flow_group,
                         source=source,
                         runtime=runtime,
+                        config=config,
                         token=token,
                         kflow_url=url,
                         timeout=args.helper_timeout,
@@ -1625,10 +2256,11 @@ def submit_graph(
 def main() -> int:
     args = parse_args()
     validate_args(args)
-    models, source, runtime, input_job, issues, workers, worker_source = preflight(args)
+    config, models, source, runtime, input_job, issues, workers, worker_source = preflight(args)
     if not args.submit:
         return dry_run_audit(
             args,
+            config,
             models,
             source,
             runtime,
@@ -1637,11 +2269,11 @@ def main() -> int:
             workers,
             worker_source,
         )
-    assert_submit_preflight(issues, runtime)
+    assert_submit_preflight(issues, runtime, source)
     if not CHECKS_HELPER.is_file():
         raise OrchestratorError(f"Checks helper is missing: {CHECKS_HELPER}")
     print(f"submission workers: {workers} ({worker_source})")
-    return submit_graph(args, models, source, runtime, input_job, workers)
+    return submit_graph(args, config, models, source, runtime, input_job, workers)
 
 
 if __name__ == "__main__":
