@@ -1,8 +1,10 @@
 model,tail_compression_percent,cutoff_cm,downweight,hessian_pdh,status,basis
-S010-TC1-CUT70-DW1,1,70,1,Yes,fitted,PDH shortlist
-S014-TC1-NOCUT-DW10,1,,10,Yes,fitted,PDH shortlist
-S022-TC1-CUT70-DW10,1,70,10,Yes,fitted,PDH shortlist
-S040-TC1-CUT70-DW5,1,70,5,Not run,prepared,target-only 5x replacement for former DW100 model
-S037-TC1-CUT90-DW1,1,90,1,Not run,prepared,2023 assessment treatment
-S038-TC1-CUT90-DW5,1,90,5,Not run,prepared,2023 cutoff plus target-only 5x downweight
-S039-TC1-CUT90-DW10,1,90,10,Not run,prepared,2023 cutoff plus target-only 10x downweight
+S001-TC1-NOCUT-DW1,1,,1,No,fitted,baseline cutoff and weighting combination
+S002-TC1-NOCUT-DW5,1,,5,Not run,prepared,target-only 5x downweight
+S003-TC1-NOCUT-DW10,1,,10,Yes,fitted,PDH retained under branch-local ID
+S004-TC1-CUT70-DW1,1,70,1,Yes,fitted,PDH retained under branch-local ID
+S005-TC1-CUT70-DW5,1,70,5,Not run,prepared,target-only 5x replacement for former DW100 model
+S006-TC1-CUT70-DW10,1,70,10,Yes,fitted,PDH retained under branch-local ID
+S007-TC1-CUT90-DW1,1,90,1,Not run,prepared,2023 assessment treatment
+S008-TC1-CUT90-DW5,1,90,5,Not run,prepared,2023 cutoff plus target-only 5x downweight
+S009-TC1-CUT90-DW10,1,90,10,Not run,prepared,2023 cutoff plus target-only 10x downweight

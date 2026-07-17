@@ -1,4 +1,4 @@
-## Fail-fast validation for the seven curated BET 2026 MFCL LF sensitivities.
+## Fail-fast validation for the nine curated BET 2026 MFCL LF sensitivities.
 
 script_arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
 root <- if (length(script_arg)) {
@@ -60,17 +60,19 @@ assert_true(is.data.frame(models), "job-config.R must define stepwise_models")
 
 expected_grid <- data.frame(
   step_id = c(
-    "S010-TC1-CUT70-DW1",
-    "S014-TC1-NOCUT-DW10",
-    "S022-TC1-CUT70-DW10",
-    "S040-TC1-CUT70-DW5",
-    "S037-TC1-CUT90-DW1",
-    "S038-TC1-CUT90-DW5",
-    "S039-TC1-CUT90-DW10"
+    "S001-TC1-NOCUT-DW1",
+    "S002-TC1-NOCUT-DW5",
+    "S003-TC1-NOCUT-DW10",
+    "S004-TC1-CUT70-DW1",
+    "S005-TC1-CUT70-DW5",
+    "S006-TC1-CUT70-DW10",
+    "S007-TC1-CUT90-DW1",
+    "S008-TC1-CUT90-DW5",
+    "S009-TC1-CUT90-DW10"
   ),
-  tail_compression_percent = rep(1L, 7L),
-  cutoff = c("70", "NONE", "70", "70", "90", "90", "90"),
-  lf_downweight_factor = c(1L, 10L, 10L, 5L, 1L, 5L, 10L),
+  tail_compression_percent = rep(1L, 9L),
+  cutoff = rep(c("NONE", "70", "90"), each = 3L),
+  lf_downweight_factor = rep(c(1L, 5L, 10L), 3L),
   stringsAsFactors = FALSE
 )
 cell_key <- function(tc, cutoff, dw) paste(tc, cutoff, dw, sep = "|")
@@ -84,14 +86,14 @@ expected_keys <- cell_key(
   expected_grid$cutoff,
   expected_grid$lf_downweight_factor
 )
-assert_true(nrow(models) == 7L, "Expected exactly seven configured cells")
+assert_true(nrow(models) == 9L, "Expected exactly nine configured cells")
 assert_true(!anyDuplicated(models$step_id), "Configured step IDs must be unique")
 assert_true(!anyDuplicated(models$job_title), "Configured job titles must be unique")
 assert_true(!anyDuplicated(actual_keys) && setequal(actual_keys, expected_keys),
             "Configured cells must match the curated TC1 design")
 assert_true(setequal(models$step_id, expected_grid$step_id),
             "Configured model IDs must match the curated selection")
-assert_true(all(models$enabled), "All seven sensitivity cells must be enabled")
+assert_true(all(models$enabled), "All nine sensitivity cells must be enabled")
 assert_true(all(models$run_mode == "doitall"), "All cells must use doitall")
 assert_true(all(models$regional_scaling_weight == 50L),
             "Regional-scaling weight must be 50 in all cells")
@@ -99,14 +101,14 @@ assert_true(all(models$lf_size_divisor == 20L * models$lf_downweight_factor),
             "Each configured target-fishery LF divisor must equal 20 times its downweight factor")
 assert_true(setequal(unique(models$cutoff_code), c("NOCUT", "CUT70", "CUT90")),
             "Cutoff codes must be NOCUT, CUT70, and CUT90")
-pass("exact seven-model curated TC1 design")
+pass("exact nine-model curated TC1 design")
 
 sensitivity_root <- file.path(root, "sensitivity")
 assert_true(dir.exists(sensitivity_root), "Missing sensitivity directory")
 top_entries <- list.files(sensitivity_root, full.names = TRUE, no.. = TRUE)
 top_dirs <- basename(top_entries[file.info(top_entries)$isdir %in% TRUE])
-assert_true(length(top_dirs) == 7L && setequal(top_dirs, models$step_id),
-            "sensitivity must contain exactly the seven configured folders")
+assert_true(length(top_dirs) == 9L && setequal(top_dirs, models$step_id),
+            "sensitivity must contain exactly the nine configured folders")
 forbidden_dirs <- c(
   file.path(root, "steps"),
   file.path(root, ".generation-staging"),
@@ -125,7 +127,7 @@ for (i in seq_len(nrow(models))) {
   assert_true(identical(title, paste0("# ", models$job_title[[i]])),
               "Folder title does not match job-config.R: ", models$step_id[[i]])
 }
-pass("exactly seven titled folders with no steps or staging")
+pass("exactly nine titled folders with no steps or staging")
 
 reference_dir <- file.path(root, "reference-inputs", "job-5319", "mfcl-inputs")
 reference_required <- c(
@@ -603,4 +605,4 @@ assert_true(grepl("WCPFC-SC19-2023/SA-WP-05", cut90_text, fixed = TRUE),
             "CUT90 README provenance must cite the 2023 assessment")
 pass("CUT90 historical provenance is recorded")
 
-cat("VALIDATION PASSED: seven titled sensitivities; all requested invariants hold.\n")
+cat("VALIDATION PASSED: nine titled sensitivities; all requested invariants hold.\n")

@@ -109,9 +109,9 @@ if (!identical(tag_sha256, expected_tag_sha256)) {
   fail("Refreshed bet.tag SHA-256 mismatch: ", tag_sha256)
 }
 
-if (!is.data.frame(models) || nrow(models) != 7L ||
+if (!is.data.frame(models) || nrow(models) != 9L ||
     anyDuplicated(models$step_id) || any(!models$enabled)) {
-  fail("job-config.R must define exactly seven unique enabled sensitivity cells")
+  fail("job-config.R must define exactly nine unique enabled sensitivity cells")
 }
 if (!all(models$run_mode == "doitall") ||
     !all(models$regional_scaling_weight == 50L)) {

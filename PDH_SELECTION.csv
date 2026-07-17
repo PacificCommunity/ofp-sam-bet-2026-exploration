@@ -1,4 +1,4 @@
 model,tail_compression_percent,cutoff_cm,downweight,hessian_pdh,non_positive_eigenvalues,strictly_negative_eigenvalues,zero_eigenvalues,smallest_eigenvalue
-S010-TC1-CUT70-DW1,1,70,1,Yes,0,0,0,1.719e-7
-S014-TC1-NOCUT-DW10,1,,10,Yes,0,0,0,6.438e-8
-S022-TC1-CUT70-DW10,1,70,10,Yes,0,0,0,1.328e-7
+S003-TC1-NOCUT-DW10,1,,10,Yes,0,0,0,6.438e-8
+S004-TC1-CUT70-DW1,1,70,1,Yes,0,0,0,1.719e-7
+S006-TC1-CUT70-DW10,1,70,10,Yes,0,0,0,1.328e-7

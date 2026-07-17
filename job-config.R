@@ -1,8 +1,7 @@
-# Curated BET 2026 MFCL LF sensitivity set.
-# Three retained TC1 models have a positive-definite Hessian. Four additional
-# models use target-only downweight factors no larger than 10: one CUT70-DW5
-# replacement and three CUT90 candidates. Tail compression is global and the
-# cutoff/downweight treatments apply only to fisheries 21, 22, and 23.
+# Curated BET 2026 MFCL LF sensitivity grid.
+# The nine TC1 models cross three cutoff treatments with target-fishery
+# downweight factors 1, 5, and 10. Tail compression is global; cutoff and
+# downweight treatments apply only to fisheries 21, 22, and 23.
 
 stepwise_run <- list(
   default_step_select = "all",
@@ -12,18 +11,24 @@ stepwise_run <- list(
 
 sensitivity_grid <- data.frame(
   step_id = c(
-    "S010-TC1-CUT70-DW1",
-    "S014-TC1-NOCUT-DW10",
-    "S022-TC1-CUT70-DW10",
-    "S040-TC1-CUT70-DW5",
-    "S037-TC1-CUT90-DW1",
-    "S038-TC1-CUT90-DW5",
-    "S039-TC1-CUT90-DW10"
+    "S001-TC1-NOCUT-DW1",
+    "S002-TC1-NOCUT-DW5",
+    "S003-TC1-NOCUT-DW10",
+    "S004-TC1-CUT70-DW1",
+    "S005-TC1-CUT70-DW5",
+    "S006-TC1-CUT70-DW10",
+    "S007-TC1-CUT90-DW1",
+    "S008-TC1-CUT90-DW5",
+    "S009-TC1-CUT90-DW10"
   ),
-  regional_scaling_weight = rep(50L, 7L),
-  tail_compression_percent = rep(1L, 7L),
-  cutoff_cm = c(70, NA_real_, 70, 70, 90, 90, 90),
-  lf_downweight_factor = c(1L, 10L, 10L, 5L, 1L, 5L, 10L),
+  regional_scaling_weight = rep(50L, 9L),
+  tail_compression_percent = rep(1L, 9L),
+  cutoff_cm = c(
+    NA_real_, NA_real_, NA_real_,
+    70, 70, 70,
+    90, 90, 90
+  ),
+  lf_downweight_factor = rep(c(1L, 5L, 10L), 3L),
   stringsAsFactors = FALSE
 )
 sensitivity_grid$lf_size_divisor <-

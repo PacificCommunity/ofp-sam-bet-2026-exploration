@@ -1,4 +1,4 @@
-# BET 2026 S014-TC1-NOCUT-DW10 global MFCL LF tail compression 1%; F21/F22/F23 observed LF counts are unchanged; no cutoff is applied; F21/F22/F23 LF likelihood downweight 10x with flag-49 divisor 200
+# BET 2026 S009-TC1-CUT90-DW10 global MFCL LF tail compression 1%; F21/F22/F23 observed LF counts in bins with midpoint above the 90 cm cutoff are set to zero; F21/F22/F23 LF likelihood downweight 10x with flag-49 divisor 200
 
 This is one model in the curated BET 2026 TC1 LF sensitivity set.
 
@@ -7,14 +7,14 @@ This is one model in the curated BET 2026 TC1 LF sensitivity set.
 | Control | Setting |
 | --- | --- |
 | Global MFCL LF tail compression | 1% |
-| F21/F22/F23 observed LF upper-bin zeroing | none |
+| F21/F22/F23 observed LF upper-bin zeroing | above 90 cm |
 | F21/F22/F23 LF likelihood downweight | 10x; flag-49 divisor 200 |
 | Regional-scaling penalty weight | 50 |
 
 ## Observed LF semantics
 
-For F21/F22/F23, observed LF counts are unchanged; no cutoff is applied.
-This model retains its previously selected cutoff treatment.
+For F21/F22/F23, observed LF counts in bins with midpoint above the 90 cm cutoff are set to zero.
+The 90 cm threshold reproduces the historical treatment documented in WCPFC-SC19-2023/SA-WP-05 for the corresponding Indonesia, Philippines, and Vietnam domestic small-fish length compositions; 90 cm is retained and only bins with midpoint greater than 90 cm are zeroed.
 The bins remain as categories in the MFCL option-3 LF likelihood, and MFCL internally renormalizes retained counts. Counts are not transferred. An all-zero LF vector is represented by one `-1` whole-sample sentinel; record metadata and weight-frequency data remain unchanged.
 
 ## Provenance and controls
@@ -29,6 +29,6 @@ No MFCL source or executable is changed.
 
 ## Cutoff audit
 
-No cutoff audit is required because bet.frq is byte-identical to the Job 5319 archive.
+F21 removed 56 counts from 3 records (1 all-zero LF sentinels); F22 removed 5760 counts from 122 records (0 all-zero LF sentinels); F23 removed 1375 counts from 16 records (0 all-zero LF sentinels)
 
 Status: generated and ready for validation; Kflow has not been submitted.

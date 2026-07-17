@@ -1,4 +1,4 @@
-# BET 2026 S040-TC1-CUT70-DW5 global MFCL LF tail compression 1%; F21/F22/F23 observed LF counts in bins with midpoint above the 70 cm cutoff are set to zero; F21/F22/F23 LF likelihood downweight 5x with flag-49 divisor 100
+# BET 2026 S004-TC1-CUT70-DW1 global MFCL LF tail compression 1%; F21/F22/F23 observed LF counts in bins with midpoint above the 70 cm cutoff are set to zero; F21/F22/F23 LF likelihood downweight 1x with flag-49 divisor 20
 
 This is one model in the curated BET 2026 TC1 LF sensitivity set.
 
@@ -8,7 +8,7 @@ This is one model in the curated BET 2026 TC1 LF sensitivity set.
 | --- | --- |
 | Global MFCL LF tail compression | 1% |
 | F21/F22/F23 observed LF upper-bin zeroing | above 70 cm |
-| F21/F22/F23 LF likelihood downweight | 5x; flag-49 divisor 100 |
+| F21/F22/F23 LF likelihood downweight | 1x; flag-49 divisor 20 |
 | Regional-scaling penalty weight | 50 |
 
 ## Observed LF semantics
