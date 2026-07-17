@@ -9,3 +9,10 @@ S007-TC1-CUT90-DW1,normal,1,90,1,none,FALSE,,Not run,prepared,2023 assessment tr
 S008-TC1-CUT90-DW5,normal,1,90,5,none,FALSE,,Not run,prepared,2023 cutoff plus target-only 5x downweight
 S009-TC1-CUT90-DW10,normal,1,90,10,none,FALSE,,Not run,prepared,2023 cutoff plus target-only 10x downweight
 S010-DM-G4-CEST-NOCUT,dm_nore,0,,,gear4,TRUE,1000,Not run,prepared,DM-noRE self-weighting sensitivity retaining extraction and index LF in four groups; flag49 /2 is inert and not reproduced
+S011-DM-G1-C0-NOCUT,dm_nore,0,,,gear1,FALSE,1000,Not run,prepared,DM-noRE one-group sensitivity retaining all extraction and index LF with c fixed at zero
+S012-DM-G1-CEST-NOCUT,dm_nore,0,,,gear1,TRUE,1000,Not run,prepared,DM-noRE one-group sensitivity retaining all extraction and index LF with c estimated from PHASE2
+S013-DM-G2-C0-NOCUT,dm_nore,0,,,gear2,FALSE,1000,Not run,prepared,DM-noRE extraction/index grouping sensitivity retaining both LF representations with c fixed at zero
+S014-DM-G2-CEST-NOCUT,dm_nore,0,,,gear2,TRUE,1000,Not run,prepared,DM-noRE extraction/index grouping sensitivity retaining both LF representations with c estimated from PHASE2
+S015-DM-G4-C0-NOCUT,dm_nore,0,,,gear4,FALSE,1000,Not run,prepared,DM-noRE four-group sensitivity retaining extraction and index LF with c fixed at zero
+S016-DM-G4-CEST-CUT70,dm_nore,0,70,,gear4,TRUE,1000,Not run,prepared,DM-noRE G4 CEST with established F21/F22/F23 CUT70 transform and all index LF retained
+S017-DM-G4-CEST-CUT90,dm_nore,0,90,,gear4,TRUE,1000,Not run,prepared,DM-noRE G4 CEST with established F21/F22/F23 CUT90 transform and all index LF retained

@@ -1,6 +1,6 @@
 # BET 2026 LF sensitivity grid
 
-This branch contains a focused `3 x 3` TC1 design: `NOCUT`, `CUT70`, and `CUT90`, each combined with target-fishery LF downweight factors 1, 5, and 10. It also contains one LF Dirichlet-multinomial-noRE pilot using uncut data and baseline weighting. Three previously fitted combinations had a positive-definite Hessian (PDH), one had a non-PDH Hessian, and six models are newly prepared. The full 36-model factorial design remains on `main`.
+This branch contains a focused `3 x 3` TC1 design: `NOCUT`, `CUT70`, and `CUT90`, each combined with target-fishery LF downweight factors 1, 5, and 10. It also contains eight LF Dirichlet-multinomial-noRE sensitivities: the balanced NOCUT factorial `G1/G2/G4 x C0/CEST`, plus focused G4-CEST CUT70 and CUT90 variants. Three previously fitted combinations had a positive-definite Hessian (PDH), one had a non-PDH Hessian, and thirteen models are newly prepared. The full 36-model factorial design remains on `main`.
 
 ## Selected models
 
@@ -16,14 +16,21 @@ This branch contains a focused `3 x 3` TC1 design: `NOCUT`, `CUT70`, and `CUT90`
 | `S008-TC1-CUT90-DW5` | Normal, TC1 | 90 cm | 5 | Not run | - | - |
 | `S009-TC1-CUT90-DW10` | Normal, TC1 | 90 cm | 10 | Not run | - | - |
 | `S010-DM-G4-CEST-NOCUT` | DM-noRE | None | n/a | Not run | - | - |
+| `S011-DM-G1-C0-NOCUT` | DM-noRE | None | n/a | Not run | - | - |
+| `S012-DM-G1-CEST-NOCUT` | DM-noRE | None | n/a | Not run | - | - |
+| `S013-DM-G2-C0-NOCUT` | DM-noRE | None | n/a | Not run | - | - |
+| `S014-DM-G2-CEST-NOCUT` | DM-noRE | None | n/a | Not run | - | - |
+| `S015-DM-G4-C0-NOCUT` | DM-noRE | None | n/a | Not run | - | - |
+| `S016-DM-G4-CEST-CUT70` | DM-noRE | 70 cm | n/a | Not run | - | - |
+| `S017-DM-G4-CEST-CUT90` | DM-noRE | 90 cm | n/a | Not run | - | - |
 
 ## Dirichlet-multinomial pilot
 
-`S010` uses MFCL LF likelihood option 11 with four fishery groups: longline, purse seine, other extraction, and index. The group scalar is estimated from the first fit, and the relative sample-size exponent is activated in the second fit. The inherited minimum sample-size filter remains active, percentage and DM-specific tail compression are disabled, the DM effective-sample-size upper bound is 1000, and no weight-frequency DM controls are activated.
+All eight DM models use MFCL LF likelihood option 11. The group scalar `d` is estimated from PHASE1. In C0 models, the relative sample-size exponent `c` stays fixed at the MFCL default zero in every phase; in CEST models it is fixed at zero in PHASE1 and estimated from PHASE2. The inherited minimum sample-size filter remains active, percentage and DM-specific tail compression are disabled, the DM effective-sample-size upper bound is 1000, and no weight-frequency DM controls are activated.
 
-This pilot intentionally uses `NOCUT` and retains all extraction and index LF observations. The normal-likelihood models use flag 49 to apply an extra `/2` to LF streams used as both extraction and index data, but MFCL option 11 ignores flag 49 and has no fixed `0.5` LF-contribution control. S010 therefore cannot reproduce that correction. Instead, it estimates the index fisheries as a separate fourth DM group alongside longline, purse-seine, and other extraction fisheries.
+The NOCUT factorial uses three groupings. G1 pools F1:F33. G2 separates extraction F1:F28 from index F29:F33. G4 separates longline F1:F11; purse seine F12, F17:F20, and F25:F28; other extraction F13:F16 and F21:F24; and index F29:F33. S016 and S017 retain G4-CEST and reuse exactly the established F21/F22/F23 CUT70 and CUT90 transformations from the corresponding normal-likelihood models. No G1, G2, or C0 cutoff variants are included.
 
-S010 is a deliberate DM self-weighting and overdispersion sensitivity, not an exact duplicate-use correction. The two retained LF representations can differ through aggregation, and the separate group does not model their correlation. Its `dmsizemult`, convergence, Hessian, LF residuals, index fits, and key quantities should be reviewed together; raw objective values are not directly ranked against the normal-likelihood models.
+All index LF observations are retained. The normal-likelihood models use flag 49 to apply an extra `/2` to LF streams used as both extraction and index data, but MFCL option 11 ignores flag 49 and has no fixed `0.5` LF-contribution control. These are therefore deliberate grouping, self-weighting, and overdispersion sensitivities, not exact duplicate-use corrections. The retained LF representations can differ through aggregation, and the groups do not model their correlation. Their `dmsizemult`, convergence, Hessian, LF residuals, index fits, and key quantities should be reviewed together; raw objective values are not directly ranked against the normal-likelihood models.
 
 The complete machine-readable selection is in [`SENSITIVITY_SELECTION.csv`](SENSITIVITY_SELECTION.csv); the three retained fitted PDH results remain in [`PDH_SELECTION.csv`](PDH_SELECTION.csv). Historical IDs are replaced by branch-local sequential IDs. The former `S034-TC1-CUT70-DW100` result is preserved in Git history and is not attributed to `DW5` because its weighting changed.
 
@@ -47,4 +54,4 @@ The corresponding flag-49 divisors are 20, 100, and 200 for F21/F22/F23 only. Ev
 - The archived Job 5319 FRQ and `doitall.sh` are retained; effort creep is not reapplied.
 - Active regional scaling is `20 x 5`; the complete `292 x 5` source matrix is retained for alternative period sensitivities.
 
-Only the ten directories listed above are run candidates on this branch. The six newly prepared models have not been submitted to Kflow. Use `main` to inspect the complete 36-model design.
+Only the seventeen directories listed above are run candidates on this branch. The thirteen newly prepared models have not been submitted to Kflow. Use `main` to inspect the complete 36-model design.

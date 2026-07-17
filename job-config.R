@@ -1,8 +1,8 @@
 # Curated BET 2026 MFCL LF sensitivity grid.
 # Nine TC1 models cross three cutoff treatments with target-fishery downweight
-# factors 1, 5, and 10. One additional model evaluates the modern MFCL
-# Dirichlet-multinomial-noRE LF likelihood while retaining all extraction and
-# index LF observations in four separately estimated groups.
+# factors 1, 5, and 10. Eight additional models evaluate the modern MFCL
+# Dirichlet-multinomial-noRE LF likelihood across a focused grouping, relative
+# sample-size, and cutoff design while retaining all index LF observations.
 
 stepwise_run <- list(
   default_step_select = "all",
@@ -21,20 +21,37 @@ sensitivity_grid <- data.frame(
     "S007-TC1-CUT90-DW1",
     "S008-TC1-CUT90-DW5",
     "S009-TC1-CUT90-DW10",
-    "S010-DM-G4-CEST-NOCUT"
+    "S010-DM-G4-CEST-NOCUT",
+    "S011-DM-G1-C0-NOCUT",
+    "S012-DM-G1-CEST-NOCUT",
+    "S013-DM-G2-C0-NOCUT",
+    "S014-DM-G2-CEST-NOCUT",
+    "S015-DM-G4-C0-NOCUT",
+    "S016-DM-G4-CEST-CUT70",
+    "S017-DM-G4-CEST-CUT90"
   ),
-  regional_scaling_weight = rep(50L, 10L),
-  tail_compression_percent = c(rep(1L, 9L), 0L),
+  regional_scaling_weight = rep(50L, 17L),
+  tail_compression_percent = c(rep(1L, 9L), rep(0L, 8L)),
   cutoff_cm = c(
     NA_real_, NA_real_, NA_real_,
     70, 70, 70,
     90, 90, 90,
-    NA_real_
+    rep(NA_real_, 6L),
+    70, 90
   ),
-  lf_downweight_factor = c(rep(c(1L, 5L, 10L), 3L), NA_integer_),
-  lf_likelihood = c(rep("normal", 9L), "dm_nore"),
-  dm_grouping = c(rep("none", 9L), "gear4"),
-  dm_estimate_relative_sample_size = c(rep(FALSE, 9L), TRUE),
+  lf_downweight_factor = c(
+    rep(c(1L, 5L, 10L), 3L),
+    rep(NA_integer_, 8L)
+  ),
+  lf_likelihood = c(rep("normal", 9L), rep("dm_nore", 8L)),
+  dm_grouping = c(
+    rep("none", 9L),
+    "gear4", "gear1", "gear1", "gear2", "gear2", "gear4", "gear4", "gear4"
+  ),
+  dm_estimate_relative_sample_size = c(
+    rep(FALSE, 9L),
+    TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, TRUE, TRUE
+  ),
   stringsAsFactors = FALSE
 )
 sensitivity_grid$lf_size_divisor <-
@@ -69,7 +86,36 @@ model_labels <- sprintf(
   sensitivity_grid$lf_size_divisor
 )
 dm_rows <- sensitivity_grid$lf_likelihood == "dm_nore"
+dm_group_labels <- c(
+  gear1 = "one pooled LF group",
+  gear2 = "two LF groups separating extraction and index fisheries",
+  gear4 = paste(
+    "four gear/data-source groups separating longline, purse seine,",
+    "other extraction, and index fisheries"
+  )
+)
 model_labels[dm_rows] <- paste0(
+  "MFCL LF Dirichlet-multinomial noRE; all index LF retained; ",
+  unname(dm_group_labels[sensitivity_grid$dm_grouping[dm_rows]]), "; ",
+  ifelse(
+    sensitivity_grid$dm_estimate_relative_sample_size[dm_rows],
+    "relative sample-size exponent estimated from PHASE2",
+    "relative sample-size exponent fixed at MFCL default zero"
+  ),
+  "; no DM tail compression; ",
+  ifelse(
+    is.na(sensitivity_grid$cutoff_cm[dm_rows]),
+    "uncut LF data",
+    paste0(
+      "established F21/F22/F23 upper-bin cutoff above ",
+      as.integer(sensitivity_grid$cutoff_cm[dm_rows]),
+      " cm"
+    )
+  ),
+  "; DM self-weighting/overdispersion sensitivity, not fixed duplicate-use correction"
+)
+s010_row <- sensitivity_grid$step_id == "S010-DM-G4-CEST-NOCUT"
+model_labels[s010_row] <- paste0(
   "MFCL LF Dirichlet-multinomial noRE; all extraction and index LF retained ",
   "in four gear/data-source groups; separate index group; ",
   "estimated relative sample-size covariate; no DM tail compression; ",

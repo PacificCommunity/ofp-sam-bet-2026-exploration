@@ -1,4 +1,4 @@
-## Rebuild the ten curated BET 2026 MFCL LF sensitivity folders.
+## Rebuild the seventeen curated BET 2026 MFCL LF sensitivity folders.
 ##
 ## Every cell retains the exact effort-crept FRQ archived by Kflow Job 5319.
 ## Tag-group controls, display metadata, and regional-scaling inputs are
@@ -6,10 +6,10 @@
 ## tag-prep main branch. The script
 ## never reapplies effort creep. Normal-likelihood cells change only observed
 ## LF bins for cutoff cells, parest flag 313, and fishery-49 overrides for
-## F21/F22/F23. The DM pilot additionally changes only documented LF DM-noRE
-## controls and fishery grouping/activation flags. It retains all extraction
-## and index LF observations; option 11 cannot reproduce the normal models'
-## fixed flag-49 duplicate-use correction.
+## F21/F22/F23. The DM sensitivities additionally change only documented LF
+## DM-noRE controls and fishery grouping/activation flags. All index LF is
+## retained; option 11 cannot reproduce the normal models' fixed flag-49
+## duplicate-use correction.
 
 root <- normalizePath(getwd(), winslash = "/", mustWork = TRUE)
 stepwise_refresh_ref <- "experiment/tag-grouping-reg-scaling-2026"
@@ -113,9 +113,9 @@ if (!identical(tag_sha256, expected_tag_sha256)) {
   fail("Refreshed bet.tag SHA-256 mismatch: ", tag_sha256)
 }
 
-if (!is.data.frame(models) || nrow(models) != 10L ||
+if (!is.data.frame(models) || nrow(models) != 17L ||
     anyDuplicated(models$step_id) || any(!models$enabled)) {
-  fail("job-config.R must define exactly ten unique enabled sensitivity cells")
+  fail("job-config.R must define exactly seventeen unique enabled sensitivity cells")
 }
 if (!all(models$run_mode == "doitall") ||
     !all(models$regional_scaling_weight == 50L)) {
@@ -132,14 +132,33 @@ if (!all(models$lf_likelihood %in% c("normal", "dm_nore"))) {
   fail("LF likelihood must be normal or dm_nore")
 }
 dm_rows <- models$lf_likelihood == "dm_nore"
-if (sum(dm_rows) != 1L ||
-    !identical(as.character(models$dm_grouping[dm_rows]), "gear4") ||
-    !isTRUE(models$dm_estimate_relative_sample_size[dm_rows][[1L]]) ||
-    is.finite(models$cutoff_cm[dm_rows]) ||
-    !is.na(models$lf_downweight_factor[dm_rows]) ||
-    !is.na(models$lf_size_divisor[dm_rows]) ||
-    models$tail_compression_percent[dm_rows] != 0L) {
-  fail("The single DM pilot must be gear4/CEST/NOCUT with DM self-scaling")
+expected_dm_ids <- c(
+  "S010-DM-G4-CEST-NOCUT",
+  "S011-DM-G1-C0-NOCUT",
+  "S012-DM-G1-CEST-NOCUT",
+  "S013-DM-G2-C0-NOCUT",
+  "S014-DM-G2-CEST-NOCUT",
+  "S015-DM-G4-C0-NOCUT",
+  "S016-DM-G4-CEST-CUT70",
+  "S017-DM-G4-CEST-CUT90"
+)
+expected_dm_grouping <- c(
+  "gear4", "gear1", "gear1", "gear2", "gear2", "gear4", "gear4", "gear4"
+)
+expected_dm_c_estimated <- c(TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, TRUE, TRUE)
+expected_dm_cutoff <- c(rep(NA_real_, 6L), 70, 90)
+if (sum(dm_rows) != 8L ||
+    !identical(as.character(models$step_id[dm_rows]), expected_dm_ids) ||
+    !identical(as.character(models$dm_grouping[dm_rows]), expected_dm_grouping) ||
+    !identical(
+      as.logical(models$dm_estimate_relative_sample_size[dm_rows]),
+      expected_dm_c_estimated
+    ) ||
+    !identical(as.numeric(models$cutoff_cm[dm_rows]), expected_dm_cutoff) ||
+    any(!is.na(models$lf_downweight_factor[dm_rows])) ||
+    any(!is.na(models$lf_size_divisor[dm_rows])) ||
+    any(models$tail_compression_percent[dm_rows] != 0L)) {
+  fail("DM sensitivities must match the reviewed G1/G2/G4, C0/CEST, and cutoff design")
 }
 
 fishery_map_env <- new.env(parent = globalenv())
@@ -152,24 +171,56 @@ if (!is.data.frame(reference_fishery_map) ||
     !identical(reference_fishery_map$fishery, 1:33)) {
   fail("Reference fishery_map.R must define fisheries 1:33 in order")
 }
-dm_group_ids <- ifelse(
-  reference_fishery_map$group == "LL",
-  1L,
-  ifelse(
-    grepl("^PS", reference_fishery_map$group),
-    2L,
-    ifelse(
-      reference_fishery_map$group %in% c("PL", "HL", "MISC"),
-      3L,
-      ifelse(reference_fishery_map$group == "Index", 4L, NA_integer_)
-    )
+dm_group_ids_for <- function(grouping) {
+  grouping <- as.character(grouping[[1L]])
+  fishery <- reference_fishery_map$fishery
+  ids <- switch(
+    grouping,
+    gear1 = rep(1L, length(fishery)),
+    gear2 = ifelse(fishery <= 28L, 1L, 2L),
+    gear4 = ifelse(
+      reference_fishery_map$group == "LL",
+      1L,
+      ifelse(
+        grepl("^PS", reference_fishery_map$group),
+        2L,
+        ifelse(
+          reference_fishery_map$group %in% c("PL", "HL", "MISC"),
+          3L,
+          ifelse(reference_fishery_map$group == "Index", 4L, NA_integer_)
+        )
+      )
+    ),
+    fail("Unknown DM grouping: ", grouping)
   )
-)
-if (anyNA(dm_group_ids) || !identical(sort(unique(dm_group_ids)), 1:4)) {
-  fail("Every fishery must map to one of the four reviewed DM groups")
+  ids <- as.integer(ids)
+  if (anyNA(ids)) fail("Every fishery must map to a reviewed DM group")
+  names(ids) <- fishery
+  ids
 }
-names(dm_group_ids) <- reference_fishery_map$fishery
-dm_group_names <- c("Longline", "Purse seine", "Other extraction", "Index")
+
+dm_group_names_for <- function(grouping) {
+  switch(
+    as.character(grouping[[1L]]),
+    gear1 = "All LF",
+    gear2 = c("Extraction", "Index"),
+    gear4 = c("Longline", "Purse seine", "Other extraction", "Index"),
+    fail("Unknown DM grouping")
+  )
+}
+
+expected_dm_group_counts <- list(
+  gear1 = 33L,
+  gear2 = c(28L, 5L),
+  gear4 = c(11L, 9L, 8L, 5L)
+)
+for (grouping in names(expected_dm_group_counts)) {
+  ids <- dm_group_ids_for(grouping)
+  counts <- as.integer(table(factor(ids, levels = seq_along(expected_dm_group_counts[[grouping]]))))
+  if (!identical(counts, expected_dm_group_counts[[grouping]])) {
+    fail("Unexpected fishery counts for ", grouping)
+  }
+}
 
 sensitivity_root <- file.path(root, "sensitivity")
 forbidden_dirs <- c(
@@ -281,9 +332,11 @@ write_sensitivity_doitall <- function(
   }
 
   if (identical(lf_likelihood, "dm_nore")) {
-    if (!identical(dm_grouping, "gear4")) {
-      fail("DM pilot requires the reviewed four-group fishery mapping")
+    if (!dm_grouping %in% c("gear1", "gear2", "gear4")) {
+      fail("DM sensitivity requires a reviewed gear1, gear2, or gear4 mapping")
     }
+    dm_group_ids <- dm_group_ids_for(dm_grouping)
+    dm_group_names <- dm_group_names_for(dm_grouping)
     lf_likelihood_hit <- grep(
       "^[[:space:]]*1[[:space:]]+141[[:space:]]+", lines
     )
@@ -364,6 +417,8 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
     "Refreshed from PacificCommunity/ofp-sam-bet-2026-stepwise@",
     stepwise_refresh_commit, " (", stepwise_refresh_ref, ")."
   )
+  is_dm <- identical(as.character(row$lf_likelihood), "dm_nore")
+  is_s010 <- identical(as.character(row$step_id), "S010-DM-G4-CEST-NOCUT")
   frq_note <- paste(
     paste0(
       "Exact retained Job 5319 effort-crept bet.frq; SHA-256 ",
@@ -371,7 +426,13 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
     ),
     treatment,
     cutoff_provenance(as.numeric(row$cutoff_cm)),
-    if (has_cutoff) {
+    if (has_cutoff && is_dm) {
+      paste(
+        "Counts are not transferred; retained LF categories use MFCL option 11;",
+        "MFCL internally normalizes retained counts; an all-zero LF vector",
+        "becomes one -1 whole-sample sentinel."
+      )
+    } else if (has_cutoff) {
       paste(
         "Counts are not transferred; LF categories remain in the MFCL option-3",
         "likelihood; MFCL internally renormalizes retained counts; an all-zero",
@@ -382,15 +443,23 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
     },
     "Effort creep is not reapplied."
   )
-  if (identical(as.character(row$lf_likelihood), "dm_nore")) {
+  if (is_dm && !has_cutoff) {
     frq_note <- paste(
       frq_note,
       "All extraction and index LF observations are retained byte-for-byte.",
       "The normal-likelihood flag-49 extra /2 correction is inert under",
       "option 11 and therefore is not reproduced in this DM sensitivity."
     )
+  } else if (is_dm) {
+    frq_note <- paste(
+      frq_note,
+      "All F29/F30/F31/F32/F33 index LF observations are retained unchanged.",
+      "Only the established F21/F22/F23 upper-bin cutoff transform is applied.",
+      "The normal-likelihood flag-49 extra /2 correction is inert under",
+      "option 11 and therefore is not reproduced in this DM sensitivity."
+    )
   }
-  if (identical(as.character(row$lf_likelihood), "dm_nore")) {
+  if (is_s010) {
     doitall_note <- paste(
       "Retained Job 5319 doitall sequence with LF likelihood option 11;",
       "the LF preprocessing gate and N < 50 filter retained; percentage and",
@@ -401,6 +470,31 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
       "but are inert under DM-noRE, so the normal models' fixed extra /2 is not",
       "reproduced. The separate index group makes this a deliberate DM",
       "self-weighting/overdispersion sensitivity, not an exact duplicate-use correction."
+    )
+  } else if (is_dm) {
+    group_count <- switch(as.character(row$dm_grouping), gear1 = 1L, gear2 = 2L, gear4 = 4L)
+    c_note <- if (isTRUE(row$dm_estimate_relative_sample_size[[1L]])) {
+      "the relative sample-size exponent is fixed at zero in PHASE1 and estimated from PHASE2"
+    } else {
+      "the relative sample-size exponent remains fixed at MFCL default zero in every phase"
+    }
+    cutoff_note <- if (has_cutoff) {
+      sprintf(
+        "the established F21/F22/F23 cutoff above %.0f cm is applied",
+        as.numeric(row$cutoff_cm)
+      )
+    } else {
+      "no LF cutoff is applied"
+    }
+    doitall_note <- paste(
+      "Retained Job 5319 doitall sequence with LF likelihood option 11;",
+      "the LF preprocessing gate and N < 50 filter retained; percentage and",
+      "DM-specific LF tail compression disabled; DM maximum effective sample",
+      "size 1000;", group_count, "reviewed LF group(s); group-specific scalar",
+      "exponents estimated from PHASE1;", paste0(c_note, ";"), paste0(cutoff_note, "."),
+      "Inherited flag-49 lines are inert under DM-noRE, so the normal models'",
+      "fixed extra /2 is not reproduced. These are deliberate DM",
+      "grouping/overdispersion sensitivities, not exact duplicate-use corrections."
     )
   } else {
     doitall_note <- sprintf(
@@ -491,7 +585,8 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
 
 write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
   is_dm <- identical(as.character(row$lf_likelihood), "dm_nore")
-  if (is_dm) {
+  is_s010 <- identical(as.character(row$step_id), "S010-DM-G4-CEST-NOCUT")
+  if (is_s010) {
     lines <- c(
       paste0("# ", as.character(row$job_title)),
       "",
@@ -538,6 +633,100 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       "",
       paste0("The reference input-set SHA-256 is `", expected_reference_sha256, "`."),
       paste0("The retained Job 5319 effort-crept `bet.frq` SHA-256 is `", expected_frq_sha256, "`; effort creep is not reapplied."),
+      paste0("The refreshed tag-control `.ini` comes from stepwise commit `", stepwise_refresh_commit, "`."),
+      paste0("The tag data come from tag-prep commit `", tag_prep_commit, "`."),
+      "No MFCL source or executable is changed.",
+      "",
+      "Status: generated and ready for validation; Kflow has not been submitted."
+    )
+    writeLines(lines, file.path(step_dir, "README.md"), useBytes = TRUE)
+    return(invisible(step_dir))
+  }
+  if (is_dm) {
+    grouping <- as.character(row$dm_grouping)
+    grouping_text <- switch(
+      grouping,
+      gear1 = "G1: F1:F33 in one pooled LF group",
+      gear2 = "G2: extraction F1:F28 in group 1; index F29:F33 in group 2",
+      gear4 = paste(
+        "G4: longline F1:F11; purse seine F12/F17:F20/F25:F28;",
+        "other extraction F13:F16/F21:F24; index F29:F33"
+      )
+    )
+    c_text <- if (isTRUE(row$dm_estimate_relative_sample_size[[1L]])) {
+      "CEST: c is fixed at zero in PHASE1 and estimated from PHASE2"
+    } else {
+      "C0: c remains fixed at MFCL default zero in every phase"
+    }
+    cutoff_value <- as.numeric(row$cutoff_cm)
+    cutoff_text <- if (is.finite(cutoff_value)) {
+      sprintf("Established F21/F22/F23 upper-bin cutoff above %.0f cm", cutoff_value)
+    } else {
+      "None"
+    }
+    audit_line <- if (is.data.frame(audit)) {
+      paste(
+        sprintf(
+          "F%d removed %s counts from %d records (%d all-zero LF sentinels)",
+          audit$fishery,
+          format(audit$removed_count, digits = 15L, trim = TRUE),
+          audit$affected_records,
+          audit$emptied_records
+        ),
+        collapse = "; "
+      )
+    } else {
+      "No LF transform is applied; bet.frq is byte-identical to the Job 5319 archive."
+    }
+    lines <- c(
+      paste0("# ", as.character(row$job_title)),
+      "",
+      "This model is one LF Dirichlet-multinomial-noRE sensitivity in the BET 2026 set.",
+      "",
+      "## Design",
+      "",
+      "| Control | Setting |",
+      "| --- | --- |",
+      "| LF likelihood | MFCL option 11, Dirichlet-multinomial without random effects |",
+      paste0("| LF grouping | ", grouping_text, " |"),
+      "| Group scalar exponent d | Starts at MFCL default zero; estimated from PHASE1 with fish flag 69 |",
+      paste0("| Relative sample-size exponent c | ", c_text, " |"),
+      "| DM maximum effective sample size | 1000 |",
+      "| LF preprocessing | Enabled; inherited N < 50 filter retained |",
+      "| LF tail compression | Percentage and DM-specific compression disabled |",
+      paste0("| LF cutoff | ", cutoff_text, " |"),
+      "| Index LF | F29:F33 retained unchanged |",
+      "| Regional-scaling penalty weight | 50 |",
+      "",
+      "## Interpretation",
+      "",
+      paste(
+        "The normal-likelihood models use flag 49 to apply an extra /2 to LF",
+        "streams used as both extraction and index data. MFCL option 11 ignores",
+        "flag 49 and has no fixed 0.5 LF-contribution control, so that correction",
+        "cannot be reproduced in these models."
+      ),
+      paste(
+        "Both extraction and index LF representations are retained. Grouping and",
+        "DM overdispersion are the sensitivity axes; they are not exact",
+        "duplicate-use corrections and do not model correlation introduced by",
+        "aggregation differences between representations."
+      ),
+      if (is.finite(cutoff_value)) {
+        paste(
+          treatment,
+          "This is exactly the established transform used by the corresponding",
+          "normal-likelihood cutoff model; no index or other fishery LF is changed."
+        )
+      } else {
+        "No LF cutoff transform is applied."
+      },
+      "",
+      "## Provenance and audit",
+      "",
+      paste0("The reference input-set SHA-256 is `", expected_reference_sha256, "`."),
+      paste0("The retained Job 5319 effort-crept `bet.frq` SHA-256 is `", expected_frq_sha256, "`; effort creep is not reapplied."),
+      audit_line,
       paste0("The refreshed tag-control `.ini` comes from stepwise commit `", stepwise_refresh_commit, "`."),
       paste0("The tag data come from tag-prep commit `", tag_prep_commit, "`."),
       "No MFCL source or executable is changed.",
