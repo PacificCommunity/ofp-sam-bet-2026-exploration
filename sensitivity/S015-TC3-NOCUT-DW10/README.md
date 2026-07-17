@@ -18,9 +18,11 @@ The bins remain as categories in the MFCL option-3 LF likelihood, and MFCL inter
 
 ## Provenance and controls
 
-All inputs derive from the exact raw MFCL bundle archived by Kflow Job 5319 (input-set SHA-256 `993aa5e2d32f308ec8468765ddde35a08563c6ab4884c18f6f10660a5f1f37c4`).
-The archived effort-crept `bet.frq` has SHA-256 `d77f97c348409f845f1f0fc801af808d15b6cb119349d1f083308cfc9d4fba8c`; effort creep is not reapplied.
-Archived regional-scaling rows 53:72 are copied verbatim as a 20x5 matrix. The `doitall.sh` changes are limited to flag 313 and three new F21/F22/F23 flag-49 overrides; all other inherited Job 5319 controls remain unchanged.
+The refreshed reference bundle has input-set SHA-256 `806f1e81e0bbbc74c9925646d04947d8cb2abeea1e707140e8cf32a89f244a03`.
+The retained Job 5319 effort-crept `bet.frq` has SHA-256 `d77f97c348409f845f1f0fc801af808d15b6cb119349d1f083308cfc9d4fba8c`; effort creep is not reapplied.
+`bet.ini`, `bet.tag`, `fishery_map.R`, and `tag_rep_map.R` are refreshed from stepwise commit `26c74dc6f303faa951b1ab331d7de14ea20b7489`; the 98 `tag_flags(:,2)` values remain 0.
+`bet.reg_scaling` is the MFCL-ready 20x5 active matrix and `bet.reg_scaling.full` retains the complete 292x5 sensitivity source. The active matrix is exactly full-source rows 53:72.
+The `doitall.sh` changes are limited to flag 313 and three new F21/F22/F23 flag-49 overrides; all other inherited Job 5319 controls remain unchanged.
 No MFCL source or executable is changed.
 
 ## Cutoff audit

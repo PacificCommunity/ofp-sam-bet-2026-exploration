@@ -1,25 +1,33 @@
 # BET 2026 MFCL Length-Frequency Sensitivities
 
 This analysis isolates three length-frequency (LF) choices around the reviewed
-BET 2026 Step 12 effort-creep model. It uses the existing MFCL executable and
-changes neither MFCL source code nor executable files.
+BET 2026 effort-creep model. It uses the existing MFCL executable and changes
+neither MFCL source code nor executable files.
 
-## Job 5319 provenance
+## Reference baseline
 
-Every cell starts from the raw MFCL input set archived by Kflow Job 5319 in
-`reference-inputs/job-5319/mfcl-inputs`. The archived `bet.frq` is the exact
-Step 12 frequency file and already contains the agreed effort-creep adjustment
-for index fisheries 29-33. Generation copies that file directly and never
-reapplies effort creep.
+Every cell retains the exact effort-crept `bet.frq` archived by Kflow Job 5319.
+The tag-group controls and tag data are refreshed from
+`PacificCommunity/ofp-sam-bet-2026-stepwise` branch
+`experiment/tag-grouping-reg-scaling-2026`, commit
+`26c74dc6f303faa951b1ab331d7de14ea20b7489`. Step 11 through Step 14 use the
+same refreshed `bet.ini` and `bet.tag`, so the update does not change the
+LF-sensitivity baseline or reapply effort creep.
+
+The reference bundle is stored in `reference-inputs/job-5319/mfcl-inputs`.
 
 | Provenance item | SHA-256 |
 | --- | --- |
-| Job 5319 archived input set | `993aa5e2d32f308ec8468765ddde35a08563c6ab4884c18f6f10660a5f1f37c4` |
-| Job 5319 archived `bet.frq` | `d77f97c348409f845f1f0fc801af808d15b6cb119349d1f083308cfc9d4fba8c` |
+| Refreshed 10-file reference bundle | `806f1e81e0bbbc74c9925646d04947d8cb2abeea1e707140e8cf32a89f244a03` |
+| Retained Job 5319 `bet.frq` | `d77f97c348409f845f1f0fc801af808d15b6cb119349d1f083308cfc9d4fba8c` |
+| Refreshed `bet.ini` | `3c9503e0762547762bab20b26997c3a4e627b0965b1d88418d71a1a17f40bb11` |
+| Refreshed `bet.tag` | `a0365342054ae96ba9e48292b7bf46f469f0cf8b577985587b0e29fd49c23269` |
 
-The input-set hash is the SHA-256 of the sorted `sha256sum *` manifest for the
-nine files in the archived `mfcl-inputs` directory. The generator and validator
-both check these hashes before proceeding.
+The refreshed ini contains 98 tag-release rows and retains
+`tag_flags(:,2)=0` for every row. `tag_rep_map.R` matches the updated reporting
+rate groups, initial values, targets, penalties, and fishery names used by
+`bet.ini` and `bet.tag`. The existing Job 5319 `doitall.sh` is retained so this
+refresh does not introduce later OPR controls.
 
 ## 36-cell design
 
@@ -44,9 +52,9 @@ it pools tail mass rather than discarding it. Downweighting adds only flag-49
 overrides for F21/F22/F23, using divisors 20, 200, or 2000. All inherited Job
 5319 fishery settings outside those three overrides remain unchanged.
 
-The archived regional-scaling matrix has 292 rows and five columns. Each cell
-writes source rows 53:72 verbatim to `bet.reg_scaling`, producing exactly a
-20x5 matrix, and retains regional-scaling weight 50.
+Each model stores the MFCL-ready 20x5 active matrix as `bet.reg_scaling` and the
+complete 292x5 sensitivity source as `bet.reg_scaling.full`. The active matrix
+is exactly full-source rows 53:72; MFCL reads only `bet.reg_scaling`.
 
 ## Rebuild and validate
 
@@ -57,11 +65,4 @@ Rscript R/validate_sensitivities.R
 
 Each of the 36 titled folders contains a complete `doitall` input set, a concise
 README, and `input_manifest.csv`. Cutoff cells also contain
-`model/lf_cutoff_audit.csv`.
-
-## Kflow plan
-
-Validation is required before Kflow staging. The high-level sequence is to
-review the 36-cell manifest, stage or dry-run the complete matrix, inspect the
-planned jobs, and then submit the approved cells as a separate action. Neither
-the generator nor the validator submits Kflow jobs.
+`model/lf_cutoff_audit.csv`. Neither script submits Kflow jobs.

@@ -1,11 +1,14 @@
 ## Rebuild the 36 BET 2026 MFCL LF sensitivity folders.
 ##
-## Every cell starts from the exact raw inputs archived by Kflow Job 5319.
-## The archived FRQ already contains effort creep, so this script never applies
-## an effort-creep transform. It changes only observed LF bins for cutoff cells,
-## parest flag 313, and new fishery-49 overrides for F21/F22/F23.
+## Every cell retains the exact effort-crept FRQ archived by Kflow Job 5319.
+## Tag-group controls, tag data, display metadata, and regional-scaling inputs
+## are refreshed from the reviewed stepwise tag-grouping branch. The script
+## never reapplies effort creep. It changes only observed LF bins for cutoff
+## cells, parest flag 313, and new fishery-49 overrides for F21/F22/F23.
 
 root <- normalizePath(getwd(), winslash = "/", mustWork = TRUE)
+stepwise_refresh_ref <- "experiment/tag-grouping-reg-scaling-2026"
+stepwise_refresh_commit <- "26c74dc6f303faa951b1ab331d7de14ea20b7489"
 required_project_files <- c(
   "job-config.R",
   file.path("R", "prepare_common.R"),
@@ -29,22 +32,26 @@ config_env <- new.env(parent = globalenv())
 sys.source(file.path(root, "job-config.R"), envir = config_env)
 models <- config_env$stepwise_models
 
-job_5319_input_dir <- file.path(root, "reference-inputs", "job-5319", "mfcl-inputs")
-job_5319_required <- c(
+reference_input_dir <- file.path(root, "reference-inputs", "job-5319", "mfcl-inputs")
+reference_required <- c(
   "bet.age_length",
   "bet.frq",
   "bet.ini",
   "bet.reg_scaling",
+  "bet.reg_scaling.full",
   "bet.tag",
   "doitall.sh",
   "fishery_map.R",
   "mfcl.cfg",
   "tag_rep_map.R"
 )
-expected_archive_sha256 <-
-  "993aa5e2d32f308ec8468765ddde35a08563c6ab4884c18f6f10660a5f1f37c4"
+expected_reference_sha256 <- "806f1e81e0bbbc74c9925646d04947d8cb2abeea1e707140e8cf32a89f244a03"
 expected_frq_sha256 <-
   "d77f97c348409f845f1f0fc801af808d15b6cb119349d1f083308cfc9d4fba8c"
+expected_ini_sha256 <-
+  "3c9503e0762547762bab20b26997c3a4e627b0965b1d88418d71a1a17f40bb11"
+expected_tag_sha256 <-
+  "a0365342054ae96ba9e48292b7bf46f469f0cf8b577985587b0e29fd49c23269"
 
 fail <- function(...) stop(paste0(...), call. = FALSE)
 
@@ -63,32 +70,40 @@ sha256_file <- function(path) {
   strsplit(output[[1L]], "[[:space:]]+")[[1L]][[1L]]
 }
 
-archive_input_set_sha256 <- function(input_dir) {
+reference_input_set_sha256 <- function(input_dir) {
   files <- sort(list.files(input_dir, all.files = FALSE, no.. = TRUE))
   hashes <- vapply(file.path(input_dir, files), sha256_file, character(1))
-  manifest <- tempfile("job-5319-sha256-")
+  manifest <- tempfile("reference-inputs-sha256-")
   on.exit(unlink(manifest), add = TRUE)
   writeLines(sprintf("%s  %s", hashes, files), manifest, useBytes = TRUE)
   sha256_file(manifest)
 }
 
-if (!dir.exists(job_5319_input_dir)) {
-  fail("Missing Job 5319 archive directory: ", job_5319_input_dir)
+if (!dir.exists(reference_input_dir)) {
+  fail("Missing refreshed reference-input directory: ", reference_input_dir)
 }
-archive_files <- sort(list.files(job_5319_input_dir, all.files = FALSE, no.. = TRUE))
-if (!identical(archive_files, sort(job_5319_required))) {
+reference_files <- sort(list.files(reference_input_dir, all.files = FALSE, no.. = TRUE))
+if (!identical(reference_files, sort(reference_required))) {
   fail(
-    "Job 5319 archive must contain exactly: ",
-    paste(sort(job_5319_required), collapse = ", ")
+    "Reference bundle must contain exactly: ",
+    paste(sort(reference_required), collapse = ", ")
   )
 }
-archive_sha256 <- archive_input_set_sha256(job_5319_input_dir)
-frq_sha256 <- sha256_file(file.path(job_5319_input_dir, "bet.frq"))
-if (!identical(archive_sha256, expected_archive_sha256)) {
-  fail("Job 5319 archived input-set SHA-256 mismatch: ", archive_sha256)
+reference_sha256 <- reference_input_set_sha256(reference_input_dir)
+frq_sha256 <- sha256_file(file.path(reference_input_dir, "bet.frq"))
+ini_sha256 <- sha256_file(file.path(reference_input_dir, "bet.ini"))
+tag_sha256 <- sha256_file(file.path(reference_input_dir, "bet.tag"))
+if (!identical(reference_sha256, expected_reference_sha256)) {
+  fail("Refreshed reference input-set SHA-256 mismatch: ", reference_sha256)
 }
 if (!identical(frq_sha256, expected_frq_sha256)) {
   fail("Job 5319 archived bet.frq SHA-256 mismatch: ", frq_sha256)
+}
+if (!identical(ini_sha256, expected_ini_sha256)) {
+  fail("Refreshed bet.ini SHA-256 mismatch: ", ini_sha256)
+}
+if (!identical(tag_sha256, expected_tag_sha256)) {
+  fail("Refreshed bet.tag SHA-256 mismatch: ", tag_sha256)
 }
 
 if (!is.data.frame(models) || nrow(models) != 36L ||
@@ -163,7 +178,7 @@ replace_flag_value <- function(line, actor, flag, value) {
 }
 
 write_sensitivity_doitall <- function(to, tail_percent, divisor) {
-  source_path <- file.path(job_5319_input_dir, "doitall.sh")
+  source_path <- file.path(reference_input_dir, "doitall.sh")
   lines <- readLines(source_path, warn = FALSE)
   tc_hit <- grep("^[[:space:]]*1[[:space:]]+313[[:space:]]+", lines)
   if (length(tc_hit) != 1L) fail("Archived doitall.sh must contain one 1/313 flag")
@@ -196,14 +211,20 @@ write_sensitivity_doitall <- function(to, tail_percent, divisor) {
 }
 
 write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
-  archive_source <- file.path("reference-inputs", "job-5319", "mfcl-inputs")
-  unchanged_note <- paste0(
-    "Byte-identical Job 5319 archived input; archived input-set SHA-256 ",
-    expected_archive_sha256, "."
+  reference_source <- file.path(
+    "reference-inputs", "job-5319", "mfcl-inputs"
+  )
+  anchor_note <- paste0(
+    "Byte-identical to the retained Job 5319 anchor in the refreshed reference ",
+    "bundle; reference-set SHA-256 ", expected_reference_sha256, "."
+  )
+  refresh_note <- paste0(
+    "Refreshed from PacificCommunity/ofp-sam-bet-2026-stepwise@",
+    stepwise_refresh_commit, " (", stepwise_refresh_ref, ")."
   )
   frq_note <- paste(
     paste0(
-      "Exact Job 5319 archived effort-crept bet.frq; SHA-256 ",
+      "Exact retained Job 5319 effort-crept bet.frq; SHA-256 ",
       expected_frq_sha256, "."
     ),
     treatment,
@@ -220,7 +241,7 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
   )
   doitall_note <- sprintf(
     paste0(
-      "Exact Job 5319 archived doitall control sequence except parest flag ",
+      "Retained Job 5319 doitall control sequence except parest flag ",
       "313=%d and three new flag-49 overrides for F21/F22/F23, each with ",
       "divisor %d; inherited settings for every other fishery are unchanged."
     ),
@@ -230,34 +251,49 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
 
   manifest <- data.frame(
     role = c(
-      "frq", "ini", "tag", "age_length", "reg_scaling", "doitall",
-      "mfcl_config", "fishery_map", "tag_reporting_map"
+      "frq", "ini", "tag", "age_length", "reg_scaling",
+      "reg_scaling_full", "doitall", "mfcl_config", "fishery_map",
+      "tag_reporting_map"
     ),
     file = c(
       "bet.frq", "bet.ini", "bet.tag", "bet.age_length", "bet.reg_scaling",
-      "doitall.sh", "mfcl.cfg", "fishery_map.R", "tag_rep_map.R"
+      "bet.reg_scaling.full", "doitall.sh", "mfcl.cfg", "fishery_map.R",
+      "tag_rep_map.R"
     ),
     source = file.path(
-      archive_source,
+      reference_source,
       c(
         "bet.frq", "bet.ini", "bet.tag", "bet.age_length", "bet.reg_scaling",
-        "doitall.sh", "mfcl.cfg", "fishery_map.R", "tag_rep_map.R"
+        "bet.reg_scaling.full", "doitall.sh", "mfcl.cfg", "fishery_map.R",
+        "tag_rep_map.R"
       )
     ),
-    source_commit = NA_character_,
+    source_commit = c(
+      "", stepwise_refresh_commit, stepwise_refresh_commit, "",
+      stepwise_refresh_commit, stepwise_refresh_commit, "", "",
+      stepwise_refresh_commit, stepwise_refresh_commit
+    ),
     note = c(
       frq_note,
-      unchanged_note,
-      unchanged_note,
-      unchanged_note,
       paste(
-        "Rows 53:72 copied verbatim from the Job 5319 archived 292x5",
-        "bet.reg_scaling source, yielding exactly 20x5; fixed weight 50."
+        refresh_note,
+        paste0("Tag-control ini SHA-256 ", expected_ini_sha256, ";"),
+        "all 98 tag_flags(:,2) values remain 0."
+      ),
+      paste(refresh_note, paste0("Tag SHA-256 ", expected_tag_sha256, ".")),
+      anchor_note,
+      paste(
+        refresh_note,
+        "MFCL-ready active matrix, exactly full-source rows 53:72 (20x5); fixed weight 50."
+      ),
+      paste(
+        refresh_note,
+        "Complete 292x5 sensitivity source retained for alternative period windows; not read by MFCL."
       ),
       doitall_note,
-      unchanged_note,
-      unchanged_note,
-      unchanged_note
+      anchor_note,
+      paste(refresh_note, "Updated fishery names used by MFCLShiny."),
+      paste(refresh_note, "Updated reporting-group map matching bet.ini and bet.tag.")
     ),
     stringsAsFactors = FALSE
   )
@@ -267,7 +303,7 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
       data.frame(
         role = "frq_transform_audit",
         file = "lf_cutoff_audit.csv",
-        source = file.path(archive_source, "bet.frq"),
+        source = file.path(reference_source, "bet.frq"),
         source_commit = NA_character_,
         note = paste(
           treatment,
@@ -333,17 +369,27 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
     "## Provenance and controls",
     "",
     paste0(
-      "All inputs derive from the exact raw MFCL bundle archived by Kflow Job 5319 ",
-      "(input-set SHA-256 `", expected_archive_sha256, "`)."
+      "The refreshed reference bundle has input-set SHA-256 `",
+      expected_reference_sha256, "`."
     ),
     paste0(
-      "The archived effort-crept `bet.frq` has SHA-256 `", expected_frq_sha256,
+      "The retained Job 5319 effort-crept `bet.frq` has SHA-256 `", expected_frq_sha256,
       "`; effort creep is not reapplied."
     ),
     paste(
-      "Archived regional-scaling rows 53:72 are copied verbatim as a 20x5",
-      "matrix. The `doitall.sh` changes are limited to flag 313 and three new",
-      "F21/F22/F23 flag-49 overrides; all other inherited Job 5319 controls remain unchanged."
+      "`bet.ini`, `bet.tag`, `fishery_map.R`, and `tag_rep_map.R` are refreshed",
+      paste0("from stepwise commit `", stepwise_refresh_commit, "`;"),
+      "the 98 `tag_flags(:,2)` values remain 0."
+    ),
+    paste(
+      "`bet.reg_scaling` is the MFCL-ready 20x5 active matrix and",
+      "`bet.reg_scaling.full` retains the complete 292x5 sensitivity source.",
+      "The active matrix is exactly full-source rows 53:72."
+    ),
+    paste(
+      "The `doitall.sh` changes are limited to flag 313 and three new",
+      "F21/F22/F23 flag-49 overrides; all other inherited Job 5319 controls",
+      "remain unchanged."
     ),
     "No MFCL source or executable is changed.",
     "",
@@ -356,11 +402,22 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
   writeLines(lines, file.path(step_dir, "README.md"), useBytes = TRUE)
 }
 
-regional_source <- file.path(job_5319_input_dir, "bet.reg_scaling")
-regional_lines <- readLines(regional_source, warn = FALSE)
-regional_fields <- lengths(strsplit(trimws(regional_lines), "[[:space:]]+"))
-if (length(regional_lines) != 292L || any(regional_fields != 5L)) {
-  fail("Job 5319 bet.reg_scaling must be exactly 292x5")
+regional_active_lines <- readLines(
+  file.path(reference_input_dir, "bet.reg_scaling"), warn = FALSE
+)
+regional_full_lines <- readLines(
+  file.path(reference_input_dir, "bet.reg_scaling.full"), warn = FALSE
+)
+regional_active_fields <- lengths(strsplit(trimws(regional_active_lines), "[[:space:]]+"))
+regional_full_fields <- lengths(strsplit(trimws(regional_full_lines), "[[:space:]]+"))
+if (length(regional_active_lines) != 20L || any(regional_active_fields != 5L)) {
+  fail("Reference bet.reg_scaling must be exactly 20x5")
+}
+if (length(regional_full_lines) != 292L || any(regional_full_fields != 5L)) {
+  fail("Reference bet.reg_scaling.full must be exactly 292x5")
+}
+if (!identical(regional_active_lines, regional_full_lines[53:72])) {
+  fail("Reference bet.reg_scaling must equal bet.reg_scaling.full rows 53:72")
 }
 
 for (i in seq_len(nrow(models))) {
@@ -372,19 +429,14 @@ for (i in seq_len(nrow(models))) {
   dir.create(model_dir, recursive = TRUE, showWarnings = FALSE)
 
   for (file in c(
-    "bet.frq", "bet.ini", "bet.tag", "bet.age_length", "mfcl.cfg",
-    "fishery_map.R", "tag_rep_map.R"
+    "bet.frq", "bet.ini", "bet.tag", "bet.age_length", "bet.reg_scaling",
+    "bet.reg_scaling.full", "mfcl.cfg", "fishery_map.R", "tag_rep_map.R"
   )) {
     copy_exact(
-      file.path(job_5319_input_dir, file),
+      file.path(reference_input_dir, file),
       file.path(model_dir, file)
     )
   }
-  writeLines(
-    regional_lines[53:72],
-    file.path(model_dir, "bet.reg_scaling"),
-    useBytes = TRUE
-  )
 
   cutoff_cm <- as.numeric(row$cutoff_cm)
   cutoff_audit <- NULL
@@ -417,8 +469,10 @@ for (i in seq_len(nrow(models))) {
   write_model_readme(step_dir, row, treatment, cutoff_audit)
 }
 
-cat(sprintf("Generated %d sensitivity folders from Kflow Job 5319.\n", nrow(models)))
-cat(sprintf("Job 5319 archived input-set SHA-256: %s\n", archive_sha256))
+cat(sprintf("Generated %d sensitivity folders from the refreshed reference bundle.\n", nrow(models)))
+cat(sprintf("Refreshed reference input-set SHA-256: %s\n", reference_sha256))
 cat(sprintf("Job 5319 archived bet.frq SHA-256: %s\n", frq_sha256))
+cat(sprintf("Stepwise tag-grouping source commit: %s\n", stepwise_refresh_commit))
+cat("Regional scaling: active 20x5 plus retained full 292x5 source\n")
 cat("Effort creep reapplied: no\n")
 cat("Kflow submitted: no\n")

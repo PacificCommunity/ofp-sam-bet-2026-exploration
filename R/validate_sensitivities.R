@@ -30,10 +30,10 @@ sha256_file <- function(path) {
   strsplit(output[[1L]], "[[:space:]]+")[[1L]][[1L]]
 }
 
-archive_input_set_sha256 <- function(input_dir) {
+reference_input_set_sha256 <- function(input_dir) {
   files <- sort(list.files(input_dir, all.files = FALSE, no.. = TRUE))
   hashes <- vapply(file.path(input_dir, files), sha256_file, character(1))
-  manifest <- tempfile("job-5319-sha256-")
+  manifest <- tempfile("reference-inputs-sha256-")
   on.exit(unlink(manifest), add = TRUE)
   writeLines(sprintf("%s  %s", hashes, files), manifest, useBytes = TRUE)
   sha256_file(manifest)
@@ -117,40 +117,71 @@ for (i in seq_len(nrow(models))) {
 }
 pass("exactly 36 titled folders with no steps or staging")
 
-archive_dir <- file.path(root, "reference-inputs", "job-5319", "mfcl-inputs")
-archive_required <- c(
-  "bet.age_length", "bet.frq", "bet.ini", "bet.reg_scaling", "bet.tag",
-  "doitall.sh", "fishery_map.R", "mfcl.cfg", "tag_rep_map.R"
+reference_dir <- file.path(root, "reference-inputs", "job-5319", "mfcl-inputs")
+reference_required <- c(
+  "bet.age_length", "bet.frq", "bet.ini", "bet.reg_scaling",
+  "bet.reg_scaling.full", "bet.tag", "doitall.sh", "fishery_map.R",
+  "mfcl.cfg", "tag_rep_map.R"
 )
-expected_archive_sha256 <-
-  "993aa5e2d32f308ec8468765ddde35a08563c6ab4884c18f6f10660a5f1f37c4"
+expected_reference_sha256 <-
+  "806f1e81e0bbbc74c9925646d04947d8cb2abeea1e707140e8cf32a89f244a03"
 expected_frq_sha256 <-
   "d77f97c348409f845f1f0fc801af808d15b6cb119349d1f083308cfc9d4fba8c"
-assert_true(dir.exists(archive_dir), "Missing Job 5319 archived input directory")
-archive_files <- sort(list.files(archive_dir, all.files = FALSE, no.. = TRUE))
-assert_true(identical(archive_files, sort(archive_required)),
-            "Job 5319 archive must contain exactly the nine required inputs")
-archive_sha256 <- archive_input_set_sha256(archive_dir)
-frq_sha256 <- sha256_file(file.path(archive_dir, "bet.frq"))
-assert_true(identical(archive_sha256, expected_archive_sha256),
-            "Job 5319 archived input-set SHA-256 mismatch: ", archive_sha256)
+expected_ini_sha256 <-
+  "3c9503e0762547762bab20b26997c3a4e627b0965b1d88418d71a1a17f40bb11"
+expected_tag_sha256 <-
+  "a0365342054ae96ba9e48292b7bf46f469f0cf8b577985587b0e29fd49c23269"
+stepwise_refresh_commit <- "26c74dc6f303faa951b1ab331d7de14ea20b7489"
+assert_true(dir.exists(reference_dir), "Missing refreshed reference input directory")
+reference_files <- sort(list.files(reference_dir, all.files = FALSE, no.. = TRUE))
+assert_true(identical(reference_files, sort(reference_required)),
+            "Reference bundle must contain exactly the ten required inputs")
+reference_sha256 <- reference_input_set_sha256(reference_dir)
+frq_sha256 <- sha256_file(file.path(reference_dir, "bet.frq"))
+ini_sha256 <- sha256_file(file.path(reference_dir, "bet.ini"))
+tag_sha256 <- sha256_file(file.path(reference_dir, "bet.tag"))
+assert_true(identical(reference_sha256, expected_reference_sha256),
+            "Refreshed reference input-set SHA-256 mismatch: ", reference_sha256)
 assert_true(identical(frq_sha256, expected_frq_sha256),
             "Job 5319 archived bet.frq SHA-256 mismatch: ", frq_sha256)
+assert_true(identical(ini_sha256, expected_ini_sha256),
+            "Refreshed bet.ini SHA-256 mismatch: ", ini_sha256)
+assert_true(identical(tag_sha256, expected_tag_sha256),
+            "Refreshed bet.tag SHA-256 mismatch: ", tag_sha256)
 root_readme <- paste(readLines(file.path(root, "README.md"), warn = FALSE), collapse = "\n")
-assert_true(grepl(expected_archive_sha256, root_readme, fixed = TRUE) &&
-              grepl(expected_frq_sha256, root_readme, fixed = TRUE),
-            "README.md must record the Job 5319 archive and FRQ hashes")
+assert_true(grepl(expected_reference_sha256, root_readme, fixed = TRUE) &&
+              grepl(expected_frq_sha256, root_readme, fixed = TRUE) &&
+              grepl(expected_ini_sha256, root_readme, fixed = TRUE) &&
+              grepl(expected_tag_sha256, root_readme, fixed = TRUE) &&
+              grepl(stepwise_refresh_commit, root_readme, fixed = TRUE),
+            "README.md must record the refreshed reference provenance")
 assert_true(!grepl("public repository", root_readme, fixed = TRUE),
             "README.md must not use the phrase public repository")
-pass("exact Job 5319 archive provenance and SHA-256 hashes")
+pass("refreshed reference provenance and SHA-256 hashes")
+
+reference_ini <- readLines(file.path(reference_dir, "bet.ini"), warn = FALSE)
+tag_header <- grep("^# tag flags[[:space:]]*$", reference_ini)
+assert_true(length(tag_header) == 1L, "bet.ini must contain one tag flags block")
+next_headers <- which(seq_along(reference_ini) > tag_header & grepl("^#", reference_ini))
+assert_true(length(next_headers) > 0L, "Could not find the section after tag flags")
+tag_rows <- reference_ini[seq.int(tag_header + 1L, min(next_headers) - 1L)]
+tag_rows <- tag_rows[nzchar(trimws(tag_rows))]
+tag_fields <- strsplit(trimws(tag_rows), "[[:space:]]+")
+assert_true(length(tag_fields) == 98L && all(lengths(tag_fields) >= 2L),
+            "bet.ini must contain 98 tag-flag rows")
+tag_flag_column_2 <- suppressWarnings(as.numeric(vapply(tag_fields, `[[`, character(1), 2L)))
+assert_true(!anyNA(tag_flag_column_2) && all(tag_flag_column_2 == 0),
+            "Every tag_flags(:,2) value must remain 0")
+pass("98 refreshed tag groups retain tag_flags(:,2)=0")
 
 required_model_inputs <- c(
   "bet.frq", "bet.ini", "bet.tag", "bet.age_length", "bet.reg_scaling",
-  "doitall.sh", "mfcl.cfg", "fishery_map.R", "tag_rep_map.R"
+  "bet.reg_scaling.full", "doitall.sh", "mfcl.cfg", "fishery_map.R",
+  "tag_rep_map.R"
 )
 byte_identical_inputs <- c(
-  "bet.ini", "bet.tag", "bet.age_length", "mfcl.cfg",
-  "fishery_map.R", "tag_rep_map.R"
+  "bet.ini", "bet.tag", "bet.age_length", "bet.reg_scaling",
+  "bet.reg_scaling.full", "mfcl.cfg", "fishery_map.R", "tag_rep_map.R"
 )
 for (i in seq_len(nrow(models))) {
   step_id <- models$step_id[[i]]
@@ -164,18 +195,18 @@ for (i in seq_len(nrow(models))) {
               "doitall.sh is not executable in ", step_id)
   for (file in byte_identical_inputs) {
     assert_true(
-      same_file(file.path(model_dir, file), file.path(archive_dir, file)),
-      step_id, "/model/", file, " is not byte-identical to Job 5319"
+      same_file(file.path(model_dir, file), file.path(reference_dir, file)),
+      step_id, "/model/", file, " is not byte-identical to the refreshed reference"
     )
   }
   if (is.na(models$cutoff_cm[[i]])) {
     assert_true(
-      same_file(file.path(model_dir, "bet.frq"), file.path(archive_dir, "bet.frq")),
-      "NOCUT FRQ is not byte-identical to Job 5319 in ", step_id
+      same_file(file.path(model_dir, "bet.frq"), file.path(reference_dir, "bet.frq")),
+      "NOCUT FRQ is not byte-identical to the refreshed reference in ", step_id
     )
   }
 }
-pass("complete doitall inputs and unchanged Job 5319 FRQ/INI/tag/age/maps")
+pass("complete doitall inputs with refreshed tag controls, maps, and regional scaling")
 
 cutoff_phrase <- function(cutoff_cm) {
   sprintf(
@@ -264,9 +295,9 @@ flag_record_keys <- function(records) {
   sort(sprintf("%d|%d|%.15g", records$actor, records$flag, records$value))
 }
 
-archive_doitall <- readLines(file.path(archive_dir, "doitall.sh"), warn = FALSE)
-archive_fish_flags <- fish_49_50_records(archive_doitall)
-assert_true(!any(archive_fish_flags$actor %in% -(21:23) & archive_fish_flags$flag == 49L),
+reference_doitall <- readLines(file.path(reference_dir, "doitall.sh"), warn = FALSE)
+reference_fish_flags <- fish_49_50_records(reference_doitall)
+assert_true(!any(reference_fish_flags$actor %in% -(21:23) & reference_fish_flags$flag == 49L),
             "Job 5319 archive unexpectedly has F21/F22/F23 flag-49 overrides")
 expected_fixed_flags <- c(
   "141" = 3,
@@ -309,7 +340,7 @@ for (i in seq_len(nrow(models))) {
     drop = FALSE
   ]
   assert_true(
-    identical(flag_record_keys(inherited), flag_record_keys(archive_fish_flags)),
+    identical(flag_record_keys(inherited), flag_record_keys(reference_fish_flags)),
     "Inherited fishery flag-49/50 settings changed outside F21/F22/F23 in ", step_id
   )
 
@@ -320,33 +351,45 @@ for (i in seq_len(nrow(models))) {
   assert_true(length(override_lines) == 3L,
               "doitall reconciliation found an unexpected override count in ", step_id)
   reconciled <- lines[-override_lines]
-  archive_tc_line <- grep("^[[:space:]]*1[[:space:]]+313[[:space:]]+", archive_doitall)
+  reference_tc_line <- grep("^[[:space:]]*1[[:space:]]+313[[:space:]]+", reference_doitall)
   generated_tc_line <- grep("^[[:space:]]*1[[:space:]]+313[[:space:]]+", reconciled)
-  assert_true(length(archive_tc_line) == 1L && length(generated_tc_line) == 1L,
+  assert_true(length(reference_tc_line) == 1L && length(generated_tc_line) == 1L,
               "Cannot reconcile flag 313 in ", step_id)
-  reconciled[[generated_tc_line]] <- archive_doitall[[archive_tc_line]]
-  assert_true(identical(reconciled, archive_doitall),
+  reconciled[[generated_tc_line]] <- reference_doitall[[reference_tc_line]]
+  assert_true(identical(reconciled, reference_doitall),
               "doitall differs from Job 5319 outside flag 313 and F21/F22/F23 flag 49 in ", step_id)
 }
 pass("flags 141/311/313/77-81 and isolated F21/F22/F23 divisors")
 
-archive_regional <- readLines(file.path(archive_dir, "bet.reg_scaling"), warn = FALSE)
-archive_regional_fields <- lengths(strsplit(trimws(archive_regional), "[[:space:]]+"))
-assert_true(length(archive_regional) == 292L && all(archive_regional_fields == 5L),
-            "Archived Job 5319 regional-scaling source must be exactly 292x5")
-expected_regional <- archive_regional[53:72]
+reference_regional_active <- readLines(
+  file.path(reference_dir, "bet.reg_scaling"), warn = FALSE
+)
+reference_regional_full <- readLines(
+  file.path(reference_dir, "bet.reg_scaling.full"), warn = FALSE
+)
+active_fields <- lengths(strsplit(trimws(reference_regional_active), "[[:space:]]+"))
+full_fields <- lengths(strsplit(trimws(reference_regional_full), "[[:space:]]+"))
+assert_true(length(reference_regional_active) == 20L && all(active_fields == 5L),
+            "Reference bet.reg_scaling must be exactly 20x5")
+assert_true(length(reference_regional_full) == 292L && all(full_fields == 5L),
+            "Reference bet.reg_scaling.full must be exactly 292x5")
+assert_true(identical(reference_regional_active, reference_regional_full[53:72]),
+            "Active regional scaling must equal full-source rows 53:72")
 for (step_id in models$step_id) {
-  generated <- readLines(
+  generated_active <- readLines(
     file.path(sensitivity_root, step_id, "model", "bet.reg_scaling"),
     warn = FALSE
   )
-  generated_fields <- lengths(strsplit(trimws(generated), "[[:space:]]+"))
-  assert_true(length(generated) == 20L && all(generated_fields == 5L),
-              "Regional-scaling matrix is not exactly 20x5 in ", step_id)
-  assert_true(identical(generated, expected_regional),
-              "Regional-scaling matrix is not exact Job 5319 source rows 53:72 in ", step_id)
+  generated_full <- readLines(
+    file.path(sensitivity_root, step_id, "model", "bet.reg_scaling.full"),
+    warn = FALSE
+  )
+  assert_true(identical(generated_active, reference_regional_active),
+              "Active regional scaling differs from the reference in ", step_id)
+  assert_true(identical(generated_full, reference_regional_full),
+              "Full regional-scaling source differs from the reference in ", step_id)
 }
-pass("regional scaling is exact Job 5319 rows 53:72, compacted to 20x5")
+pass("regional scaling retains exact active 20x5 and full 292x5 matrices")
 
 frq_paths <- file.path(sensitivity_root, models$step_id, "model", "bet.frq")
 frq_md5 <- unname(tools::md5sum(frq_paths))
@@ -515,7 +558,7 @@ compare_audit <- function(path, expected, step_id) {
               "Cutoff audit transform label is wrong in ", step_id)
 }
 
-source_frq <- file.path(archive_dir, "bet.frq")
+source_frq <- file.path(reference_dir, "bet.frq")
 expected_audits <- list()
 for (code in c("CUT100", "CUT70")) {
   cutoff <- as.numeric(sub("^CUT", "", code))

@@ -1,19 +1,19 @@
 # Fishery map for 03-RegFish
 #
-# Extraction fishery labels are based on BET_PHrev_FNL.xlsx. The workbook labels
-# region 4 longline fisheries as ".4"; those are region 5 in this 5-region setup,
-# so they are labelled ".5" here.
+# Extraction fishery labels and regions follow BET/bet.RR.2026.csv from
+# ofp-sam-2026-BET-YFT-build-ini@f8faf7c. Index labels retain the explicit
+# region prefix used throughout the assessment and MFCLShiny.
 
 fishery_map <- data.frame(
   fishery_name = c(
-    "01.LL.WEST.1",
-    "02.LL.EAST.1",
+    "01.LL.WEST.ALL.1",
+    "02.LL.EAST.ALL.1",
     "03.LL.US.1",
     "04.LL.ALL.2",
     "05.LL.OS.2",
     "06.LL.ARCH.3",
     "07.LL.WEST.3",
-    "08.LL.EAST.3",
+    "08.LL.EAST.4",
     "09.LL.OS.3",
     "10.LL.ALL.5",
     "11.LL.AU.5",
@@ -26,14 +26,14 @@ fishery_map <- data.frame(
     "18.PS.PH.2",
     "19.PS.ASS.2",
     "20.PS.UNA.2",
-    "21.DOM.ID.2",
-    "22.DOM.PH.2",
-    "23.DOM.VN.2",
+    "21.MISC.ID.2",
+    "22.MISC.PH.2",
+    "23.MISC.VN.2",
     "24.PL.ALL.WEST.3",
-    "25.PS.ASS.WEST.3",
-    "26.PS.ASS.EAST.3",
-    "27.PS.UNA.WEST.3",
-    "28.PS.UNA.EAST.3",
+    "25.PS.ASSOC.WEST.3",
+    "26.PS.ASSOC.EAST.4",
+    "27.PS.UNASSOC.WEST.3",
+    "28.PS.UNASSOC.EAST.4",
     "29.Index R1",
     "30.Index R2",
     "31.Index R3",
@@ -48,8 +48,8 @@ fishery_map <- data.frame(
   group = c(
     "LL", "LL", "LL", "LL", "LL", "LL", "LL", "LL", "LL",
     "LL", "LL", "PS", "PL", "HL", "HL", "PL", "PS", "PS",
-    "PS ASS", "PS UNASS", "DOM", "DOM", "DOM", "PL",
-    "PS ASS", "PS ASS", "PS UNASS", "PS UNASS",
+    "PS ASSOC", "PS UNASSOC", "MISC", "MISC", "MISC", "PL",
+    "PS ASSOC", "PS ASSOC", "PS UNASSOC", "PS UNASSOC",
     "Index", "Index", "Index", "Index", "Index"
   ),
   source_recipe = c(
@@ -97,11 +97,11 @@ fishery_map$tag_recapture_group <- c(
 )
 
 tag_recapture_names <- c(
-  "LL.WEST.1", "LL.EAST.1", "LL.US.1", "LL.ALL.2", "LL.OS.2",
-  "LL.ARCH.3", "LL.WEST.3", "LL.EAST.3", "LL.OS.3",
+  "LL.WEST.ALL.1", "LL.EAST.ALL.1", "LL.US.1", "LL.ALL.2", "LL.OS.2",
+  "LL.ARCH.3", "LL.WEST.3", "LL.EAST.4", "LL.OS.3",
   "LL.ALL.5", "LL.AU.5", "PS.JP.1", "PL.JP.1", "PHID.2",
-  "PL.ALL.2", "PS.2", "DOM.VN.2", "PL.ALL.WEST.3",
-  "PS.WEST.3", "PS.EAST.3", "Index"
+  "PL.ALL.2", "PS.2", "MISC.VN.2", "PL.ALL.WEST.3",
+  "PS.WEST.3", "PS.EAST.4", "Index"
 )
 fishery_map$tag_recapture_name <-
   tag_recapture_names[fishery_map$tag_recapture_group]
@@ -113,12 +113,12 @@ fishery_map$selectivity_group <- c(
 )
 
 selectivity_names <- c(
-  "LL.WEST.1", "LL.EAST.1", "LL.US.1", "LL.ALL.2", "LL.OS.2",
-  "LL.ARCH.3", "LL.WEST.3", "LL.EAST.3", "LL.OS.3",
+  "LL.WEST.ALL.1", "LL.EAST.ALL.1", "LL.US.1", "LL.ALL.2", "LL.OS.2",
+  "LL.ARCH.3", "LL.WEST.3", "LL.EAST.4", "LL.OS.3",
   "LL.ALL.5", "LL.AU.5", "PS.JP.1", "PL.JP.1", "HL.IDPH.2",
   "PL.ALL.2", "PS.IDPH.2", "PS.ASS.WEST3+2", "PS.UNA.WEST3+2",
-  "DOM.ID.2", "DOM.PH.2", "DOM.VN.2", "PL.ALL.WEST.3",
-  "PS.ASS.EAST.3", "PS.UNA.EAST.3", "Index"
+  "MISC.ID.2", "MISC.PH.2", "MISC.VN.2", "PL.ALL.WEST.3",
+  "PS.ASS.EAST.4", "PS.UNA.EAST.4", "Index"
 )
 fishery_map$selectivity_name <- selectivity_names[fishery_map$selectivity_group]
 
