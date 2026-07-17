@@ -1,4 +1,4 @@
-## Rebuild the seventeen curated BET 2026 MFCL LF sensitivity folders.
+## Rebuild the 17 x 5 BET 2026 MFCL LF and age-length sensitivity folders.
 ##
 ## Every cell retains the exact effort-crept FRQ archived by Kflow Job 5319.
 ## Tag-group controls, display metadata, and regional-scaling inputs are
@@ -16,6 +16,9 @@ stepwise_refresh_ref <- "experiment/tag-grouping-reg-scaling-2026"
 stepwise_refresh_commit <- "26c74dc6f303faa951b1ab331d7de14ea20b7489"
 tag_prep_commit <- "79733c429b320e84ed5047aa6c932c8f19dab187"
 tag_prep_source <- "PacificCommunity/ofp-sam-2026-BET-YFT-tag-prep"
+age_length_source_repo <-
+  "https://github.com/PacificCommunity/ofp-sam-2026-BET-YFT-age-length-build"
+age_length_source_commit <- "96a06d21ef3c666f39ce456d3a6818b6c17324c4"
 required_project_files <- c(
   "job-config.R",
   file.path("R", "prepare_common.R"),
@@ -113,9 +116,9 @@ if (!identical(tag_sha256, expected_tag_sha256)) {
   fail("Refreshed bet.tag SHA-256 mismatch: ", tag_sha256)
 }
 
-if (!is.data.frame(models) || nrow(models) != 17L ||
+if (!is.data.frame(models) || nrow(models) != 85L ||
     anyDuplicated(models$step_id) || any(!models$enabled)) {
-  fail("job-config.R must define exactly seventeen unique enabled sensitivity cells")
+  fail("job-config.R must define exactly 85 unique enabled sensitivity cells")
 }
 if (!all(models$run_mode == "doitall") ||
     !all(models$regional_scaling_weight == 50L)) {
@@ -132,6 +135,49 @@ if (!all(models$lf_likelihood %in% c("normal", "dm_nore"))) {
   fail("LF likelihood must be normal or dm_nore")
 }
 dm_rows <- models$lf_likelihood == "dm_nore"
+expected_age_levels <- c("BASE075", "REG075", "REG100", "SUB075", "SUB100")
+age_level_counts <- table(factor(models$age_length_variant, levels = expected_age_levels))
+if (!identical(as.integer(age_level_counts), rep(17L, 5L)) ||
+    anyDuplicated(models[, c("base_sensitivity", "age_length_variant")])) {
+  fail("Age-length factorial must contain each of 17 base configurations once at all five levels")
+}
+base_rows <- models$age_length_variant == "BASE075"
+if (!identical(as.character(models$step_id[base_rows]), sprintf("S%03d-%s", 1:17, sub(
+  "^S[0-9]{3}-", "", models$base_sensitivity[base_rows]
+)))) {
+  fail("BASE075 identities must remain S001:S017")
+}
+inherit_columns <- c(
+  "run_mode", "region_count", "regional_scaling_weight",
+  "tail_compression_percent", "cutoff_cm", "cutoff_code",
+  "lf_downweight_factor", "lf_size_divisor", "lf_likelihood",
+  "dm_grouping", "dm_estimate_relative_sample_size"
+)
+base_by_id <- models[base_rows, c("base_sensitivity", inherit_columns), drop = FALSE]
+for (level in expected_age_levels[-1L]) {
+  level_rows <- models$age_length_variant == level
+  level_models <- models[level_rows, c("base_sensitivity", inherit_columns), drop = FALSE]
+  level_models <- level_models[match(base_by_id$base_sensitivity, level_models$base_sensitivity), , drop = FALSE]
+  rownames(level_models) <- NULL
+  rownames(base_by_id) <- NULL
+  if (!identical(level_models, base_by_id)) {
+    fail("Age-length level ", level, " does not inherit every base configuration exactly")
+  }
+}
+source_rows <- !duplicated(models$age_length_variant)
+source_models <- models[source_rows, , drop = FALSE]
+source_models <- source_models[match(expected_age_levels, source_models$age_length_variant), , drop = FALSE]
+if (anyNA(source_models$age_length_source_path) ||
+    any(source_models$age_length_variant == "BASE100")) {
+  fail("Age-length sources must define exactly the reviewed five levels without BASE100")
+}
+for (i in seq_len(nrow(source_models))) {
+  source_path <- file.path(root, source_models$age_length_source_path[[i]])
+  if (!file.exists(source_path)) fail("Missing age-length source: ", source_path)
+  if (!identical(sha256_file(source_path), source_models$age_length_sha256[[i]])) {
+    fail("Age-length source SHA-256 mismatch: ", source_path)
+  }
+}
 expected_dm_ids <- c(
   "S010-DM-G4-CEST-NOCUT",
   "S011-DM-G1-C0-NOCUT",
@@ -147,14 +193,16 @@ expected_dm_grouping <- c(
 )
 expected_dm_c_estimated <- c(TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, TRUE, TRUE)
 expected_dm_cutoff <- c(rep(NA_real_, 6L), 70, 90)
-if (sum(dm_rows) != 8L ||
-    !identical(as.character(models$step_id[dm_rows]), expected_dm_ids) ||
-    !identical(as.character(models$dm_grouping[dm_rows]), expected_dm_grouping) ||
+base_dm_rows <- dm_rows & base_rows
+if (sum(dm_rows) != 40L ||
+    sum(base_dm_rows) != 8L ||
+    !identical(as.character(models$step_id[base_dm_rows]), expected_dm_ids) ||
+    !identical(as.character(models$dm_grouping[base_dm_rows]), expected_dm_grouping) ||
     !identical(
-      as.logical(models$dm_estimate_relative_sample_size[dm_rows]),
+      as.logical(models$dm_estimate_relative_sample_size[base_dm_rows]),
       expected_dm_c_estimated
     ) ||
-    !identical(as.numeric(models$cutoff_cm[dm_rows]), expected_dm_cutoff) ||
+    !identical(as.numeric(models$cutoff_cm[base_dm_rows]), expected_dm_cutoff) ||
     any(!is.na(models$lf_downweight_factor[dm_rows])) ||
     any(!is.na(models$lf_size_divisor[dm_rows])) ||
     any(models$tail_compression_percent[dm_rows] != 0L)) {
@@ -508,6 +556,31 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
     )
   }
 
+  manifest_sources <- file.path(
+    reference_source,
+    c(
+      "bet.frq", "bet.ini", "bet.tag", "bet.age_length", "bet.reg_scaling",
+      "bet.reg_scaling.full", "doitall.sh", "mfcl.cfg", "fishery_map.R",
+      "tag_rep_map.R"
+    )
+  )
+  manifest_source_commits <- c(
+    "", stepwise_refresh_commit, tag_prep_commit, "",
+    stepwise_refresh_commit, stepwise_refresh_commit, "", "",
+    stepwise_refresh_commit, stepwise_refresh_commit
+  )
+  age_length_note <- anchor_note
+  if (!identical(as.character(row$age_length_variant), "BASE075")) {
+    manifest_sources[[4L]] <- as.character(row$age_length_source_path)
+    manifest_source_commits[[4L]] <- age_length_source_commit
+    age_length_note <- paste(
+      "Exact", as.character(row$age_length_variant), "age-length input from",
+      paste0(age_length_source_repo, "@", age_length_source_commit, ";"),
+      paste0("original file ", as.character(row$age_length_source_file), ";"),
+      paste0("SHA-256 ", as.character(row$age_length_sha256), ".")
+    )
+  }
+
   manifest <- data.frame(
     role = c(
       "frq", "ini", "tag", "age_length", "reg_scaling",
@@ -519,19 +592,8 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
       "bet.reg_scaling.full", "doitall.sh", "mfcl.cfg", "fishery_map.R",
       "tag_rep_map.R"
     ),
-    source = file.path(
-      reference_source,
-      c(
-        "bet.frq", "bet.ini", "bet.tag", "bet.age_length", "bet.reg_scaling",
-        "bet.reg_scaling.full", "doitall.sh", "mfcl.cfg", "fishery_map.R",
-        "tag_rep_map.R"
-      )
-    ),
-    source_commit = c(
-      "", stepwise_refresh_commit, tag_prep_commit, "",
-      stepwise_refresh_commit, stepwise_refresh_commit, "", "",
-      stepwise_refresh_commit, stepwise_refresh_commit
-    ),
+    source = manifest_sources,
+    source_commit = manifest_source_commits,
     note = c(
       frq_note,
       paste(
@@ -543,7 +605,7 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
         paste0("Latest tag data from ", tag_prep_source, "@", tag_prep_commit, " (main);"),
         paste0("tag SHA-256 ", expected_tag_sha256, "; byte-identical to PDH 13-DataWeighting.")
       ),
-      anchor_note,
+      age_length_note,
       paste(
         refresh_note,
         "MFCL-ready active matrix, exactly full-source rows 53:72 (20x5); fixed weight 50."
@@ -581,6 +643,29 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
     row.names = FALSE,
     na = ""
   )
+}
+
+add_age_length_readme <- function(lines, row) {
+  if (identical(as.character(row$age_length_variant), "BASE075")) return(lines)
+  status_line <- grep("^Status:", lines)
+  if (length(status_line) != 1L) fail("Generated model README must contain one status line")
+  section <- c(
+    "",
+    "## Age-length variant",
+    "",
+    paste0("Semantic level: `", as.character(row$age_length_variant), "`."),
+    paste0("Paired base sensitivity: `", as.character(row$base_sensitivity), "`."),
+    paste0("Model input: `", as.character(row$age_length_source_path), "`."),
+    paste0("Source repository: ", age_length_source_repo, "."),
+    paste0("Source commit: `", age_length_source_commit, "`."),
+    paste0("Source file: `", as.character(row$age_length_source_file), "`."),
+    paste0("SHA-256: `", as.character(row$age_length_sha256), "`."),
+    paste(
+      "Every other model input and all inherited normal/DM/cutoff controls are",
+      "identical to the paired BASE075 sensitivity."
+    )
+  )
+  append(lines, section, after = status_line[[1L]] - 2L)
 }
 
 write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
@@ -639,6 +724,7 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       "",
       "Status: generated and ready for validation; Kflow has not been submitted."
     )
+    lines <- add_age_length_readme(lines, row)
     writeLines(lines, file.path(step_dir, "README.md"), useBytes = TRUE)
     return(invisible(step_dir))
   }
@@ -733,6 +819,7 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       "",
       "Status: generated and ready for validation; Kflow has not been submitted."
     )
+    lines <- add_age_length_readme(lines, row)
     writeLines(lines, file.path(step_dir, "README.md"), useBytes = TRUE)
     return(invisible(step_dir))
   }
@@ -818,6 +905,7 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
     "",
     "Status: generated and ready for validation; Kflow has not been submitted."
   )
+  lines <- add_age_length_readme(lines, row)
   writeLines(lines, file.path(step_dir, "README.md"), useBytes = TRUE)
 }
 
@@ -857,7 +945,7 @@ for (i in seq_len(nrow(models))) {
   dir.create(model_dir, recursive = TRUE, showWarnings = FALSE)
 
   for (file in c(
-    "bet.frq", "bet.ini", "bet.tag", "bet.age_length", "bet.reg_scaling",
+    "bet.frq", "bet.ini", "bet.tag", "bet.reg_scaling",
     "bet.reg_scaling.full", "mfcl.cfg", "fishery_map.R", "tag_rep_map.R"
   )) {
     copy_exact(
@@ -865,6 +953,10 @@ for (i in seq_len(nrow(models))) {
       file.path(model_dir, file)
     )
   }
+  copy_exact(
+    file.path(root, as.character(row$age_length_source_path)),
+    file.path(model_dir, "bet.age_length")
+  )
 
   cutoff_cm <- as.numeric(row$cutoff_cm)
   cutoff_audit <- NULL

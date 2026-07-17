@@ -1,6 +1,20 @@
-# BET 2026 LF sensitivity grid
+# BET 2026 LF and age-length sensitivity grid
 
-This branch contains a focused `3 x 3` TC1 design: `NOCUT`, `CUT70`, and `CUT90`, each combined with target-fishery LF downweight factors 1, 5, and 10. It also contains eight LF Dirichlet-multinomial-noRE sensitivities: the balanced NOCUT factorial `G1/G2/G4 x C0/CEST`, plus focused G4-CEST CUT70 and CUT90 variants. Three previously fitted combinations had a positive-definite Hessian (PDH), one had a non-PDH Hessian, and thirteen models are newly prepared. The full 36-model factorial design remains on `main`.
+This branch crosses the 17 reviewed LF sensitivities with five age-length levels, producing an explicit `17 x 5 = 85` model factorial. S001:S017 retain the existing BASE075 names and files. S018:S085 pair each base configuration with REG075, REG100, SUB075, or SUB100 while changing only `model/bet.age_length`.
+
+## Age-length factorial
+
+| Level | Definition | Model IDs |
+| --- | --- | --- |
+| `BASE075` | Current 2026 base body with the 181 effective-sample-size values changed from 1 to 0.75 | S001:S017 |
+| `REG075` | Exact `BET/bet.2026.regional.0.75.age_length` | S018:S034 |
+| `REG100` | Exact `BET/bet.2026.regional.1.age_length` | S035:S051 |
+| `SUB075` | Exact `BET/bet.2026.sub.basin.0.75.age_length` | S052:S068 |
+| `SUB100` | Exact `BET/bet.2026.sub.basin.1.age_length` | S069:S085 |
+
+The four alternatives are vendored under `reference-inputs/age-length-variants` from `PacificCommunity/ofp-sam-2026-BET-YFT-age-length-build` commit `96a06d21ef3c666f39ce456d3a6818b6c17324c4`. The plain source `BET/bet.2026.age_length` is used only to document the BASE075 derivation and is not included as a sixth BASE100 factorial level.
+
+The 17 LF configurations comprise the focused `3 x 3` TC1 cutoff/downweight design and eight LF Dirichlet-multinomial-noRE sensitivities: the balanced NOCUT factorial `G1/G2/G4 x C0/CEST`, plus focused G4-CEST CUT70 and CUT90 variants. The full 36-model LF design remains on `main`.
 
 ## Selected models
 
@@ -54,4 +68,4 @@ The corresponding flag-49 divisors are 20, 100, and 200 for F21/F22/F23 only. Ev
 - The archived Job 5319 FRQ and `doitall.sh` are retained; effort creep is not reapplied.
 - Active regional scaling is `20 x 5`; the complete `292 x 5` source matrix is retained for alternative period sensitivities.
 
-Only the seventeen directories listed above are run candidates on this branch. The thirteen newly prepared models have not been submitted to Kflow. Use `main` to inspect the complete 36-model design.
+All 85 directories are explicit run candidates on this branch. The 68 alternative age-length models have not been submitted to Kflow. Use `main` to inspect the complete 36-model LF design.

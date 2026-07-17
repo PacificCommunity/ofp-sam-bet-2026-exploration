@@ -73,6 +73,70 @@ sensitivity_grid$cutoff_description <- ifelse(
   )
 )
 
+age_length_variants <- data.frame(
+  age_length_variant = c("BASE075", "REG075", "REG100", "SUB075", "SUB100"),
+  age_length_source_file = c(
+    "bet.age_length",
+    "bet.2026.regional.0.75.age_length",
+    "bet.2026.regional.1.age_length",
+    "bet.2026.sub.basin.0.75.age_length",
+    "bet.2026.sub.basin.1.age_length"
+  ),
+  age_length_source_path = c(
+    "reference-inputs/job-5319/mfcl-inputs/bet.age_length",
+    "reference-inputs/age-length-variants/bet.2026.regional.0.75.age_length",
+    "reference-inputs/age-length-variants/bet.2026.regional.1.age_length",
+    "reference-inputs/age-length-variants/bet.2026.sub.basin.0.75.age_length",
+    "reference-inputs/age-length-variants/bet.2026.sub.basin.1.age_length"
+  ),
+  age_length_sha256 = c(
+    "e7f591cb39b08a7b381b5e322331d5a4ca17e30008e8b976ae1b73e9111f655d",
+    "83e66c115df9ec2adabea262c650716dc711ad7ca9e1fdb98a5675778ee0ad74",
+    "381f3098fb4e7fc3496f89c4ce538442472e445200812a03ca5ec3f68b4ce5bb",
+    "426859b825bd815aa69c8d97c9dd93097027ed1eb6b9e444d88b69562097a00c",
+    "7e6c0513e2f36ca2044c1d5a2de37c589c75fafabc3fd96b45683cbb1236b083"
+  ),
+  stringsAsFactors = FALSE
+)
+
+base_sensitivity_grid <- sensitivity_grid
+base_sensitivity_grid$base_sensitivity <- base_sensitivity_grid$step_id
+base_sensitivity_grid$age_length_variant <- "BASE075"
+base_sensitivity_grid$age_length_source_file <-
+  age_length_variants$age_length_source_file[[1L]]
+base_sensitivity_grid$age_length_source_path <-
+  age_length_variants$age_length_source_path[[1L]]
+base_sensitivity_grid$age_length_sha256 <-
+  age_length_variants$age_length_sha256[[1L]]
+
+age_length_variant_starts <- c(REG075 = 18L, REG100 = 35L, SUB075 = 52L, SUB100 = 69L)
+expanded_age_length_grids <- lapply(names(age_length_variant_starts), function(variant) {
+  grid <- base_sensitivity_grid
+  base_ids <- grid$step_id
+  variant_info <- age_length_variants[
+    age_length_variants$age_length_variant == variant,
+    ,
+    drop = FALSE
+  ]
+  grid$step_id <- sprintf(
+    "S%03d-%s-AL%s",
+    age_length_variant_starts[[variant]] + seq_len(nrow(grid)) - 1L,
+    sub("^S[0-9]{3}-", "", base_ids),
+    variant
+  )
+  grid$base_sensitivity <- base_ids
+  grid$age_length_variant <- variant
+  grid$age_length_source_file <- variant_info$age_length_source_file[[1L]]
+  grid$age_length_source_path <- variant_info$age_length_source_path[[1L]]
+  grid$age_length_sha256 <- variant_info$age_length_sha256[[1L]]
+  grid
+})
+sensitivity_grid <- do.call(
+  rbind,
+  c(list(base_sensitivity_grid), expanded_age_length_grids)
+)
+rownames(sensitivity_grid) <- NULL
+
 generated_ids <- sensitivity_grid$step_id
 
 model_labels <- sprintf(
@@ -121,6 +185,14 @@ model_labels[s010_row] <- paste0(
   "estimated relative sample-size covariate; no DM tail compression; ",
   "uncut LF data with DM self-scaling, not fixed duplicate-use correction"
 )
+alternative_age_rows <- sensitivity_grid$age_length_variant != "BASE075"
+model_labels[alternative_age_rows] <- paste0(
+  model_labels[alternative_age_rows],
+  "; age-length variant ",
+  sensitivity_grid$age_length_variant[alternative_age_rows],
+  " from ",
+  sensitivity_grid$age_length_source_file[alternative_age_rows]
+)
 
 stepwise_models <- data.frame(
   step_id = generated_ids,
@@ -153,5 +225,10 @@ stepwise_models <- data.frame(
   dm_grouping = sensitivity_grid$dm_grouping,
   dm_estimate_relative_sample_size =
     sensitivity_grid$dm_estimate_relative_sample_size,
+  base_sensitivity = sensitivity_grid$base_sensitivity,
+  age_length_variant = sensitivity_grid$age_length_variant,
+  age_length_source_file = sensitivity_grid$age_length_source_file,
+  age_length_source_path = sensitivity_grid$age_length_source_path,
+  age_length_sha256 = sensitivity_grid$age_length_sha256,
   stringsAsFactors = FALSE
 )
