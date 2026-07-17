@@ -1,7 +1,8 @@
 # Curated BET 2026 MFCL LF sensitivity grid.
-# The nine TC1 models cross three cutoff treatments with target-fishery
-# downweight factors 1, 5, and 10. Tail compression is global; cutoff and
-# downweight treatments apply only to fisheries 21, 22, and 23.
+# Nine TC1 models cross three cutoff treatments with target-fishery downweight
+# factors 1, 5, and 10. One additional model evaluates the modern MFCL
+# Dirichlet-multinomial-noRE LF likelihood while retaining all extraction and
+# index LF observations in four separately estimated groups.
 
 stepwise_run <- list(
   default_step_select = "all",
@@ -19,16 +20,21 @@ sensitivity_grid <- data.frame(
     "S006-TC1-CUT70-DW10",
     "S007-TC1-CUT90-DW1",
     "S008-TC1-CUT90-DW5",
-    "S009-TC1-CUT90-DW10"
+    "S009-TC1-CUT90-DW10",
+    "S010-DM-G4-CEST-NOCUT"
   ),
-  regional_scaling_weight = rep(50L, 9L),
-  tail_compression_percent = rep(1L, 9L),
+  regional_scaling_weight = rep(50L, 10L),
+  tail_compression_percent = c(rep(1L, 9L), 0L),
   cutoff_cm = c(
     NA_real_, NA_real_, NA_real_,
     70, 70, 70,
-    90, 90, 90
+    90, 90, 90,
+    NA_real_
   ),
-  lf_downweight_factor = rep(c(1L, 5L, 10L), 3L),
+  lf_downweight_factor = c(rep(c(1L, 5L, 10L), 3L), NA_integer_),
+  lf_likelihood = c(rep("normal", 9L), "dm_nore"),
+  dm_grouping = c(rep("none", 9L), "gear4"),
+  dm_estimate_relative_sample_size = c(rep(FALSE, 9L), TRUE),
   stringsAsFactors = FALSE
 )
 sensitivity_grid$lf_size_divisor <-
@@ -62,22 +68,22 @@ model_labels <- sprintf(
   sensitivity_grid$lf_downweight_factor,
   sensitivity_grid$lf_size_divisor
 )
+dm_rows <- sensitivity_grid$lf_likelihood == "dm_nore"
+model_labels[dm_rows] <- paste0(
+  "MFCL LF Dirichlet-multinomial noRE; all extraction and index LF retained ",
+  "in four gear/data-source groups; separate index group; ",
+  "estimated relative sample-size covariate; no DM tail compression; ",
+  "uncut LF data with DM self-scaling, not fixed duplicate-use correction"
+)
 
 stepwise_models <- data.frame(
   step_id = generated_ids,
   enabled = TRUE,
   major_step = "LF conflict sensitivities",
   substep = sub("-.*$", "", generated_ids),
-  change_axis = sprintf(
-    paste0(
-      "regional-scaling weight %d; global MFCL LF tail compression %d%%; ",
-      "%s; F21/F22/F23 LF likelihood downweight %dx with flag-49 divisor %d"
-    ),
-    sensitivity_grid$regional_scaling_weight,
-    sensitivity_grid$tail_compression_percent,
-    sensitivity_grid$cutoff_description,
-    sensitivity_grid$lf_downweight_factor,
-    sensitivity_grid$lf_size_divisor
+  change_axis = paste0(
+    "regional-scaling weight ", sensitivity_grid$regional_scaling_weight,
+    "; ", model_labels
   ),
   model_label = model_labels,
   job_title = paste("BET 2026", generated_ids, model_labels),
@@ -97,5 +103,9 @@ stepwise_models <- data.frame(
   cutoff_description = sensitivity_grid$cutoff_description,
   lf_downweight_factor = sensitivity_grid$lf_downweight_factor,
   lf_size_divisor = sensitivity_grid$lf_size_divisor,
+  lf_likelihood = sensitivity_grid$lf_likelihood,
+  dm_grouping = sensitivity_grid$dm_grouping,
+  dm_estimate_relative_sample_size =
+    sensitivity_grid$dm_estimate_relative_sample_size,
   stringsAsFactors = FALSE
 )

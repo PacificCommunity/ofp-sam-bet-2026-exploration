@@ -1,11 +1,15 @@
-## Rebuild the seven curated BET 2026 MFCL LF sensitivity folders.
+## Rebuild the ten curated BET 2026 MFCL LF sensitivity folders.
 ##
 ## Every cell retains the exact effort-crept FRQ archived by Kflow Job 5319.
 ## Tag-group controls, display metadata, and regional-scaling inputs are
 ## refreshed from the reviewed stepwise branch; tag data come from the latest
 ## tag-prep main branch. The script
-## never reapplies effort creep. It changes only observed LF bins for cutoff
-## cells, parest flag 313, and new fishery-49 overrides for F21/F22/F23.
+## never reapplies effort creep. Normal-likelihood cells change only observed
+## LF bins for cutoff cells, parest flag 313, and fishery-49 overrides for
+## F21/F22/F23. The DM pilot additionally changes only documented LF DM-noRE
+## controls and fishery grouping/activation flags. It retains all extraction
+## and index LF observations; option 11 cannot reproduce the normal models'
+## fixed flag-49 duplicate-use correction.
 
 root <- normalizePath(getwd(), winslash = "/", mustWork = TRUE)
 stepwise_refresh_ref <- "experiment/tag-grouping-reg-scaling-2026"
@@ -109,17 +113,63 @@ if (!identical(tag_sha256, expected_tag_sha256)) {
   fail("Refreshed bet.tag SHA-256 mismatch: ", tag_sha256)
 }
 
-if (!is.data.frame(models) || nrow(models) != 9L ||
+if (!is.data.frame(models) || nrow(models) != 10L ||
     anyDuplicated(models$step_id) || any(!models$enabled)) {
-  fail("job-config.R must define exactly nine unique enabled sensitivity cells")
+  fail("job-config.R must define exactly ten unique enabled sensitivity cells")
 }
 if (!all(models$run_mode == "doitall") ||
     !all(models$regional_scaling_weight == 50L)) {
   fail("Every sensitivity must use doitall and regional-scaling weight 50")
 }
-if (!all(models$lf_size_divisor == 20L * models$lf_downweight_factor)) {
+normal_rows <- models$lf_likelihood == "normal"
+if (!all(
+  models$lf_size_divisor[normal_rows] ==
+    20L * models$lf_downweight_factor[normal_rows]
+)) {
   fail("Every F21/F22/F23 LF divisor must equal 20 times its targeted downweight factor")
 }
+if (!all(models$lf_likelihood %in% c("normal", "dm_nore"))) {
+  fail("LF likelihood must be normal or dm_nore")
+}
+dm_rows <- models$lf_likelihood == "dm_nore"
+if (sum(dm_rows) != 1L ||
+    !identical(as.character(models$dm_grouping[dm_rows]), "gear4") ||
+    !isTRUE(models$dm_estimate_relative_sample_size[dm_rows][[1L]]) ||
+    is.finite(models$cutoff_cm[dm_rows]) ||
+    !is.na(models$lf_downweight_factor[dm_rows]) ||
+    !is.na(models$lf_size_divisor[dm_rows]) ||
+    models$tail_compression_percent[dm_rows] != 0L) {
+  fail("The single DM pilot must be gear4/CEST/NOCUT with DM self-scaling")
+}
+
+fishery_map_env <- new.env(parent = globalenv())
+sys.source(
+  file.path(reference_input_dir, "fishery_map.R"),
+  envir = fishery_map_env
+)
+reference_fishery_map <- fishery_map_env$fishery_map
+if (!is.data.frame(reference_fishery_map) ||
+    !identical(reference_fishery_map$fishery, 1:33)) {
+  fail("Reference fishery_map.R must define fisheries 1:33 in order")
+}
+dm_group_ids <- ifelse(
+  reference_fishery_map$group == "LL",
+  1L,
+  ifelse(
+    grepl("^PS", reference_fishery_map$group),
+    2L,
+    ifelse(
+      reference_fishery_map$group %in% c("PL", "HL", "MISC"),
+      3L,
+      ifelse(reference_fishery_map$group == "Index", 4L, NA_integer_)
+    )
+  )
+)
+if (anyNA(dm_group_ids) || !identical(sort(unique(dm_group_ids)), 1:4)) {
+  fail("Every fishery must map to one of the four reviewed DM groups")
+}
+names(dm_group_ids) <- reference_fishery_map$fishery
+dm_group_names <- c("Longline", "Purse seine", "Other extraction", "Index")
 
 sensitivity_root <- file.path(root, "sensitivity")
 forbidden_dirs <- c(
@@ -193,7 +243,13 @@ replace_flag_value <- function(line, actor, flag, value) {
   paste0(match[[2L]], value, match[[4L]])
 }
 
-write_sensitivity_doitall <- function(to, tail_percent, divisor) {
+write_sensitivity_doitall <- function(
+    to,
+    tail_percent,
+    divisor,
+    lf_likelihood,
+    dm_grouping,
+    dm_estimate_relative_sample_size) {
   source_path <- file.path(reference_input_dir, "doitall.sh")
   lines <- readLines(source_path, warn = FALSE)
   tc_hit <- grep("^[[:space:]]*1[[:space:]]+313[[:space:]]+", lines)
@@ -214,13 +270,83 @@ write_sensitivity_doitall <- function(to, tail_percent, divisor) {
   }
   global_49 <- grep("^[[:space:]]*-999[[:space:]]+49[[:space:]]+", lines)
   if (length(global_49) != 1L) fail("Archived doitall.sh must contain one global flag-49 line")
-  override_lines <- sprintf(
-    "  -%d 49 %d  # sensitivity-only F%d LF effective-sample-size divisor",
-    21:23,
-    as.integer(divisor),
-    21:23
-  )
-  lines <- append(lines, override_lines, after = global_49)
+  if (!identical(lf_likelihood, "dm_nore")) {
+    override_lines <- sprintf(
+      "  -%d 49 %d  # sensitivity-only F%d LF effective-sample-size divisor",
+      21:23,
+      as.integer(divisor),
+      21:23
+    )
+    lines <- append(lines, override_lines, after = global_49)
+  }
+
+  if (identical(lf_likelihood, "dm_nore")) {
+    if (!identical(dm_grouping, "gear4")) {
+      fail("DM pilot requires the reviewed four-group fishery mapping")
+    }
+    lf_likelihood_hit <- grep(
+      "^[[:space:]]*1[[:space:]]+141[[:space:]]+", lines
+    )
+    lf_preprocess_hit <- grep(
+      "^[[:space:]]*1[[:space:]]+311[[:space:]]+", lines
+    )
+    if (length(lf_likelihood_hit) != 1L || length(lf_preprocess_hit) != 1L) {
+      fail("Archived doitall.sh must contain one LF likelihood and one LF tail-compression switch")
+    }
+    lines[[lf_likelihood_hit]] <-
+      "  1 141 11    # LF Dirichlet-multinomial likelihood without random effects"
+    lines[[lf_preprocess_hit]] <- paste(
+      "  1 311 1",
+      "# retain LF preprocessing gate so the inherited N < 50 filter remains active"
+    )
+    if (any(grepl("^[[:space:]]*1[[:space:]]+(320|342)[[:space:]]+", lines))) {
+      fail("Archived doitall.sh unexpectedly contains DM parest flags 320 or 342")
+    }
+    lf_likelihood_hit <- grep(
+      "^[[:space:]]*1[[:space:]]+141[[:space:]]+", lines
+    )
+    lines <- append(
+      lines,
+      c(
+        "  1 320 0     # no DM-specific LF tail compression",
+        "  1 342 1000  # DM-noRE maximum LF effective sample size"
+      ),
+      after = lf_likelihood_hit
+    )
+
+    if (any(grepl("^[[:space:]]*-[0-9]+[[:space:]]+(68|69|89)[[:space:]]+", lines))) {
+      fail("Archived doitall.sh unexpectedly contains LF DM fishery flags")
+    }
+    dm_group_lines <- sprintf(
+      "  -%d 68 %d  # DM LF group: %s",
+      as.integer(names(dm_group_ids)),
+      dm_group_ids,
+      dm_group_names[dm_group_ids]
+    )
+    global_49 <- grep("^[[:space:]]*-999[[:space:]]+49[[:space:]]+", lines)
+    insertion_point <- global_49
+    lines <- append(
+      lines,
+      c(
+        dm_group_lines,
+        "  -999 69 1  # estimate group-specific DM LF scalar exponent",
+        "  -999 89 0  # stage relative sample-size exponent as fixed at zero"
+      ),
+      after = insertion_point
+    )
+
+    if (isTRUE(dm_estimate_relative_sample_size)) {
+      phase2_open <- grep("<<PHASE2[[:space:]]*$", lines)
+      if (length(phase2_open) != 1L) {
+        fail("Archived doitall.sh must contain exactly one PHASE2 opening command")
+      }
+      lines <- append(
+        lines,
+        "  -999 89 1  # estimate group-specific DM LF relative sample-size exponent",
+        after = phase2_open
+      )
+    }
+  }
   writeLines(lines, to, useBytes = TRUE)
   Sys.chmod(to, mode = "0755")
   invisible(to)
@@ -256,15 +382,37 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
     },
     "Effort creep is not reapplied."
   )
-  doitall_note <- sprintf(
-    paste0(
-      "Retained Job 5319 doitall control sequence except parest flag ",
-      "313=%d and three new flag-49 overrides for F21/F22/F23, each with ",
-      "divisor %d; inherited settings for every other fishery are unchanged."
-    ),
-    as.integer(row$tail_compression_percent),
-    as.integer(row$lf_size_divisor)
-  )
+  if (identical(as.character(row$lf_likelihood), "dm_nore")) {
+    frq_note <- paste(
+      frq_note,
+      "All extraction and index LF observations are retained byte-for-byte.",
+      "The normal-likelihood flag-49 extra /2 correction is inert under",
+      "option 11 and therefore is not reproduced in this DM sensitivity."
+    )
+  }
+  if (identical(as.character(row$lf_likelihood), "dm_nore")) {
+    doitall_note <- paste(
+      "Retained Job 5319 doitall sequence with LF likelihood option 11;",
+      "the LF preprocessing gate and N < 50 filter retained; percentage and",
+      "DM-specific LF tail compression disabled; DM maximum",
+      "effective sample size 1000; all extraction and index LF retained in four",
+      "reviewed fishery groups; group-specific scalar and relative sample-size",
+      "exponents estimated. Inherited flag-49 lines remain in the control file",
+      "but are inert under DM-noRE, so the normal models' fixed extra /2 is not",
+      "reproduced. The separate index group makes this a deliberate DM",
+      "self-weighting/overdispersion sensitivity, not an exact duplicate-use correction."
+    )
+  } else {
+    doitall_note <- sprintf(
+      paste0(
+        "Retained Job 5319 doitall control sequence except parest flag ",
+        "313=%d and three new flag-49 overrides for F21/F22/F23, each with ",
+        "divisor %d; inherited settings for every other fishery are unchanged."
+      ),
+      as.integer(row$tail_compression_percent),
+      as.integer(row$lf_size_divisor)
+    )
+  }
 
   manifest <- data.frame(
     role = c(
@@ -342,6 +490,63 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
 }
 
 write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
+  is_dm <- identical(as.character(row$lf_likelihood), "dm_nore")
+  if (is_dm) {
+    lines <- c(
+      paste0("# ", as.character(row$job_title)),
+      "",
+      "This model is the LF Dirichlet-multinomial-noRE pilot in the BET 2026 sensitivity set.",
+      "",
+      "## Design",
+      "",
+      "| Control | Setting |",
+      "| --- | --- |",
+      "| LF likelihood | MFCL option 11, Dirichlet-multinomial without random effects |",
+      "| LF groups | Longline; purse seine; other extraction; index |",
+      "| Group scalar exponent | Starts at MFCL default zero; estimated from PHASE1 with fish flag 69 |",
+      "| Relative sample-size exponent | Starts at MFCL default zero; estimated from PHASE2 with fish flag 89 |",
+      "| DM maximum effective sample size | 1000 |",
+      "| LF tail compression | Disabled |",
+      "| LF cutoff | None |",
+      "| LF weighting | All extraction and index LF retained; separate index DM group; self-scaling |",
+      "| Regional-scaling penalty weight | 50 |",
+      "",
+      "The four DM groups are generated from `fishery_map.R`, not from display order alone.",
+      "All extraction and index LF observations and the retained Job 5319 effort-creep treatment are unchanged.",
+      "The existing minimum input sample-size filter of 50 remains active through the LF preprocessing gate.",
+      "There are no WF observations; no DM weight-frequency parameter is activated.",
+      "",
+      "## Interpretation",
+      "",
+      paste(
+        "The normal-likelihood models use flag 49 to apply an extra /2 to LF",
+        "streams used as both extraction and index data. MFCL option 11 ignores",
+        "flag 49 and has no fixed 0.5 LF-contribution control, so that correction",
+        "cannot be reproduced here."
+      ),
+      paste(
+        "S010 deliberately retains both LF representations and estimates the",
+        "index fisheries as a separate DM group. It is a self-weighting and",
+        "overdispersion sensitivity, not an exact duplicate-use correction;",
+        "aggregation differences between the two representations may remain."
+      ),
+      "MFCL estimates one scalar exponent and one relative sample-size exponent per group.",
+      "The `dmsizemult` output must be used to inspect fitted effective sample sizes; raw objective values are not directly ranked against the normal-likelihood models.",
+      "Convergence, Hessian PDH, LF residuals, index fits, and key quantities must be considered together.",
+      "",
+      "## Provenance",
+      "",
+      paste0("The reference input-set SHA-256 is `", expected_reference_sha256, "`."),
+      paste0("The retained Job 5319 effort-crept `bet.frq` SHA-256 is `", expected_frq_sha256, "`; effort creep is not reapplied."),
+      paste0("The refreshed tag-control `.ini` comes from stepwise commit `", stepwise_refresh_commit, "`."),
+      paste0("The tag data come from tag-prep commit `", tag_prep_commit, "`."),
+      "No MFCL source or executable is changed.",
+      "",
+      "Status: generated and ready for validation; Kflow has not been submitted."
+    )
+    writeLines(lines, file.path(step_dir, "README.md"), useBytes = TRUE)
+    return(invisible(step_dir))
+  }
   cutoff_value <- as.numeric(row$cutoff_cm)
   cutoff_label <- if (is.finite(cutoff_value)) {
     sprintf("above %.0f cm", cutoff_value)
@@ -445,12 +650,21 @@ if (!identical(regional_active_lines, regional_full_lines[53:72])) {
   fail("Reference bet.reg_scaling must equal bet.reg_scaling.full rows 53:72")
 }
 
+staging_root <- tempfile("sensitivity-staging-", tmpdir = root)
+backup_root <- tempfile("sensitivity-backup-", tmpdir = root)
+dir.create(staging_root, recursive = TRUE, showWarnings = FALSE)
+on.exit({
+  if (dir.exists(staging_root)) unlink(staging_root, recursive = TRUE, force = TRUE)
+  if (dir.exists(backup_root) && !dir.exists(sensitivity_root)) {
+    file.rename(backup_root, sensitivity_root)
+  }
+}, add = TRUE)
+
 for (i in seq_len(nrow(models))) {
   row <- models[i, , drop = FALSE]
   step_id <- as.character(row$step_id)
-  step_dir <- file.path(sensitivity_root, step_id)
+  step_dir <- file.path(staging_root, step_id)
   model_dir <- file.path(step_dir, "model")
-  unlink(step_dir, recursive = TRUE, force = TRUE)
   dir.create(model_dir, recursive = TRUE, showWarnings = FALSE)
 
   for (file in c(
@@ -482,7 +696,11 @@ for (i in seq_len(nrow(models))) {
   write_sensitivity_doitall(
     file.path(model_dir, "doitall.sh"),
     tail_percent = as.integer(row$tail_compression_percent),
-    divisor = as.integer(row$lf_size_divisor)
+    divisor = as.integer(row$lf_size_divisor),
+    lf_likelihood = as.character(row$lf_likelihood),
+    dm_grouping = as.character(row$dm_grouping),
+    dm_estimate_relative_sample_size =
+      isTRUE(row$dm_estimate_relative_sample_size[[1L]])
   )
   treatment <- cutoff_sentence(cutoff_cm)
   write_model_manifest(
@@ -493,6 +711,15 @@ for (i in seq_len(nrow(models))) {
   )
   write_model_readme(step_dir, row, treatment, cutoff_audit)
 }
+
+if (!file.rename(sensitivity_root, backup_root)) {
+  fail("Could not move the existing sensitivity tree to its atomic backup")
+}
+if (!file.rename(staging_root, sensitivity_root)) {
+  file.rename(backup_root, sensitivity_root)
+  fail("Could not install the fully generated sensitivity tree")
+}
+unlink(backup_root, recursive = TRUE, force = TRUE)
 
 cat(sprintf("Generated %d sensitivity folders from the refreshed reference bundle.\n", nrow(models)))
 cat(sprintf("Refreshed reference input-set SHA-256: %s\n", reference_sha256))
