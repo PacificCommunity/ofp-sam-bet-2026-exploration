@@ -409,7 +409,7 @@ write_sensitivity_doitall <- function(
     lines <- append(
       lines,
       c(
-        "  1 320 0     # no DM-specific LF tail compression",
+        "  1 320 5     # DM LF tail compression; retain at least five class intervals",
         "  1 342 1000  # DM-noRE maximum LF effective sample size"
       ),
       after = lf_likelihood_hit
@@ -511,7 +511,7 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
     doitall_note <- paste(
       "Retained Job 5319 doitall sequence with LF likelihood option 11;",
       "the LF preprocessing gate and N < 50 filter retained; percentage and",
-      "DM-specific LF tail compression disabled; DM maximum",
+      "DM-specific LF tail compression retains at least five class intervals; DM maximum",
       "effective sample size 1000; all extraction and index LF retained in four",
       "reviewed fishery groups; group-specific scalar and relative sample-size",
       "exponents estimated. Inherited flag-49 lines remain in the control file",
@@ -537,7 +537,7 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
     doitall_note <- paste(
       "Retained Job 5319 doitall sequence with LF likelihood option 11;",
       "the LF preprocessing gate and N < 50 filter retained; percentage and",
-      "DM-specific LF tail compression disabled; DM maximum effective sample",
+      "DM-specific LF tail compression retains at least five class intervals; DM maximum effective sample",
       "size 1000;", group_count, "reviewed LF group(s); group-specific scalar",
       "exponents estimated from PHASE1;", paste0(c_note, ";"), paste0(cutoff_note, "."),
       "Inherited flag-49 lines are inert under DM-noRE, so the normal models'",
@@ -686,7 +686,7 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       "| Group scalar exponent | Starts at MFCL default zero; estimated from PHASE1 with fish flag 69 |",
       "| Relative sample-size exponent | Starts at MFCL default zero; estimated from PHASE2 with fish flag 89 |",
       "| DM maximum effective sample size | 1000 |",
-      "| LF tail compression | Disabled |",
+      "| LF tail compression | Retains at least five class intervals (`parest flag 320 = 5`) |",
       "| LF cutoff | None |",
       "| LF weighting | All extraction and index LF retained; separate index DM group; self-scaling |",
       "| Regional-scaling penalty weight | 50 |",
@@ -779,7 +779,7 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       paste0("| Relative sample-size exponent c | ", c_text, " |"),
       "| DM maximum effective sample size | 1000 |",
       "| LF preprocessing | Enabled; inherited N < 50 filter retained |",
-      "| LF tail compression | Percentage and DM-specific compression disabled |",
+      "| LF tail compression | Percentage compression disabled; DM compression retains at least five class intervals (`parest flag 320 = 5`) |",
       paste0("| LF cutoff | ", cutoff_text, " |"),
       "| Index LF | F29:F33 retained unchanged |",
       "| Regional-scaling penalty weight | 50 |",

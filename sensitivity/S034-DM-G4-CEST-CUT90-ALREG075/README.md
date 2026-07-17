@@ -1,4 +1,4 @@
-# BET 2026 S034-DM-G4-CEST-CUT90-ALREG075 MFCL LF Dirichlet-multinomial noRE; all index LF retained; four gear/data-source groups separating longline, purse seine, other extraction, and index fisheries; relative sample-size exponent estimated from PHASE2; no DM tail compression; established F21/F22/F23 upper-bin cutoff above 90 cm; DM self-weighting/overdispersion sensitivity, not fixed duplicate-use correction; age-length variant REG075 from bet.2026.regional.0.75.age_length
+# BET 2026 S034-DM-G4-CEST-CUT90-ALREG075 MFCL LF Dirichlet-multinomial noRE; all index LF retained; four gear/data-source groups separating longline, purse seine, other extraction, and index fisheries; relative sample-size exponent estimated from PHASE2; DM tail compression min 5 classes; established F21/F22/F23 upper-bin cutoff above 90 cm; DM self-weighting/overdispersion sensitivity, not fixed duplicate-use correction; age-length variant REG075 from bet.2026.regional.0.75.age_length
 
 This model is one LF Dirichlet-multinomial-noRE sensitivity in the BET 2026 set.
 
@@ -12,7 +12,7 @@ This model is one LF Dirichlet-multinomial-noRE sensitivity in the BET 2026 set.
 | Relative sample-size exponent c | CEST: c is fixed at zero in PHASE1 and estimated from PHASE2 |
 | DM maximum effective sample size | 1000 |
 | LF preprocessing | Enabled; inherited N < 50 filter retained |
-| LF tail compression | Percentage and DM-specific compression disabled |
+| LF tail compression | Percentage compression disabled; DM compression retains at least five class intervals (`parest flag 320 = 5`) |
 | LF cutoff | Established F21/F22/F23 upper-bin cutoff above 90 cm |
 | Index LF | F29:F33 retained unchanged |
 | Regional-scaling penalty weight | 50 |

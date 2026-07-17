@@ -40,7 +40,7 @@ The 17 LF configurations comprise the focused `3 x 3` TC1 cutoff/downweight desi
 
 ## Dirichlet-multinomial pilot
 
-All eight DM models use MFCL LF likelihood option 11. The group scalar `d` is estimated from PHASE1. In C0 models, the relative sample-size exponent `c` stays fixed at the MFCL default zero in every phase; in CEST models it is fixed at zero in PHASE1 and estimated from PHASE2. The inherited minimum sample-size filter remains active, percentage and DM-specific tail compression are disabled, the DM effective-sample-size upper bound is 1000, and no weight-frequency DM controls are activated.
+All eight DM models use MFCL LF likelihood option 11. The group scalar `d` is estimated from PHASE1. In C0 models, the relative sample-size exponent `c` stays fixed at the MFCL default zero in every phase; in CEST models it is fixed at zero in PHASE1 and estimated from PHASE2. The inherited minimum sample-size filter remains active, percentage tail compression is disabled, DM-specific tail compression retains at least five class intervals (`parest flag 320 = 5`), the DM effective-sample-size upper bound is 1000, and no weight-frequency DM controls are activated.
 
 The NOCUT factorial uses three groupings. G1 pools F1:F33. G2 separates extraction F1:F28 from index F29:F33. G4 separates longline F1:F11; purse seine F12, F17:F20, and F25:F28; other extraction F13:F16 and F21:F24; and index F29:F33. S016 and S017 retain G4-CEST and reuse exactly the established F21/F22/F23 CUT70 and CUT90 transformations from the corresponding normal-likelihood models. No G1, G2, or C0 cutoff variants are included.
 

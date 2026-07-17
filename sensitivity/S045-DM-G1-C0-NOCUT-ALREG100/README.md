@@ -1,4 +1,4 @@
-# BET 2026 S045-DM-G1-C0-NOCUT-ALREG100 MFCL LF Dirichlet-multinomial noRE; all index LF retained; one pooled LF group; relative sample-size exponent fixed at MFCL default zero; no DM tail compression; uncut LF data; DM self-weighting/overdispersion sensitivity, not fixed duplicate-use correction; age-length variant REG100 from bet.2026.regional.1.age_length
+# BET 2026 S045-DM-G1-C0-NOCUT-ALREG100 MFCL LF Dirichlet-multinomial noRE; all index LF retained; one pooled LF group; relative sample-size exponent fixed at MFCL default zero; DM tail compression min 5 classes; uncut LF data; DM self-weighting/overdispersion sensitivity, not fixed duplicate-use correction; age-length variant REG100 from bet.2026.regional.1.age_length
 
 This model is one LF Dirichlet-multinomial-noRE sensitivity in the BET 2026 set.
 
@@ -12,7 +12,7 @@ This model is one LF Dirichlet-multinomial-noRE sensitivity in the BET 2026 set.
 | Relative sample-size exponent c | C0: c remains fixed at MFCL default zero in every phase |
 | DM maximum effective sample size | 1000 |
 | LF preprocessing | Enabled; inherited N < 50 filter retained |
-| LF tail compression | Percentage and DM-specific compression disabled |
+| LF tail compression | Percentage compression disabled; DM compression retains at least five class intervals (`parest flag 320 = 5`) |
 | LF cutoff | None |
 | Index LF | F29:F33 retained unchanged |
 | Regional-scaling penalty weight | 50 |

@@ -111,7 +111,7 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
 # Likelihood component settings
   1 111 4     # set likelihood function for tags to negative binomial
   1 141 11    # LF Dirichlet-multinomial likelihood without random effects
-  1 320 0     # no DM-specific LF tail compression
+  1 320 5     # DM LF tail compression; retain at least five class intervals
   1 342 1000  # DM-noRE maximum LF effective sample size
   1 139 3     # set likelihood function for WF data to normal
   -999 49 20  # divide LF sample sizes by 20

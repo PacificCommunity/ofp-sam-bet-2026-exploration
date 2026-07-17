@@ -166,7 +166,7 @@ model_labels[dm_rows] <- paste0(
     "relative sample-size exponent estimated from PHASE2",
     "relative sample-size exponent fixed at MFCL default zero"
   ),
-  "; no DM tail compression; ",
+  "; DM tail compression min 5 classes; ",
   ifelse(
     is.na(sensitivity_grid$cutoff_cm[dm_rows]),
     "uncut LF data",
@@ -182,7 +182,7 @@ s010_row <- sensitivity_grid$step_id == "S010-DM-G4-CEST-NOCUT"
 model_labels[s010_row] <- paste0(
   "MFCL LF Dirichlet-multinomial noRE; all extraction and index LF retained ",
   "in four gear/data-source groups; separate index group; ",
-  "estimated relative sample-size covariate; no DM tail compression; ",
+  "estimated relative sample-size covariate; DM tail compression min 5 classes; ",
   "uncut LF data with DM self-scaling, not fixed duplicate-use correction"
 )
 alternative_age_rows <- sensitivity_grid$age_length_variant != "BASE075"

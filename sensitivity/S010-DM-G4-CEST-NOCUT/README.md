@@ -1,4 +1,4 @@
-# BET 2026 S010-DM-G4-CEST-NOCUT MFCL LF Dirichlet-multinomial noRE; all extraction and index LF retained in four gear/data-source groups; separate index group; estimated relative sample-size covariate; no DM tail compression; uncut LF data with DM self-scaling, not fixed duplicate-use correction
+# BET 2026 S010-DM-G4-CEST-NOCUT MFCL LF Dirichlet-multinomial noRE; all extraction and index LF retained in four gear/data-source groups; separate index group; estimated relative sample-size covariate; DM tail compression min 5 classes; uncut LF data with DM self-scaling, not fixed duplicate-use correction
 
 This model is the LF Dirichlet-multinomial-noRE pilot in the BET 2026 sensitivity set.
 
@@ -11,7 +11,7 @@ This model is the LF Dirichlet-multinomial-noRE pilot in the BET 2026 sensitivit
 | Group scalar exponent | Starts at MFCL default zero; estimated from PHASE1 with fish flag 69 |
 | Relative sample-size exponent | Starts at MFCL default zero; estimated from PHASE2 with fish flag 89 |
 | DM maximum effective sample size | 1000 |
-| LF tail compression | Disabled |
+| LF tail compression | Retains at least five class intervals (`parest flag 320 = 5`) |
 | LF cutoff | None |
 | LF weighting | All extraction and index LF retained; separate index DM group; self-scaling |
 | Regional-scaling penalty weight | 50 |
