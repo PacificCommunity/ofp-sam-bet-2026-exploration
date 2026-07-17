@@ -301,7 +301,7 @@ $program_path bet.frq 01.par 02.par -file - <<PHASE2
   1 1 100  # set max. number of function evaluations per phase to 100
   1 50 0   # set convergence criterion to 1
   2 113 0  # scaling init pop - turned off
-  1 190 1  # write plot-xxx.par.rep
+  1 190 0 # defer DM plot reporting until the final phase; MFCL 2.4 crashes on the early report
 PHASE2
 
 # ---------
@@ -438,4 +438,5 @@ $program_path bet.frq 10.par 11.par -file - <<PHASE11
   1 1 5000
   1 50 $phase10_11_convergence  # convergence criteria; default quick -3, set BET_PHASE10_11_CONVERGENCE=-5 for strict
   1 246 1   # indepvar.rpt
+  1 190 1  # write the DM plot report only after all fitting phases are active
 PHASE11

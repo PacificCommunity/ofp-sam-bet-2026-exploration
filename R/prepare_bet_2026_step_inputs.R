@@ -447,6 +447,43 @@ write_sensitivity_doitall <- function(
         after = phase2_open
       )
     }
+
+    phase2_open <- grep("<<PHASE2[[:space:]]*$", lines)
+    phase2_end <- grep("^PHASE2[[:space:]]*$", lines)
+    if (length(phase2_open) != 1L || length(phase2_end) != 1L || phase2_open >= phase2_end) {
+      fail("Archived doitall.sh must contain one complete PHASE2 block")
+    }
+    phase2_report <- grep(
+      "^[[:space:]]*1[[:space:]]+190[[:space:]]+1([[:space:]]|$)",
+      lines
+    )
+    phase2_report <- phase2_report[
+      phase2_report > phase2_open & phase2_report < phase2_end
+    ]
+    if (length(phase2_report) != 1L) {
+      fail("Archived doitall.sh must enable exactly one PHASE2 plot report")
+    }
+    lines[[phase2_report]] <- paste(
+      "  1 190 0",
+      "# defer DM plot reporting until the final phase; MFCL 2.4 crashes on the early report"
+    )
+
+    phase11_open <- grep("<<PHASE11[[:space:]]*$", lines)
+    phase11_end <- grep("^PHASE11[[:space:]]*$", lines)
+    if (length(phase11_open) != 1L || length(phase11_end) != 1L || phase11_open >= phase11_end) {
+      fail("Archived doitall.sh must contain one complete PHASE11 block")
+    }
+    if (any(grepl(
+      "^[[:space:]]*1[[:space:]]+190[[:space:]]+1([[:space:]]|$)",
+      lines[seq.int(phase11_open, phase11_end)]
+    ))) {
+      fail("Archived doitall.sh unexpectedly enables plot reporting inside PHASE11")
+    }
+    lines <- append(
+      lines,
+      "  1 190 1  # write the DM plot report only after all fitting phases are active",
+      after = phase11_end - 1L
+    )
   }
   writeLines(lines, to, useBytes = TRUE)
   Sys.chmod(to, mode = "0755")
@@ -687,6 +724,7 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       "| Relative sample-size exponent | Starts at MFCL default zero; estimated from PHASE2 with fish flag 89 |",
       "| DM maximum effective sample size | 1000 |",
       "| LF tail compression | Retains at least five class intervals (`parest flag 320 = 5`) |",
+      "| MFCL report timing | Intermediate DM plot reports off; final PHASE11 report on |",
       "| LF cutoff | None |",
       "| LF weighting | All extraction and index LF retained; separate index DM group; self-scaling |",
       "| Regional-scaling penalty weight | 50 |",

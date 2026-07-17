@@ -12,6 +12,7 @@ This model is the LF Dirichlet-multinomial-noRE pilot in the BET 2026 sensitivit
 | Relative sample-size exponent | Starts at MFCL default zero; estimated from PHASE2 with fish flag 89 |
 | DM maximum effective sample size | 1000 |
 | LF tail compression | Retains at least five class intervals (`parest flag 320 = 5`) |
+| MFCL report timing | Intermediate DM plot reports off; final PHASE11 report on |
 | LF cutoff | None |
 | LF weighting | All extraction and index LF retained; separate index DM group; self-scaling |
 | Regional-scaling penalty weight | 50 |
