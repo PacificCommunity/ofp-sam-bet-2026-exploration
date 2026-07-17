@@ -1,0 +1,8 @@
+model,tail_compression_percent,cutoff_cm,downweight,hessian_pdh,status,basis
+S010-TC1-CUT70-DW1,1,70,1,Yes,fitted,PDH shortlist
+S014-TC1-NOCUT-DW10,1,,10,Yes,fitted,PDH shortlist
+S022-TC1-CUT70-DW10,1,70,10,Yes,fitted,PDH shortlist
+S034-TC1-CUT70-DW100,1,70,100,Yes,fitted,PDH shortlist
+S037-TC1-CUT90-DW1,1,90,1,Not run,prepared,2023 assessment treatment
+S038-TC1-CUT90-DW5,1,90,5,Not run,prepared,2023 cutoff plus target-only 5x downweight
+S039-TC1-CUT90-DW10,1,90,10,Not run,prepared,2023 cutoff plus target-only 10x downweight

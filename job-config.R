@@ -1,7 +1,8 @@
-# Complete 4 x 3 x 3 BET 2026 MFCL sensitivity factorial.
-# Tail compression is global. Observed LF upper-bin zeroing and LF likelihood
-# downweighting apply only to fisheries 21, 22, and 23. Regional scaling is
-# fixed at weight 50.
+# Curated BET 2026 MFCL LF sensitivity set.
+# Four fitted TC1 models have a positive-definite Hessian. Three additional
+# CUT90 models reproduce the historical upper-length treatment, with targeted
+# downweight levels for fisheries 21, 22, and 23 only. Tail compression is
+# global. Regional scaling is fixed at weight 50.
 
 stepwise_run <- list(
   default_step_select = "all",
@@ -9,16 +10,20 @@ stepwise_run <- list(
   trigger_next = FALSE
 )
 
-tail_compression_levels <- c(0L, 1L, 3L, 5L)
-cutoff_levels <- c(NA_real_, 100, 70)
-downweight_levels <- c(1L, 10L, 100L)
-
-sensitivity_grid <- expand.grid(
-  regional_scaling_weight = 50L,
-  tail_compression_percent = tail_compression_levels,
-  cutoff_cm = cutoff_levels,
-  lf_downweight_factor = downweight_levels,
-  KEEP.OUT.ATTRS = FALSE,
+sensitivity_grid <- data.frame(
+  step_id = c(
+    "S010-TC1-CUT70-DW1",
+    "S014-TC1-NOCUT-DW10",
+    "S022-TC1-CUT70-DW10",
+    "S034-TC1-CUT70-DW100",
+    "S037-TC1-CUT90-DW1",
+    "S038-TC1-CUT90-DW5",
+    "S039-TC1-CUT90-DW10"
+  ),
+  regional_scaling_weight = rep(50L, 7L),
+  tail_compression_percent = rep(1L, 7L),
+  cutoff_cm = c(70, NA_real_, 70, 70, 90, 90, 90),
+  lf_downweight_factor = c(1L, 10L, 10L, 100L, 1L, 5L, 10L),
   stringsAsFactors = FALSE
 )
 sensitivity_grid$lf_size_divisor <-
@@ -40,13 +45,7 @@ sensitivity_grid$cutoff_description <- ifelse(
   )
 )
 
-generated_ids <- sprintf(
-  "S%03d-TC%d-%s-DW%d",
-  seq_len(nrow(sensitivity_grid)),
-  sensitivity_grid$tail_compression_percent,
-  sensitivity_grid$cutoff_code,
-  sensitivity_grid$lf_downweight_factor
-)
+generated_ids <- sensitivity_grid$step_id
 
 model_labels <- sprintf(
   paste0(
@@ -63,7 +62,7 @@ stepwise_models <- data.frame(
   step_id = generated_ids,
   enabled = TRUE,
   major_step = "LF conflict sensitivities",
-  substep = sprintf("S%03d", seq_len(nrow(sensitivity_grid))),
+  substep = sub("-.*$", "", generated_ids),
   change_axis = sprintf(
     paste0(
       "regional-scaling weight %d; global MFCL LF tail compression %d%%; ",

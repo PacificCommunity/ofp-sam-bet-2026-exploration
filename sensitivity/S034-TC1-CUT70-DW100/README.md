@@ -1,6 +1,6 @@
 # BET 2026 S034-TC1-CUT70-DW100 global MFCL LF tail compression 1%; F21/F22/F23 observed LF counts in bins with midpoint above the 70 cm cutoff are set to zero; F21/F22/F23 LF likelihood downweight 100x with flag-49 divisor 2000
 
-This is one cell of the 36-model BET 2026 MFCL LF sensitivity factorial.
+This is one model in the curated BET 2026 TC1 LF sensitivity set.
 
 ## Design
 
@@ -14,6 +14,7 @@ This is one cell of the 36-model BET 2026 MFCL LF sensitivity factorial.
 ## Observed LF semantics
 
 For F21/F22/F23, observed LF counts in bins with midpoint above the 70 cm cutoff are set to zero.
+This model retains its previously selected cutoff treatment.
 The bins remain as categories in the MFCL option-3 LF likelihood, and MFCL internally renormalizes retained counts. Counts are not transferred. An all-zero LF vector is represented by one `-1` whole-sample sentinel; record metadata and weight-frequency data remain unchanged.
 
 ## Provenance and controls

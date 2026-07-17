@@ -1,4 +1,4 @@
-## Fail-fast validation for the 36 BET 2026 MFCL LF sensitivity folders.
+## Fail-fast validation for the seven curated BET 2026 MFCL LF sensitivities.
 
 script_arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
 root <- if (length(script_arg)) {
@@ -58,11 +58,19 @@ sys.source(config_path, envir = config_env)
 models <- config_env$stepwise_models
 assert_true(is.data.frame(models), "job-config.R must define stepwise_models")
 
-expected_grid <- expand.grid(
-  tail_compression_percent = c(0L, 1L, 3L, 5L),
-  cutoff = c("NONE", "100", "70"),
-  lf_downweight_factor = c(1L, 10L, 100L),
-  KEEP.OUT.ATTRS = FALSE,
+expected_grid <- data.frame(
+  step_id = c(
+    "S010-TC1-CUT70-DW1",
+    "S014-TC1-NOCUT-DW10",
+    "S022-TC1-CUT70-DW10",
+    "S034-TC1-CUT70-DW100",
+    "S037-TC1-CUT90-DW1",
+    "S038-TC1-CUT90-DW5",
+    "S039-TC1-CUT90-DW10"
+  ),
+  tail_compression_percent = rep(1L, 7L),
+  cutoff = c("70", "NONE", "70", "70", "90", "90", "90"),
+  lf_downweight_factor = c(1L, 10L, 10L, 100L, 1L, 5L, 10L),
   stringsAsFactors = FALSE
 )
 cell_key <- function(tc, cutoff, dw) paste(tc, cutoff, dw, sep = "|")
@@ -76,27 +84,29 @@ expected_keys <- cell_key(
   expected_grid$cutoff,
   expected_grid$lf_downweight_factor
 )
-assert_true(nrow(models) == 36L, "Expected exactly 36 configured cells")
+assert_true(nrow(models) == 7L, "Expected exactly seven configured cells")
 assert_true(!anyDuplicated(models$step_id), "Configured step IDs must be unique")
 assert_true(!anyDuplicated(models$job_title), "Configured job titles must be unique")
 assert_true(!anyDuplicated(actual_keys) && setequal(actual_keys, expected_keys),
-            "Configured cells must be the exact 4 x 3 x 3 factorial")
-assert_true(all(models$enabled), "All 36 sensitivity cells must be enabled")
+            "Configured cells must match the curated TC1 design")
+assert_true(setequal(models$step_id, expected_grid$step_id),
+            "Configured model IDs must match the curated selection")
+assert_true(all(models$enabled), "All seven sensitivity cells must be enabled")
 assert_true(all(models$run_mode == "doitall"), "All cells must use doitall")
 assert_true(all(models$regional_scaling_weight == 50L),
             "Regional-scaling weight must be 50 in all cells")
 assert_true(all(models$lf_size_divisor == 20L * models$lf_downweight_factor),
-            "Configured LF divisors must be exactly 20, 200, or 2000")
-assert_true(setequal(unique(models$cutoff_code), c("NOCUT", "CUT100", "CUT70")),
-            "Cutoff codes must be NOCUT, CUT100, and CUT70")
-pass("exact 36-cell TC x cutoff x downweight design")
+            "Each configured target-fishery LF divisor must equal 20 times its downweight factor")
+assert_true(setequal(unique(models$cutoff_code), c("NOCUT", "CUT70", "CUT90")),
+            "Cutoff codes must be NOCUT, CUT70, and CUT90")
+pass("exact seven-model curated TC1 design")
 
 sensitivity_root <- file.path(root, "sensitivity")
 assert_true(dir.exists(sensitivity_root), "Missing sensitivity directory")
 top_entries <- list.files(sensitivity_root, full.names = TRUE, no.. = TRUE)
 top_dirs <- basename(top_entries[file.info(top_entries)$isdir %in% TRUE])
-assert_true(length(top_dirs) == 36L && setequal(top_dirs, models$step_id),
-            "sensitivity must contain exactly the 36 configured folders")
+assert_true(length(top_dirs) == 7L && setequal(top_dirs, models$step_id),
+            "sensitivity must contain exactly the seven configured folders")
 forbidden_dirs <- c(
   file.path(root, "steps"),
   file.path(root, ".generation-staging"),
@@ -115,7 +125,7 @@ for (i in seq_len(nrow(models))) {
   assert_true(identical(title, paste0("# ", models$job_title[[i]])),
               "Folder title does not match job-config.R: ", models$step_id[[i]])
 }
-pass("exactly 36 titled folders with no steps or staging")
+pass("exactly seven titled folders with no steps or staging")
 
 reference_dir <- file.path(root, "reference-inputs", "job-5319", "mfcl-inputs")
 reference_required <- c(
@@ -396,7 +406,7 @@ pass("regional scaling retains exact active 20x5 and full 292x5 matrices")
 frq_paths <- file.path(sensitivity_root, models$step_id, "model", "bet.frq")
 frq_md5 <- unname(tools::md5sum(frq_paths))
 assert_true(!anyNA(frq_md5), "Could not hash every generated FRQ")
-variant_hashes <- vapply(c("NOCUT", "CUT100", "CUT70"), function(code) {
+variant_hashes <- vapply(c("NOCUT", "CUT70", "CUT90"), function(code) {
   hashes <- unique(frq_md5[models$cutoff_code == code])
   assert_true(length(hashes) == 1L, "FRQ bytes vary within ", code)
   hashes[[1L]]
@@ -410,7 +420,7 @@ for (code in names(variant_hashes)) {
     assert_true(same_file(reference, path), "FRQ byte mismatch within ", code)
   }
 }
-pass("exactly three byte-distinct FRQ variants: NOCUT, CUT100, CUT70")
+pass("exactly three byte-distinct FRQ variants: NOCUT, CUT70, CUT90")
 
 read_words <- function(line) {
   strsplit(trimws(line), "[[:space:]]+")[[1L]]
@@ -562,7 +572,7 @@ compare_audit <- function(path, expected, step_id) {
 
 source_frq <- file.path(reference_dir, "bet.frq")
 expected_audits <- list()
-for (code in c("CUT100", "CUT70")) {
+for (code in c("CUT70", "CUT90")) {
   cutoff <- as.numeric(sub("^CUT", "", code))
   representative <- frq_paths[models$cutoff_code == code][[1L]]
   expected_audits[[code]] <- validate_cutoff_variant(source_frq, representative, cutoff)
@@ -583,4 +593,14 @@ for (i in seq_len(nrow(models))) {
 }
 pass("cutoffs change only F21/F22/F23 upper LF counts, preserve metadata/WF, and reconcile audits")
 
-cat("VALIDATION PASSED: 36 titled sensitivity folders; all requested invariants hold.\n")
+cut90_readmes <- file.path(
+  sensitivity_root,
+  models$step_id[models$cutoff_code == "CUT90"],
+  "README.md"
+)
+cut90_text <- paste(unlist(lapply(cut90_readmes, readLines, warn = FALSE)), collapse = " ")
+assert_true(grepl("WCPFC-SC19-2023/SA-WP-05", cut90_text, fixed = TRUE),
+            "CUT90 README provenance must cite the 2023 assessment")
+pass("CUT90 historical provenance is recorded")
+
+cat("VALIDATION PASSED: seven titled sensitivities; all requested invariants hold.\n")

@@ -1,4 +1,4 @@
-## Rebuild the 36 BET 2026 MFCL LF sensitivity folders.
+## Rebuild the seven curated BET 2026 MFCL LF sensitivity folders.
 ##
 ## Every cell retains the exact effort-crept FRQ archived by Kflow Job 5319.
 ## Tag-group controls, display metadata, and regional-scaling inputs are
@@ -109,16 +109,16 @@ if (!identical(tag_sha256, expected_tag_sha256)) {
   fail("Refreshed bet.tag SHA-256 mismatch: ", tag_sha256)
 }
 
-if (!is.data.frame(models) || nrow(models) != 36L ||
+if (!is.data.frame(models) || nrow(models) != 7L ||
     anyDuplicated(models$step_id) || any(!models$enabled)) {
-  fail("job-config.R must define exactly 36 unique enabled sensitivity cells")
+  fail("job-config.R must define exactly seven unique enabled sensitivity cells")
 }
 if (!all(models$run_mode == "doitall") ||
     !all(models$regional_scaling_weight == 50L)) {
   fail("Every sensitivity must use doitall and regional-scaling weight 50")
 }
 if (!all(models$lf_size_divisor == 20L * models$lf_downweight_factor)) {
-  fail("F21/F22/F23 LF divisors must be 20, 200, or 2000 by design")
+  fail("Every F21/F22/F23 LF divisor must equal 20 times its targeted downweight factor")
 }
 
 sensitivity_root <- file.path(root, "sensitivity")
@@ -164,6 +164,19 @@ cutoff_sentence <- function(cutoff_cm) {
     )
   } else {
     "For F21/F22/F23, observed LF counts are unchanged; no cutoff is applied."
+  }
+}
+
+cutoff_provenance <- function(cutoff_cm) {
+  if (is.finite(cutoff_cm) && cutoff_cm == 90) {
+    paste(
+      "The 90 cm threshold reproduces the historical treatment documented in",
+      "WCPFC-SC19-2023/SA-WP-05 for the corresponding Indonesia, Philippines,",
+      "and Vietnam domestic small-fish length compositions; 90 cm is retained",
+      "and only bins with midpoint greater than 90 cm are zeroed."
+    )
+  } else {
+    "This model retains its previously selected cutoff treatment."
   }
 }
 
@@ -231,6 +244,7 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
       expected_frq_sha256, "."
     ),
     treatment,
+    cutoff_provenance(as.numeric(row$cutoff_cm)),
     if (has_cutoff) {
       paste(
         "Counts are not transferred; LF categories remain in the MFCL option-3",
@@ -351,7 +365,7 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
   lines <- c(
     paste0("# ", as.character(row$job_title)),
     "",
-    "This is one cell of the 36-model BET 2026 MFCL LF sensitivity factorial.",
+    "This is one model in the curated BET 2026 TC1 LF sensitivity set.",
     "",
     "## Design",
     "",
@@ -365,6 +379,7 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
     "## Observed LF semantics",
     "",
     treatment,
+    cutoff_provenance(cutoff_value),
     paste(
       "The bins remain as categories in the MFCL option-3 LF likelihood, and",
       "MFCL internally renormalizes retained counts. Counts are not transferred.",
