@@ -63,14 +63,14 @@ expected_grid <- data.frame(
     "S010-TC1-CUT70-DW1",
     "S014-TC1-NOCUT-DW10",
     "S022-TC1-CUT70-DW10",
-    "S034-TC1-CUT70-DW100",
+    "S040-TC1-CUT70-DW5",
     "S037-TC1-CUT90-DW1",
     "S038-TC1-CUT90-DW5",
     "S039-TC1-CUT90-DW10"
   ),
   tail_compression_percent = rep(1L, 7L),
   cutoff = c("70", "NONE", "70", "70", "90", "90", "90"),
-  lf_downweight_factor = c(1L, 10L, 10L, 100L, 1L, 5L, 10L),
+  lf_downweight_factor = c(1L, 10L, 10L, 5L, 1L, 5L, 10L),
   stringsAsFactors = FALSE
 )
 cell_key <- function(tc, cutoff, dw) paste(tc, cutoff, dw, sep = "|")

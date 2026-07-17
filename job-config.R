@@ -1,8 +1,8 @@
 # Curated BET 2026 MFCL LF sensitivity set.
-# Four fitted TC1 models have a positive-definite Hessian. Three additional
-# CUT90 models reproduce the historical upper-length treatment, with targeted
-# downweight levels for fisheries 21, 22, and 23 only. Tail compression is
-# global. Regional scaling is fixed at weight 50.
+# Three retained TC1 models have a positive-definite Hessian. Four additional
+# models use target-only downweight factors no larger than 10: one CUT70-DW5
+# replacement and three CUT90 candidates. Tail compression is global and the
+# cutoff/downweight treatments apply only to fisheries 21, 22, and 23.
 
 stepwise_run <- list(
   default_step_select = "all",
@@ -15,7 +15,7 @@ sensitivity_grid <- data.frame(
     "S010-TC1-CUT70-DW1",
     "S014-TC1-NOCUT-DW10",
     "S022-TC1-CUT70-DW10",
-    "S034-TC1-CUT70-DW100",
+    "S040-TC1-CUT70-DW5",
     "S037-TC1-CUT90-DW1",
     "S038-TC1-CUT90-DW5",
     "S039-TC1-CUT90-DW10"
@@ -23,7 +23,7 @@ sensitivity_grid <- data.frame(
   regional_scaling_weight = rep(50L, 7L),
   tail_compression_percent = rep(1L, 7L),
   cutoff_cm = c(70, NA_real_, 70, 70, 90, 90, 90),
-  lf_downweight_factor = c(1L, 10L, 10L, 100L, 1L, 5L, 10L),
+  lf_downweight_factor = c(1L, 10L, 10L, 5L, 1L, 5L, 10L),
   stringsAsFactors = FALSE
 )
 sensitivity_grid$lf_size_divisor <-

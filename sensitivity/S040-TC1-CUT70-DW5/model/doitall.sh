@@ -113,9 +113,9 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   1 141 3     # set likelihood function for LF data to normal
   1 139 3     # set likelihood function for WF data to normal
   -999 49 20  # divide LF sample sizes by 20
-  -21 49 2000  # sensitivity-only F21 LF effective-sample-size divisor
-  -22 49 2000  # sensitivity-only F22 LF effective-sample-size divisor
-  -23 49 2000  # sensitivity-only F23 LF effective-sample-size divisor
+  -21 49 100  # sensitivity-only F21 LF effective-sample-size divisor
+  -22 49 100  # sensitivity-only F22 LF effective-sample-size divisor
+  -23 49 100  # sensitivity-only F23 LF effective-sample-size divisor
   -999 50 20  # divide WF sample sizes by 20
 # Additional LF/WF sample-size reductions retained from the inherited setup.
 # Index fisheries 29-33 are included; extraction labels need the 03 fishery map.

@@ -1,6 +1,6 @@
 # BET 2026 TC1 LF sensitivity shortlist
 
-This branch retains four fitted `TC=1` models with a positive-definite Hessian (PDH) and adds three `CUT90` candidates. The cutoff reproduces the historical treatment; the additional weighting levels are targeted sensitivity tests. The full 36-model factorial design remains on `main`.
+This branch retains three fitted `TC=1` models with a positive-definite Hessian (PDH) and adds four prepared candidates. The `CUT90` cutoff reproduces the historical treatment; all additional weighting levels are targeted sensitivity tests. The full 36-model factorial design remains on `main`.
 
 ## Selected models
 
@@ -9,12 +9,12 @@ This branch retains four fitted `TC=1` models with a positive-definite Hessian (
 | `S010-TC1-CUT70-DW1` | 70 cm | 1 | Yes | 0 | 1.719e-7 |
 | `S014-TC1-NOCUT-DW10` | None | 10 | Yes | 0 | 6.438e-8 |
 | `S022-TC1-CUT70-DW10` | 70 cm | 10 | Yes | 0 | 1.328e-7 |
-| `S034-TC1-CUT70-DW100` | 70 cm | 100 | Yes | 0 | 1.091e-7 |
+| `S040-TC1-CUT70-DW5` | 70 cm | 5 | Not run | - | - |
 | `S037-TC1-CUT90-DW1` | 90 cm | 1 | Not run | - | - |
 | `S038-TC1-CUT90-DW5` | 90 cm | 5 | Not run | - | - |
 | `S039-TC1-CUT90-DW10` | 90 cm | 10 | Not run | - | - |
 
-The complete machine-readable selection is in [`SENSITIVITY_SELECTION.csv`](SENSITIVITY_SELECTION.csv); fitted PDH results remain in [`PDH_SELECTION.csv`](PDH_SELECTION.csv).
+The complete machine-readable selection is in [`SENSITIVITY_SELECTION.csv`](SENSITIVITY_SELECTION.csv); the three retained fitted PDH results remain in [`PDH_SELECTION.csv`](PDH_SELECTION.csv). The former `S034-TC1-CUT70-DW100` result is preserved in Git history and is not attributed to the replacement because its weighting changed.
 
 ## Historical 90 cm treatment
 
