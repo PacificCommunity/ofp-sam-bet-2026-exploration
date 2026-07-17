@@ -124,14 +124,15 @@ reference_required <- c(
   "mfcl.cfg", "tag_rep_map.R"
 )
 expected_reference_sha256 <-
-  "806f1e81e0bbbc74c9925646d04947d8cb2abeea1e707140e8cf32a89f244a03"
+  "a8e0598d06a1f795bf5cd0ced5c19e4462fa16921fde7412b295e460cacc8dbc"
 expected_frq_sha256 <-
   "d77f97c348409f845f1f0fc801af808d15b6cb119349d1f083308cfc9d4fba8c"
 expected_ini_sha256 <-
   "3c9503e0762547762bab20b26997c3a4e627b0965b1d88418d71a1a17f40bb11"
 expected_tag_sha256 <-
-  "a0365342054ae96ba9e48292b7bf46f469f0cf8b577985587b0e29fd49c23269"
+  "3f1b836a844ec2ca8e70fc5814d94c5a1ebc37ff4a5571c1dc1f6b83e477dfe8"
 stepwise_refresh_commit <- "26c74dc6f303faa951b1ab331d7de14ea20b7489"
+tag_prep_commit <- "79733c429b320e84ed5047aa6c932c8f19dab187"
 assert_true(dir.exists(reference_dir), "Missing refreshed reference input directory")
 reference_files <- sort(list.files(reference_dir, all.files = FALSE, no.. = TRUE))
 assert_true(identical(reference_files, sort(reference_required)),
@@ -153,7 +154,8 @@ assert_true(grepl(expected_reference_sha256, root_readme, fixed = TRUE) &&
               grepl(expected_frq_sha256, root_readme, fixed = TRUE) &&
               grepl(expected_ini_sha256, root_readme, fixed = TRUE) &&
               grepl(expected_tag_sha256, root_readme, fixed = TRUE) &&
-              grepl(stepwise_refresh_commit, root_readme, fixed = TRUE),
+              grepl(stepwise_refresh_commit, root_readme, fixed = TRUE) &&
+              grepl(tag_prep_commit, root_readme, fixed = TRUE),
             "README.md must record the refreshed reference provenance")
 assert_true(!grepl("public repository", root_readme, fixed = TRUE),
             "README.md must not use the phrase public repository")

@@ -7,27 +7,32 @@ neither MFCL source code nor executable files.
 ## Reference baseline
 
 Every cell retains the exact effort-crept `bet.frq` archived by Kflow Job 5319.
-The tag-group controls and tag data are refreshed from
+The tag-group controls and display maps are refreshed from
 `PacificCommunity/ofp-sam-bet-2026-stepwise` branch
 `experiment/tag-grouping-reg-scaling-2026`, commit
-`26c74dc6f303faa951b1ab331d7de14ea20b7489`. Step 11 through Step 14 use the
-same refreshed `bet.ini` and `bet.tag`, so the update does not change the
-LF-sensitivity baseline or reapply effort creep.
+`26c74dc6f303faa951b1ab331d7de14ea20b7489`.
+
+The tag observations come from
+`PacificCommunity/ofp-sam-2026-BET-YFT-tag-prep` `main`, commit
+`79733c429b320e84ed5047aa6c932c8f19dab187`, file
+`BET/bet.2026.low.recaps.removed.tag`. This file is byte-identical to
+`experiment/pdh-skip-opr-lengthsel` Step 13 `13-DataWeighting/model/bet.tag`.
+Effort creep is not reapplied.
 
 The reference bundle is stored in `reference-inputs/job-5319/mfcl-inputs`.
 
 | Provenance item | SHA-256 |
 | --- | --- |
-| Refreshed 10-file reference bundle | `806f1e81e0bbbc74c9925646d04947d8cb2abeea1e707140e8cf32a89f244a03` |
+| Refreshed 10-file reference bundle | `a8e0598d06a1f795bf5cd0ced5c19e4462fa16921fde7412b295e460cacc8dbc` |
 | Retained Job 5319 `bet.frq` | `d77f97c348409f845f1f0fc801af808d15b6cb119349d1f083308cfc9d4fba8c` |
 | Refreshed `bet.ini` | `3c9503e0762547762bab20b26997c3a4e627b0965b1d88418d71a1a17f40bb11` |
-| Refreshed `bet.tag` | `a0365342054ae96ba9e48292b7bf46f469f0cf8b577985587b0e29fd49c23269` |
+| Latest tag-prep `bet.tag` | `3f1b836a844ec2ca8e70fc5814d94c5a1ebc37ff4a5571c1dc1f6b83e477dfe8` |
 
 The refreshed ini contains 98 tag-release rows and retains
-`tag_flags(:,2)=0` for every row. `tag_rep_map.R` matches the updated reporting
-rate groups, initial values, targets, penalties, and fishery names used by
-`bet.ini` and `bet.tag`. The existing Job 5319 `doitall.sh` is retained so this
-refresh does not introduce later OPR controls.
+`tag_flags(:,2)=0` for every row. `tag_rep_map.R` records the updated reporting
+rate groups, initial values, targets, penalties, and fishery names from the ini.
+The existing Job 5319 `doitall.sh` is retained so this refresh does not
+introduce later OPR controls.
 
 ## 36-cell design
 

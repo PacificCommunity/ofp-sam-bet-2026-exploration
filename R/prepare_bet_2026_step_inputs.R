@@ -1,14 +1,17 @@
 ## Rebuild the 36 BET 2026 MFCL LF sensitivity folders.
 ##
 ## Every cell retains the exact effort-crept FRQ archived by Kflow Job 5319.
-## Tag-group controls, tag data, display metadata, and regional-scaling inputs
-## are refreshed from the reviewed stepwise tag-grouping branch. The script
+## Tag-group controls, display metadata, and regional-scaling inputs are
+## refreshed from the reviewed stepwise branch; tag data come from the latest
+## tag-prep main branch. The script
 ## never reapplies effort creep. It changes only observed LF bins for cutoff
 ## cells, parest flag 313, and new fishery-49 overrides for F21/F22/F23.
 
 root <- normalizePath(getwd(), winslash = "/", mustWork = TRUE)
 stepwise_refresh_ref <- "experiment/tag-grouping-reg-scaling-2026"
 stepwise_refresh_commit <- "26c74dc6f303faa951b1ab331d7de14ea20b7489"
+tag_prep_commit <- "79733c429b320e84ed5047aa6c932c8f19dab187"
+tag_prep_source <- "PacificCommunity/ofp-sam-2026-BET-YFT-tag-prep"
 required_project_files <- c(
   "job-config.R",
   file.path("R", "prepare_common.R"),
@@ -45,13 +48,13 @@ reference_required <- c(
   "mfcl.cfg",
   "tag_rep_map.R"
 )
-expected_reference_sha256 <- "806f1e81e0bbbc74c9925646d04947d8cb2abeea1e707140e8cf32a89f244a03"
+expected_reference_sha256 <- "a8e0598d06a1f795bf5cd0ced5c19e4462fa16921fde7412b295e460cacc8dbc"
 expected_frq_sha256 <-
   "d77f97c348409f845f1f0fc801af808d15b6cb119349d1f083308cfc9d4fba8c"
 expected_ini_sha256 <-
   "3c9503e0762547762bab20b26997c3a4e627b0965b1d88418d71a1a17f40bb11"
 expected_tag_sha256 <-
-  "a0365342054ae96ba9e48292b7bf46f469f0cf8b577985587b0e29fd49c23269"
+  "3f1b836a844ec2ca8e70fc5814d94c5a1ebc37ff4a5571c1dc1f6b83e477dfe8"
 
 fail <- function(...) stop(paste0(...), call. = FALSE)
 
@@ -269,7 +272,7 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
       )
     ),
     source_commit = c(
-      "", stepwise_refresh_commit, stepwise_refresh_commit, "",
+      "", stepwise_refresh_commit, tag_prep_commit, "",
       stepwise_refresh_commit, stepwise_refresh_commit, "", "",
       stepwise_refresh_commit, stepwise_refresh_commit
     ),
@@ -280,7 +283,10 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
         paste0("Tag-control ini SHA-256 ", expected_ini_sha256, ";"),
         "all 98 tag_flags(:,2) values remain 0."
       ),
-      paste(refresh_note, paste0("Tag SHA-256 ", expected_tag_sha256, ".")),
+      paste(
+        paste0("Latest tag data from ", tag_prep_source, "@", tag_prep_commit, " (main);"),
+        paste0("tag SHA-256 ", expected_tag_sha256, "; byte-identical to PDH 13-DataWeighting.")
+      ),
       anchor_note,
       paste(
         refresh_note,
@@ -377,9 +383,13 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       "`; effort creep is not reapplied."
     ),
     paste(
-      "`bet.ini`, `bet.tag`, `fishery_map.R`, and `tag_rep_map.R` are refreshed",
+      "`bet.ini`, `fishery_map.R`, and `tag_rep_map.R` are refreshed",
       paste0("from stepwise commit `", stepwise_refresh_commit, "`;"),
       "the 98 `tag_flags(:,2)` values remain 0."
+    ),
+    paste0(
+      "`bet.tag` is the latest tag-prep main file at commit `",
+      tag_prep_commit, "` and is byte-identical to PDH 13-DataWeighting."
     ),
     paste(
       "`bet.reg_scaling` is the MFCL-ready 20x5 active matrix and",
@@ -473,6 +483,7 @@ cat(sprintf("Generated %d sensitivity folders from the refreshed reference bundl
 cat(sprintf("Refreshed reference input-set SHA-256: %s\n", reference_sha256))
 cat(sprintf("Job 5319 archived bet.frq SHA-256: %s\n", frq_sha256))
 cat(sprintf("Stepwise tag-grouping source commit: %s\n", stepwise_refresh_commit))
+cat(sprintf("Tag-prep main source commit: %s\n", tag_prep_commit))
 cat("Regional scaling: active 20x5 plus retained full 292x5 source\n")
 cat("Effort creep reapplied: no\n")
 cat("Kflow submitted: no\n")
