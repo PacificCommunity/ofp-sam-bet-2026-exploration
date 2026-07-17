@@ -26,6 +26,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Iterable
 
+import yaml
+
 
 TASK_CODE = "ofp-sam-bet-2026-opr-recruitment-sensitivities"
 TASK_NAME = "BET 2026 OPR recruitment sensitivities"
@@ -262,6 +264,39 @@ def runtime_env(mfclkit_ref: str, mfclshiny_ref: str) -> dict[str, str]:
         "PROGRAM_PATH": "/home/mfcl/mfclo64",
         "TUNA_FLOW_RUNTIME_UPDATE": "never",
     }
+
+
+def local_apps_for_runtime(
+    repo_root: Path,
+    mfclkit_ref: str,
+    mfclshiny_ref: str,
+) -> list[dict[str, Any]]:
+    """Load canonical task apps and pin them to this campaign runtime."""
+    config_path = repo_root / "kflow.yaml"
+    if not config_path.is_file():
+        raise RuntimeError(f"Missing Kflow configuration: {config_path}")
+    try:
+        with config_path.open(encoding="utf-8") as handle:
+            config = yaml.safe_load(handle) or {}
+    except (OSError, yaml.YAMLError) as exc:
+        raise RuntimeError(f"Cannot read {config_path}: {exc}") from exc
+    raw_apps = config.get("local_apps") if isinstance(config, dict) else None
+    if not isinstance(raw_apps, list):
+        raise RuntimeError(f"{config_path} must define local_apps as a list.")
+
+    apps = json.loads(json.dumps(raw_apps))
+    refs = {
+        "MFCLKIT_GITHUB_REF": mfclkit_ref,
+        "MFCLSHINY_GITHUB_REF": mfclshiny_ref,
+    }
+    for app in apps:
+        if not isinstance(app, dict):
+            raise RuntimeError(f"{config_path} contains an invalid local app.")
+        env = app.get("env") if isinstance(app.get("env"), dict) else {}
+        app["env"] = {**env, **refs}
+    if not any(str(app.get("key") or "").strip() == "mfclshiny" for app in apps):
+        raise RuntimeError(f"{config_path} does not define the mfclshiny local app.")
+    return apps
 
 
 def common_job_payload(*, repo: str, branch: str) -> dict[str, Any]:
@@ -684,6 +719,7 @@ def merge_payload(
 
 def task_payload(
     *,
+    repo_root: Path,
     source_sha: str,
     mfclkit_ref: str,
     mfclshiny_ref: str,
@@ -721,6 +757,11 @@ def task_payload(
             "model_count": EXPECTED_MODELS,
             "model_root": MODEL_ROOT,
             "model_source_commit": source_sha,
+            "local_apps": local_apps_for_runtime(
+                repo_root,
+                mfclkit_ref,
+                mfclshiny_ref,
+            ),
             "runtime_refs": {
                 "mfclkit": mfclkit_ref,
                 "mfclshiny": mfclshiny_ref,
@@ -765,6 +806,7 @@ def submit_campaign(args: argparse.Namespace, models: list[str], source_sha: str
     task = api.register_task(
         args.task_code,
         task_payload(
+            repo_root=repo_root,
             source_sha=source_sha,
             mfclkit_ref=args.mfclkit_ref,
             mfclshiny_ref=args.mfclshiny_ref,
