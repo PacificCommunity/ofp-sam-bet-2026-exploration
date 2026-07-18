@@ -197,7 +197,7 @@ doitall_semantic_sha256 <- function(ids) {
   sha256_file(manifest)
 }
 expected_doitall_semantic_sha256 <-
-  "fc218ddecf439fbdc29c32ca88a15348cfd7f57b6c951fbf07c4678003cb9184"
+  "86cf094a05d86fa8037d19aa6f1d2417addcf0b55eac1ed6ac5cbcf488d343da"
 actual_doitall_semantic_sha256 <- doitall_semantic_sha256(models$step_id)
 if (!identical(actual_doitall_semantic_sha256, expected_doitall_semantic_sha256)) {
   fail("Generated doitall command semantics changed; only comments were permitted")
@@ -205,6 +205,7 @@ if (!identical(actual_doitall_semantic_sha256, expected_doitall_semantic_sha256)
 same_file <- function(left, right) identical(sha256_file(left), sha256_file(right))
 
 expected_ini_sha256 <- "932f57a96140400ae327cc47291316840c63c492542724a967c48ed002157117"
+expected_generated_ini_sha256 <- "eaf9b6a5343d3face34580388ac7fdc2d6ae991bd1ad3ee12e2544e3b30a8de8"
 non_sensitivity_ini <- list.files(repo_root, pattern = "^bet\\.ini$", recursive = TRUE,
                                   full.names = TRUE)
 non_sensitivity_ini <- non_sensitivity_ini[!grepl("/sensitivity/", non_sensitivity_ini)]
@@ -212,6 +213,92 @@ reference_ini <- non_sensitivity_ini[vapply(
   non_sensitivity_ini, function(path) identical(sha256_file(path), expected_ini_sha256), logical(1)
 )]
 if (!length(reference_ini)) fail("Could not find the unchanged derived reference bet.ini")
+
+ini_matrix <- function(path, marker) {
+  lines <- readLines(path, warn = FALSE)
+  start <- which(trimws(lines) == marker)
+  if (length(start) != 1L) fail(path, " must contain exactly one ", marker, " section")
+  later <- which(seq_along(lines) > start & grepl("^[[:space:]]*#", lines))
+  section_end <- if (length(later)) min(later) - 1L else length(lines)
+  rows <- seq.int(start + 1L, section_end)
+  rows <- rows[nzchar(trimws(lines[rows]))]
+  values <- strsplit(trimws(lines[rows]), "[[:space:]]+")
+  widths <- unique(lengths(values))
+  if (length(widths) != 1L) fail(path, " has an uneven ", marker, " matrix")
+  matrix(
+    as.numeric(unlist(values, use.names = FALSE)),
+    nrow = length(values),
+    byrow = TRUE
+  )
+}
+
+reporting_markers <- c(
+  rep = "# tag fish rep",
+  group = "# tag fish rep group flags",
+  active = "# tag_fish_rep active flags",
+  target = "# tag_fish_rep target",
+  penalty = "# tag_fish_rep penalty"
+)
+reference_reporting <- lapply(reporting_markers, ini_matrix, path = reference_ini[[1L]])
+partition_equivalent <- function(left, right) {
+  if (!identical(dim(left), dim(right)) ||
+      !identical(left == 0, right == 0)) return(FALSE)
+  left_labels <- sort(unique(left[left > 0]))
+  right_labels <- sort(unique(right[right > 0]))
+  if (length(left_labels) != length(right_labels)) return(FALSE)
+  left_to_right <- vapply(left_labels, function(label) {
+    length(unique(right[left == label]))
+  }, integer(1))
+  right_to_left <- vapply(right_labels, function(label) {
+    length(unique(left[right == label]))
+  }, integer(1))
+  all(left_to_right == 1L) && all(right_to_left == 1L)
+}
+
+canonical_reporting <- NULL
+for (id in models$step_id) {
+  path <- model_file(id, "bet.ini")
+  matrices <- lapply(reporting_markers, ini_matrix, path = path)
+  if (!all(vapply(matrices, function(x) identical(dim(x), c(99L, 33L)), logical(1)))) {
+    fail(id, " does not have five 99x33 reporting-rate matrices")
+  }
+  labels <- sort(unique(as.integer(matrices$group[matrices$group > 0])))
+  if (!identical(labels, 1:28)) {
+    fail(id, " reporting-rate group labels are not contiguous 1:28")
+  }
+  if (!partition_equivalent(reference_reporting$group, matrices$group)) {
+    fail(id, " reporting-rate partition differs from the unchanged reference INI")
+  }
+  for (name in c("rep", "active", "target", "penalty")) {
+    if (!identical(matrices[[name]], reference_reporting[[name]])) {
+      fail(id, " changes reporting-rate ", name, " values from the reference INI")
+    }
+  }
+  zero <- matrices$group == 0
+  if (any(abs(matrices$rep[zero]) > 1e-12) || any(matrices$active[zero] != 0) ||
+      any(abs(matrices$target[zero]) > 1e-12) ||
+      any(abs(matrices$penalty[zero]) > 1e-12)) {
+    fail(id, " has nonzero values outside reporting-rate groups")
+  }
+  for (group in labels) {
+    cells <- matrices$group == group
+    unique_counts <- vapply(
+      matrices[c("rep", "active", "target", "penalty")],
+      function(x) length(unique(round(x[cells], 12))),
+      integer(1)
+    )
+    if (any(unique_counts != 1L)) {
+      fail(id, " has mixed reporting-rate values within group ", group)
+    }
+  }
+  if (is.null(canonical_reporting)) {
+    canonical_reporting <- matrices
+  } else if (!all(vapply(names(matrices), function(name) {
+    identical(matrices[[name]], canonical_reporting[[name]])
+  }, logical(1)))) {
+    fail(id, " reporting-rate matrices differ from the common 41-model definition")
+  }
+}
 
 tag_section <- function(path) {
   lines <- readLines(path, warn = FALSE)
@@ -233,8 +320,8 @@ tag_section <- function(path) {
 
 for (id in setdiff(models$step_id, names(tag_controls))) {
   ini <- model_file(id, "bet.ini")
-  if (!identical(sha256_file(ini), expected_ini_sha256)) {
-    fail(id, " flag-column-2=0 INI is not byte-identical to the derived reference")
+  if (!identical(sha256_file(ini), expected_generated_ini_sha256)) {
+    fail(id, " flag-column-2=0 INI is not the canonicalized derived reference")
   }
   if (any(tag_section(ini)$matrix[, 2L] != 0L)) fail(id, " does not keep tag flag column 2 at zero")
 }
@@ -429,7 +516,7 @@ require_triple(n5_flags, -999L, 26L, 2L, n5_reference_id)
 require_triple(n5_flags, -999L, 57L, 3L, n5_reference_id)
 require_triple(n5_flags, -999L, 61L, 5L, n5_reference_id)
 
-expected_groups <- c(1:24, 30:33, rep(25L, 5L))
+expected_groups <- c(1:28, rep(29L, 5L))
 for (fishery in 1:33) require_triple(n5_flags, -fishery, 24L,
                                      expected_groups[[fishery]], n5_reference_id)
 expected_zeros <- c(
@@ -475,8 +562,8 @@ for (id in unique(c(core_ids, tag_ids, opr_ids))) {
   all_flags <- flag_triples(readLines(model_file(id, "doitall.sh"), warn = FALSE), id)
   for (fishery in 29:33) {
     rows <- all_flags[all_flags$actor == -fishery & all_flags$flag == 24L, , drop = FALSE]
-    if (!nrow(rows) || tail(rows$value, 1L) != fishery - 4L) {
-      fail(id, " does not split F29-F33 to groups 25:29 in phase 5")
+    if (!nrow(rows) || tail(rows$value, 1L) != fishery) {
+      fail(id, " does not split F29-F33 to contiguous groups 29:33 in phase 5")
     }
   }
 }
@@ -544,29 +631,57 @@ for (id in models$step_id) {
 
   phase1 <- phase_bounds(lines, 1L, id)
   phase5 <- phase_bounds(lines, 5L, id)
-  for (fishery in 29:33) {
+  initial_groups <- integer(33L)
+  final_groups <- integer(33L)
+  for (fishery in 1:33) {
     pattern <- sprintf("^-%d 24 ", fishery)
     hits <- grep(pattern, canonical_lines)
     initial <- hits[hits > phase1[["start"]] & hits < phase1[["end"]]]
+    if (length(initial) != 1L) {
+      fail(id, " must define every fishery's flag-24 group exactly once in phase 1")
+    }
+    initial_groups[[fishery]] <- as.integer(strsplit(
+      canonical_lines[[initial]], " ", fixed = TRUE
+    )[[1L]][[3L]])
+    final_groups[[fishery]] <- initial_groups[[fishery]]
     split <- hits[hits > phase5[["start"]] & hits < phase5[["end"]]]
-    if (length(hits) != 2L || length(initial) != 1L || length(split) != 1L ||
-        canonical_lines[[initial]] != sprintf("-%d 24 25", fishery) ||
-        canonical_lines[[split]] != sprintf("-%d 24 %d", fishery, fishery - 4L) ||
+    expected_hits <- if (fishery >= 29L) 2L else 1L
+    expected_splits <- if (fishery >= 29L) 1L else 0L
+    if (length(hits) != expected_hits || length(split) != expected_splits ||
         any(hits > phase5[["end"]])) {
+      fail(id, " has an unexpected flag-24 override outside the reviewed phase 1/5 design")
+    }
+    if (fishery < 29L) next
+    final_groups[[fishery]] <- as.integer(strsplit(
+      canonical_lines[[split]], " ", fixed = TRUE
+    )[[1L]][[3L]])
+    if (canonical_lines[[initial]] != sprintf("-%d 24 29", fishery) ||
+        canonical_lines[[split]] != sprintf("-%d 24 %d", fishery, fishery)) {
       fail(id, " must share F29-F33 through phase 4 and split them from phase 5 onward")
     }
     expected_initial_comment <- sprintf(
-      "-%d 24 25  # Index R%d; shared initialization group through phase 4",
+      "-%d 24 29  # Index R%d; shared initialization group through phase 4",
       fishery, fishery - 28L
     )
     expected_split_comment <- sprintf(
       "-%d 24 %d  # Index R%d; separate final selectivity from phase 5 onward",
-      fishery, fishery - 4L, fishery - 28L
+      fishery, fishery, fishery - 28L
     )
     if (sum(trimws(lines) == expected_initial_comment) != 1L ||
         sum(trimws(lines) == expected_split_comment) != 1L) {
       fail(id, " lacks clear phase-specific index selectivity comments")
     }
+  }
+  expected_initial_groups <- c(1:28, rep(29L, 5L))
+  expected_final_groups <- 1:33
+  contiguous <- function(x) identical(sort(unique(x)), seq.int(min(x), max(x)))
+  if (!identical(initial_groups, expected_initial_groups) ||
+      !identical(final_groups, expected_final_groups) ||
+      !contiguous(initial_groups) || !contiguous(final_groups)) {
+    fail(id, paste(
+      "must preserve 29 phase-1 and 33 phase-5 selectivity partitions",
+      "with contiguous MFCL flag-24 labels and no membership collision"
+    ))
   }
 }
 
@@ -675,6 +790,7 @@ cat("Validation passed: 41 non-duplicate sensitivity models.\n")
 cat("Core S001-S030 and TAGF2ON S033-S037 inherit the exact corrected N5 baseline.\n")
 cat("N8 axis: only F12 PS.JP.1 and F13 PL.JP.1 change flag 61 from 5 to 8.\n")
 cat("Index baseline: every model has flag 75=2 for F29-F33 Index R1-R5.\n")
+cat("Selectivity groups: flag-24 labels are contiguous, with 29 phase-1 and 33 phase-5 partitions.\n")
 cat("Identifiers are contiguous S001:S041; retained N8 models are S031 and S032.\n")
 cat("OPR pairs: normal S001 and DM S005 controls use the exact reviewed Y72-E2-S01-R50-I50 transform with parest 397=0.\n")
 cat("DM OPR controls retain G5PROC, C estimation, Nmax 1000, and phase order OPR/movement/regional scaling = 3/4/5.\n")

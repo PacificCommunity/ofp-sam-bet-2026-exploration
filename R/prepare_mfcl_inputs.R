@@ -306,6 +306,60 @@ copy_tag_reporting_matrices <- function(path, source_ini) {
   )
 }
 
+canonicalize_tag_reporting_group_labels <- function(path) {
+  # MFCL treats positive reporting-rate group labels as a dense parameter
+  # index and rejects holes. Relabel the existing partition bijectively while
+  # preserving every cell's membership and all associated values.
+  marker <- "# tag fish rep group flags"
+  lines <- readLines(path, warn = FALSE)
+  row_idx <- ini_matrix_row_indices(lines, marker)
+  split_rows <- strsplit(trimws(lines[row_idx]), "[[:space:]]+")
+  widths <- unique(lengths(split_rows))
+  if (length(widths) != 1L) {
+    stop("Uneven reporting-rate group matrix width in ", path, call. = FALSE)
+  }
+  group <- matrix(
+    as.integer(unlist(split_rows, use.names = FALSE)),
+    nrow = length(split_rows),
+    byrow = TRUE
+  )
+  if (anyNA(group) || any(group < 0L)) {
+    stop("Invalid reporting-rate group label in ", path, call. = FALSE)
+  }
+  labels <- sort(unique(group[group > 0L]))
+  if (!length(labels)) {
+    stop("No positive reporting-rate groups in ", path, call. = FALSE)
+  }
+  canonical <- seq_along(labels)
+  if (identical(labels, canonical)) return(invisible(""))
+
+  map <- stats::setNames(canonical, labels)
+  relabelled <- group
+  positive <- relabelled > 0L
+  relabelled[positive] <- unname(map[as.character(relabelled[positive])])
+  if (!identical(group == 0L, relabelled == 0L)) {
+    stop("Reporting-rate zero-group membership changed in ", path, call. = FALSE)
+  }
+  for (label in labels) {
+    mapped <- unique(relabelled[group == label])
+    if (length(mapped) != 1L) {
+      stop("Reporting-rate partition changed while relabelling ", path, call. = FALSE)
+    }
+  }
+
+  lines[row_idx] <- vapply(
+    seq_len(nrow(relabelled)),
+    function(i) paste(relabelled[i, ], collapse = " "),
+    character(1)
+  )
+  writeLines(lines, path, sep = file_eol(path), useBytes = TRUE)
+  paste0(
+    "canonicalized ", length(labels),
+    " reporting-rate group labels to 1:", length(labels),
+    " without changing group membership or prior values"
+  )
+}
+
 repair_tag_reporting_grouped_initial_values <- function(path) {
   # Native MFCL requires every cell in a reporting-rate group to have the same
   # active flag and starting value. If the upstream grouping is intentional,
@@ -387,27 +441,68 @@ repair_tag_reporting_grouped_initial_values <- function(path) {
 }
 
 validate_tag_reporting_grouped_initial_values <- function(path) {
-  rep <- extract_ini_matrix(path, "# tag fish rep")
-  group <- extract_ini_matrix(path, "# tag fish rep group flags")
-  active <- extract_ini_matrix(path, "# tag_fish_rep active flags")
-  if (!identical(dim(rep), dim(group)) || !identical(dim(rep), dim(active))) {
+  matrices <- list(
+    rep = extract_ini_matrix(path, "# tag fish rep"),
+    group = extract_ini_matrix(path, "# tag fish rep group flags"),
+    active = extract_ini_matrix(path, "# tag_fish_rep active flags"),
+    target = extract_ini_matrix(path, "# tag_fish_rep target"),
+    penalty = extract_ini_matrix(path, "# tag_fish_rep penalty")
+  )
+  dimensions <- lapply(matrices, dim)
+  if (!all(vapply(dimensions, identical, logical(1), dimensions[[1L]]))) {
     stop("Tag reporting-rate matrices have inconsistent dimensions in ", path, call. = FALSE)
   }
+  rep <- matrices$rep
+  group <- matrices$group
+  active <- matrices$active
+  target <- matrices$target
+  penalty <- matrices$penalty
+  labels <- sort(unique(as.integer(group[group > 0])))
+  if (!identical(labels, seq_along(labels))) {
+    stop(
+      "Tag reporting-rate group labels are not contiguous from 1 in ", path,
+      ": ", paste(labels, collapse = ","),
+      call. = FALSE
+    )
+  }
+  zero_cells <- group == 0
+  if (any(abs(rep[zero_cells]) > 1e-12) || any(active[zero_cells] != 0) ||
+      any(abs(target[zero_cells]) > 1e-12) || any(abs(penalty[zero_cells]) > 1e-12)) {
+    stop("Ungrouped reporting-rate cells contain active values in ", path, call. = FALSE)
+  }
   bad <- list()
-  for (g in sort(unique(as.vector(group[group > 0])))) {
+  for (g in labels) {
     cells <- which(group == g, arr.ind = TRUE)
-    keys <- unique(paste(active[cells], round(rep[cells], 12), sep = "|"))
-    if (length(keys) > 1L) {
+    values <- list(
+      rep = unique(round(rep[cells], 12)),
+      active = unique(active[cells]),
+      target = unique(round(target[cells], 12)),
+      penalty = unique(round(penalty[cells], 12))
+    )
+    if (any(lengths(values) != 1L)) {
       bad[[length(bad) + 1L]] <- paste0(
-        "group ", g, " has ", length(keys),
-        " active/RR combinations across fisheries ",
+        "group ", g, " has mixed rep/active/target/penalty values across fisheries ",
         compact_ints(cells[, "col"])
+      )
+      next
+    }
+    a <- values$active[[1L]]
+    r <- values$rep[[1L]]
+    t <- values$target[[1L]]
+    p <- values$penalty[[1L]]
+    if (!a %in% c(0, 1) || !is.finite(r) || !is.finite(t) || !is.finite(p) ||
+        r < 0 || r > 1 || t < 0 || t > 100 || p < 0 ||
+        (a == 0 && any(abs(c(r, t, p)) > 1e-12)) ||
+        (a == 1 && (r <= 0 || t <= 0))) {
+      bad[[length(bad) + 1L]] <- paste0(
+        "group ", g, " has invalid rep/active/target/penalty values ",
+        paste(c(r, a, t, p), collapse = "/")
       )
     }
   }
   if (length(bad)) {
     stop(
-      "Native MFCL-incompatible tag reporting-rate group initials in ",
+      "Native MFCL-incompatible tag reporting-rate group definition in ",
       path, ": ", paste(bad, collapse = "; "),
       call. = FALSE
     )

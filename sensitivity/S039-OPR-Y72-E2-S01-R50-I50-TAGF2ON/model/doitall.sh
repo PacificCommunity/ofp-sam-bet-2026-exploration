@@ -178,7 +178,7 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -999 26 2  # build selectivity-at-age by evaluating the spline on scaled mean length-at-age (not length-bin selectivity)
   -999 57 3  # cubic spline basis for selectivity
   -999 61 5  # five spline nodes on the scaled mean-length-at-age coordinate
-# SA28: independent extraction selectivity; preserve current index group slots.
+# SA28: independent extraction selectivity with contiguous MFCL group labels.
   -1 24 1  # LL.WEST.ALL.1
   -2 24 2  # LL.EAST.ALL.1
   -3 24 3  # LL.US.1
@@ -203,15 +203,15 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -22 24 22  # MISC.PH.2
   -23 24 23  # MISC.VN.2
   -24 24 24  # PL.ALL.WEST.3
-  -25 24 30  # PS.ASSOC.WEST.3
-  -26 24 31  # PS.ASSOC.EAST.4
-  -27 24 32  # PS.UNASSOC.WEST.3
-  -28 24 33  # PS.UNASSOC.EAST.4
-  -29 24 25  # Index R1; shared initialization group through phase 4
-  -30 24 25  # Index R2; shared initialization group through phase 4
-  -31 24 25  # Index R3; shared initialization group through phase 4
-  -32 24 25  # Index R4; shared initialization group through phase 4
-  -33 24 25  # Index R5; shared initialization group through phase 4
+  -25 24 25  # PS.ASSOC.WEST.3
+  -26 24 26  # PS.ASSOC.EAST.4
+  -27 24 27  # PS.UNASSOC.WEST.3
+  -28 24 28  # PS.UNASSOC.EAST.4
+  -29 24 29  # Index R1; shared initialization group through phase 4
+  -30 24 29  # Index R2; shared initialization group through phase 4
+  -31 24 29  # Index R3; shared initialization group through phase 4
+  -32 24 29  # Index R4; shared initialization group through phase 4
+  -33 24 29  # Index R5; shared initialization group through phase 4
 # Single-area extraction monotonicity constraint.
    -9 16 1
 # Single-area extraction young-age constraints.
@@ -344,11 +344,11 @@ $program_path bet.frq 04.par 05.par -file - <<PHASE5
   -32 99 32  -32 94 0  # Index R4
   -33 99 33  -33 94 0  # Index R5
 # Ungroup index selectivity for the regional-scaling prior.
-  -29 24 25  # Index R1; separate final selectivity from phase 5 onward
-  -30 24 26  # Index R2; separate final selectivity from phase 5 onward
-  -31 24 27  # Index R3; separate final selectivity from phase 5 onward
-  -32 24 28  # Index R4; separate final selectivity from phase 5 onward
-  -33 24 29  # Index R5; separate final selectivity from phase 5 onward
+  -29 24 29  # Index R1; separate final selectivity from phase 5 onward
+  -30 24 30  # Index R2; separate final selectivity from phase 5 onward
+  -31 24 31  # Index R3; separate final selectivity from phase 5 onward
+  -32 24 32  # Index R4; separate final selectivity from phase 5 onward
+  -33 24 33  # Index R5; separate final selectivity from phase 5 onward
 # MFCL reads bet.reg_scaling when parest flag 77 is > 0.
   1 77 50   # MVN regional-scaling penalty weight; CV about 0.1
   1 78 1    # use mean regional-scaling target

@@ -151,10 +151,9 @@ make_fishery_group_map <- function(group_col, name_col) {
   )
 }
 
-# SA28 extraction groups are independent; current index group IDs are retained.
-fishery_map$selectivity_group[1:24] <- 1:24
-fishery_map$selectivity_group[25:28] <- 30:33
-fishery_map$selectivity_group[29:33] <- 25:29
+# SA28 extraction and final index groups are independent with contiguous labels.
+fishery_map$selectivity_group[1:28] <- 1:28
+fishery_map$selectivity_group[29:33] <- 29:33
 fishery_map$selectivity_name[1:28] <- sub("^[0-9]+\\.", "", fishery_map$fishery_name[1:28])
 fishery_map$selectivity_name[29:33] <- paste0("Index R", 1:5)
 

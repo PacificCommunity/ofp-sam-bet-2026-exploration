@@ -636,7 +636,8 @@ selectivity_treatment_note <- function(treatment) {
       "The corrected N5 baseline assigns independent selectivity groups to F1-F28,",
       "applies the audited young-age, F9 monotonicity, and upper-age constraints,",
       "fixes the first two ages of F29-F33 to zero, uses five nodes, and splits",
-      "regional-index groups F29-F33 in phase 5. Fish flag 26=2 evaluates the",
+      "regional-index groups F29-F33 in phase 5. Fish flag 24 group labels are",
+      "contiguous in every phase without changing group membership. Fish flag 26=2 evaluates the",
       "flag-57 cubic spline on scaled mean length-at-age to produce final",
       "selectivity-at-age; flag 61 supplies nodes on that coordinate."
     ),
@@ -651,7 +652,7 @@ selectivity_treatment_note <- function(treatment) {
 single_area_selectivity_block <- function(nodes) {
   nodes <- as.integer(nodes[[1L]])
   if (!nodes %in% c(5L, 8L)) fail("SA28 F12/F13 nodes must be 5 or 8")
-  extraction_group_ids <- c(1:24, 30:33)
+  extraction_group_ids <- 1:28
   extraction_labels <- sub(
     "^[0-9]+\\.",
     "",
@@ -672,18 +673,18 @@ single_area_selectivity_block <- function(nodes) {
     "  -999 57 3  # cubic spline basis for selectivity",
     "  -999 61 5  # five spline nodes on the scaled mean-length-at-age coordinate",
     node_lines,
-    "# SA28: independent extraction selectivity; preserve current index group slots.",
+    "# SA28: independent extraction selectivity with contiguous MFCL group labels.",
     sprintf(
       "  -%d 24 %d  # %s",
       1:28,
       extraction_group_ids,
       extraction_labels
     ),
-    "  -29 24 25  # Index R1; shared initialization group through phase 4",
-    "  -30 24 25  # Index R2; shared initialization group through phase 4",
-    "  -31 24 25  # Index R3; shared initialization group through phase 4",
-    "  -32 24 25  # Index R4; shared initialization group through phase 4",
-    "  -33 24 25  # Index R5; shared initialization group through phase 4",
+    "  -29 24 29  # Index R1; shared initialization group through phase 4",
+    "  -30 24 29  # Index R2; shared initialization group through phase 4",
+    "  -31 24 29  # Index R3; shared initialization group through phase 4",
+    "  -32 24 29  # Index R4; shared initialization group through phase 4",
+    "  -33 24 29  # Index R5; shared initialization group through phase 4",
     "# Single-area extraction monotonicity constraint.",
     "   -9 16 1",
     "# Single-area extraction young-age constraints.",
@@ -733,6 +734,31 @@ apply_selectivity_treatment <- function(lines, treatment) {
   fail("Unknown selectivity treatment: ", treatment)
 }
 
+canonicalize_final_selectivity_group_labels <- function(lines, treatment) {
+  treatment <- as.character(treatment[[1L]])
+  if (!treatment %in% c("sa28_n5", "sa28_n8")) return(lines)
+  phase_start <- grep("<<PHASE5[[:space:]]*$", lines)
+  phase_end <- grep("^PHASE5[[:space:]]*$", lines)
+  if (length(phase_start) != 1L || length(phase_end) != 1L || phase_start >= phase_end) {
+    fail("Archived doitall.sh must contain one complete PHASE5 block")
+  }
+  for (fishery in 29:33) {
+    hit <- grep(
+      sprintf("^[[:space:]]*-%d[[:space:]]+24[[:space:]]+", fishery),
+      lines
+    )
+    hit <- hit[hit > phase_start & hit < phase_end]
+    if (length(hit) != 1L) {
+      fail("PHASE5 must contain one selectivity-group line for fishery ", fishery)
+    }
+    lines[[hit]] <- sprintf(
+      "  -%d 24 %d  # Index R%d; separate final selectivity from phase 5 onward",
+      fishery, fishery, fishery - 28L
+    )
+  }
+  lines
+}
+
 apply_selectivity_fishery_map <- function(path, treatment) {
   treatment <- as.character(treatment[[1L]])
   if (!treatment %in% c("sa28_n5", "sa28_n8")) {
@@ -744,10 +770,9 @@ apply_selectivity_fishery_map <- function(path, treatment) {
     fail("Generated fishery_map.R must contain one selectivity_group_map assignment")
   }
   overrides <- c(
-    "# SA28 extraction groups are independent; current index group IDs are retained.",
-    "fishery_map$selectivity_group[1:24] <- 1:24",
-    "fishery_map$selectivity_group[25:28] <- 30:33",
-    "fishery_map$selectivity_group[29:33] <- 25:29",
+    "# SA28 extraction and final index groups are independent with contiguous labels.",
+    "fishery_map$selectivity_group[1:28] <- 1:28",
+    "fishery_map$selectivity_group[29:33] <- 29:33",
     "fishery_map$selectivity_name[1:28] <- sub(\"^[0-9]+\\\\.\", \"\", fishery_map$fishery_name[1:28])",
     "fishery_map$selectivity_name[29:33] <- paste0(\"Index R\", 1:5)",
     ""
@@ -902,6 +927,7 @@ write_sensitivity_doitall <- function(
     )
   }
   lines <- apply_selectivity_treatment(lines, selectivity_treatment)
+  lines <- canonicalize_final_selectivity_group_labels(lines, selectivity_treatment)
   writeLines(lines, to, useBytes = TRUE)
   Sys.chmod(to, mode = "0755")
   invisible(to)
@@ -1142,7 +1168,7 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
         if (selectivity_treatment %in% c("sa28_n5", "sa28_n8")) {
           paste(
             "Updated fishery names plus corrected independent F1-F28 display groups;",
-            "regional indices share group 25 in phases 1-4 and split to groups 25:29 in phase 5."
+            "regional indices share group 29 in phases 1-4 and split to groups 29:33 in phase 5."
           )
         } else {
           "Updated fishery names used by MFCLShiny."
@@ -1649,6 +1675,9 @@ for (i in seq_len(nrow(models))) {
   if (as.character(row$step_id) %in% tag_flag_sensitivity_ids) {
     restore_upstream_tag_flag_column2(file.path(model_dir, "bet.ini"))
   }
+  canonicalize_tag_reporting_group_labels(file.path(model_dir, "bet.ini"))
+  validate_tag_reporting_grouped_initial_values(file.path(model_dir, "bet.ini"))
+  write_generated_tag_rep_map(model_dir)
 
   write_sensitivity_doitall(
     file.path(model_dir, "doitall.sh"),

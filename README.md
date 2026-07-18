@@ -29,8 +29,8 @@ All 30 core models use the corrected single-area-derived N5 selectivity baseline
 
 The complete corrected baseline has these audited rules:
 
-- F1-F28 extraction coefficients are independent: F1-F24 use groups 1:24 and F25-F28 use groups 30:33.
-- F29-F33 regional indices share group 25 through phases 1-4 for stable initialization. In phase 5 they split into groups 25:29, so their final selectivities are estimated separately. All five retain the first-two-age zero baseline.
+- F1-F28 extraction coefficients are independent and use contiguous groups 1:28.
+- F29-F33 regional indices share group 29 through phases 1-4 for stable initialization. In phase 5 they split into groups 29:33, so their final selectivities are estimated separately. This relabel preserves the original partition and parameter count while satisfying MFCL's contiguous-group requirement. All five retain the first-two-age zero baseline.
 - Early ages are fixed to zero for F1-F12 (first two), F13 (first one), F15 (first five), and every regional index F29-F33 (first two).
 - Monotonicity is applied only to F9.
 - Upper-age settings are F12=25, F13=30, F15-F19=25, F21=10, F22=7, F23=6, F24-F26=25, and F27=30. F20 and F28 have no override.
