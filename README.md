@@ -41,35 +41,35 @@ The complete corrected baseline has these audited rules:
 
 Two genuinely distinct `BASE075` selectivity comparisons remain:
 
-- `S032` and `S035` are the normal and DM N8 comparisons. Only F12 `PS.JP.1` and F13 `PL.JP.1` change from five to eight nodes.
+- `S031` and `S032` are the normal and DM N8 comparisons. Only F12 `PS.JP.1` and F13 `PL.JP.1` change from five to eight nodes.
 
-The former standalone N5 sensitivities `S031` and `S034` became exact duplicates after corrected N5 was promoted to core. The former `IDX-Z2` sensitivities `S033` and `S036` also became exact duplicates after the F29-F33 first-two-age constraints were promoted into that common baseline. All four are intentionally retired, and their generated directories are removed during reconciliation.
+Exact duplicate standalone N5 and index-zero candidates are not retained. The final public identifiers are contiguous from `S001` through `S041`.
 
 Five `BASE075` tag-flag tests use the same corrected N5 baseline. Each is identical to its listed flag-column-2=0 control except that all 98 `tag_flags(:,2)` values are restored to upstream value 1:
 
 | Test | Exact control | Explicit dimensions |
 |---|---|---|
-| `S037` | `S001` | Normal, TC1, NOCUT, DW1 |
-| `S038` | `S003` | Normal, TC1, CUT90, DW1 |
-| `S039` | `S005` | DM noRE, G5PROC, C estimated, NOCUT |
-| `S040` | `S006` | DM noRE, G5PROC, C estimated, CUT90 |
-| `S041` | `S002` | Normal, TC1, NOCUT, DW10 |
+| `S033` | `S001` | Normal, TC1, NOCUT, DW1 |
+| `S034` | `S003` | Normal, TC1, CUT90, DW1 |
+| `S035` | `S005` | DM noRE, G5PROC, C estimated, NOCUT |
+| `S036` | `S006` | DM noRE, G5PROC, C estimated, CUT90 |
+| `S037` | `S002` | Normal, TC1, NOCUT, DW10 |
 
 Two additional `BASE075` models form a normal-LF fixed-structure recruitment OPR tag pair:
 
 | Model | Tag flag column 2 | OPR structure |
 |---|---:|---|
-| `S042-OPR-Y72-E2-S01-R50-I50` | 0 | Y72-E2-S01-R50-I50 |
-| `S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON` | 1 | Y72-E2-S01-R50-I50 |
+| `S038-OPR-Y72-E2-S01-R50-I50` | 0 | Y72-E2-S01-R50-I50 |
+| `S039-OPR-Y72-E2-S01-R50-I50-TAGF2ON` | 1 | Y72-E2-S01-R50-I50 |
 
 Two more `BASE075` models apply the same OPR structure to the exact `S005` DM control:
 
 | Model | Tag flag column 2 | DM and OPR structure |
 |---|---:|---|
-| `S044-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50` | 0 | DM-noRE, G5PROC, C estimated, NOCUT; Y72-E2-S01-R50-I50 |
-| `S045-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON` | 1 | Same as S044 |
+| `S040-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50` | 0 | DM-noRE, G5PROC, C estimated, NOCUT; Y72-E2-S01-R50-I50 |
+| `S041-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON` | 1 | Same as S040 |
 
-All four OPR models use the reviewed BET `apply_opr()` semantics with parest 155=72, 221=72, 202=2, 217=1, 216=50, 218=50, and 397=0. OPR is activated in phase 3, movement remains in phase 4, and regional scaling remains in phase 5. Terminal penalty is disabled in every OPR model and is not a sensitivity axis. `S043` differs from `S042`, and `S045` differs from `S044`, only in all 98 `tag_flags(:,2)` values. Apart from the reviewed OPR transform and metadata, `S044` is identical to `S005`, including DM grouping, C-estimation phase controls, Nmax, age-length input, and selectivity/index constraints.
+All four OPR models use the reviewed BET `apply_opr()` semantics with parest 155=72, 221=72, 202=2, 217=1, 216=50, 218=50, and 397=0. OPR is activated in phase 3, movement remains in phase 4, and regional scaling remains in phase 5. Terminal penalty is disabled in every OPR model and is not a sensitivity axis. `S039` differs from `S038`, and `S041` differs from `S040`, only in all 98 `tag_flags(:,2)` values. Apart from the reviewed OPR transform and metadata, `S040` is identical to `S005`, including DM grouping, C-estimation phase controls, Nmax, age-length input, and selectivity/index constraints.
 
 There are no `DW5`, `CUT70`, fixed-`C0`, or non-`G5PROC` models in the final design.
 
@@ -83,7 +83,7 @@ There are no `DW5`, `CUT70`, fixed-`C0`, or non-`G5PROC` models in the final des
 
 The reference INI is taken from [`BET/ini.mix-period/bet.2026.mix-0.2.ini`](https://github.com/PacificCommunity/ofp-sam-2026-BET-YFT-build-ini/blob/548de05aff9bdc96a9ee7a817bbfd8068020ba26/BET/ini.mix-period/bet.2026.mix-0.2.ini) at commit `548de05aff9bdc96a9ee7a817bbfd8068020ba26` of `PacificCommunity/ofp-sam-2026-BET-YFT-build-ini`.
 
-For the 34 flag-column-2=0 models, the only intentional deviation from that file is in `# tag flags`: column 2 is changed from `1` to `0` for all 98 tag-release rows. `S037`-`S041`, `S043`, and `S045` restore those 98 values to the upstream value 1. Column 1, columns 3 onward, and all non-tag-flag INI settings remain unchanged. In particular, the upstream common prior for fisheries F25-F28 remains reporting group `16`, target `52.015`, and penalty `485.2`.
+For the 34 flag-column-2=0 models, the only intentional deviation from that file is in `# tag flags`: column 2 is changed from `1` to `0` for all 98 tag-release rows. `S033`-`S037`, `S039`, and `S041` restore those 98 values to the upstream value 1. Column 1, columns 3 onward, and all non-tag-flag INI settings remain unchanged. In particular, the upstream common prior for fisheries F25-F28 remains reporting group `16`, target `52.015`, and penalty `485.2`.
 
 Reference checksums:
 

@@ -1,4 +1,4 @@
-# BET 2026 S035-DM-G5PROC-CEST-CUT90-SA28-N8 BASE075 DM G5PROC CEST CUT90 SA28-N8
+# BET 2026 S036-DM-G5PROC-CEST-CUT90-TAGF2ON BASE075 corrected SA28-N5 DM G5PROC CEST CUT90 TAGF2ON
 
 This model is one LF Dirichlet-multinomial-noRE sensitivity in the BET 2026 set.
 
@@ -37,14 +37,12 @@ The tag-control `.ini` comes from `PacificCommunity/ofp-sam-2026-BET-YFT-build-i
 The tag data come from tag-prep commit `79733c429b320e84ed5047aa6c932c8f19dab187`.
 No MFCL source or executable is changed.
 
-## Selectivity sensitivity
+## Corrected selectivity baseline
 
-Semantic treatment: `SA28-N8`.
-Paired corrected-N5 reference: `S006-DM-G5PROC-CEST-CUT90`.
-The corrected N8 treatment is identical to N5 except that F12 PS.JP.1 and F13 PL.JP.1 use eight rather than five spline nodes.
-This changes only F12 PS.JP.1 and F13 PL.JP.1 from five to eight nodes relative to the complete corrected N5 baseline.
+Semantic treatment: `SA28-N5`.
+The corrected N5 baseline assigns independent selectivity groups to F1-F28, applies the audited young-age, F9 monotonicity, and upper-age constraints, fixes the first two ages of F29-F33 to zero, uses five nodes, and splits regional-index groups F29-F33 in phase 5. Fish flag 26=2 evaluates the flag-57 cubic spline on scaled mean length-at-age to produce final selectivity-at-age; flag 61 supplies nodes on that coordinate.
+This is the promoted core baseline: independent extraction groups, audited support constraints, five nodes, and phase-5 regional-index splitting.
 The LF likelihood, CUT90 transform, composition weighting, BASE075 age-length input, tag controls, phase sequence, and regional-scaling settings are inherited from the paired reference.
-All non-F12/F13 selectivity settings are required to be identical to corrected N5.
 Corrected selectivity source: `PacificCommunity/ofp-sam-bet-yft-2026-single-area@5363029b509cacf902aef2866efdc04634c89045`.
 
 ## 41-model design context

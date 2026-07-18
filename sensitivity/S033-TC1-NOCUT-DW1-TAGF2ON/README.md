@@ -1,4 +1,4 @@
-# BET 2026 S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON BASE075 corrected N5 normal TC1 NOCUT DW1 OPR Y72 E2 S01 R50 I50 TAGF2ON
+# BET 2026 S033-TC1-NOCUT-DW1-TAGF2ON BASE075 corrected SA28-N5 normal TC1 NOCUT DW1 TAGF2ON
 
 This is one model in the curated BET 2026 TC1 LF sensitivity set.
 
@@ -21,7 +21,7 @@ The bins remain as categories in the MFCL option-3 LF likelihood, and MFCL inter
 
 The refreshed reference bundle has input-set SHA-256 `a864b81f4d07321e977454a0d4c8389c8008b00159f374601f40ad6a6f7379d7`.
 The retained Job 5319 effort-crept `bet.frq` has SHA-256 `d77f97c348409f845f1f0fc801af808d15b6cb119349d1f083308cfc9d4fba8c`; effort creep is not reapplied.
-`bet.ini` starts from `PacificCommunity/ofp-sam-2026-BET-YFT-build-ini@548de05aff9bdc96a9ee7a817bbfd8068020ba26` path `BET/ini.mix-period/bet.2026.mix-0.2.ini`. S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON restores all 98 `tag_flags(:,2)` values to the upstream value 1; its exact flag-column-2=0 control is `S042-OPR-Y72-E2-S01-R50-I50`; column 1 and every other INI value remain unchanged.
+`bet.ini` starts from `PacificCommunity/ofp-sam-2026-BET-YFT-build-ini@548de05aff9bdc96a9ee7a817bbfd8068020ba26` path `BET/ini.mix-period/bet.2026.mix-0.2.ini`. S033-TC1-NOCUT-DW1-TAGF2ON restores all 98 `tag_flags(:,2)` values to the upstream value 1; its exact flag-column-2=0 control is `S001-TC1-NOCUT-DW1`; column 1 and every other INI value remain unchanged.
 `fishery_map.R` comes from stepwise commit `26c74dc6f303faa951b1ab331d7de14ea20b7489`; `tag_rep_map.R` is regenerated from that metadata and the derived `bet.ini`.
 `bet.tag` is the latest tag-prep main file at commit `79733c429b320e84ed5047aa6c932c8f19dab187` and is byte-identical to PDH 13-DataWeighting.
 `bet.reg_scaling` is the MFCL-ready 20x5 active matrix and `bet.reg_scaling.full` retains the complete 292x5 sensitivity source. The active matrix is exactly full-source rows 53:72.
@@ -43,22 +43,5 @@ Corrected selectivity source: `PacificCommunity/ofp-sam-bet-yft-2026-single-area
 ## 41-model design context
 
 This model belongs to the public 41-model design: 30 core age-length/LF combinations, two targeted N8 controls, five core TAGF2ON controls, and normal plus DM OPR tag-control pairs. Every model uses the complete single-area-derived selectivity baseline, including F29-F33 first-two-age zeros; N8 changes only F12 PS.JP.1 and F13 PL.JP.1. Age-length levels are BASE075, REG075, REG100, SUB075, and SUB100. DM models use DM-noRE, G5PROC, estimated relative sample-size exponent C, and Nmax 1000. TAGF2ON changes only all 98 tag_flags(:,2) values. OPR is activated in phase 3, movement in phase 4, and regional scaling in phase 5; terminal penalty is disabled. Fish flag 26=2 evaluates the flag-57 cubic spline on scaled mean length-at-age to produce final selectivity-at-age; flag-61 nodes use that coordinate, while flags 75/3/16 remain age constraints. This setting is separate from the LF likelihood. This model uses age-length level BASE075.
-
-## Recruitment OPR control
-
-This model uses the reviewed BET `apply_opr()` switch semantics.
-
-| MFCL control | Fixed value |
-| --- | ---: |
-| Annual OPR coefficients, parest 155 | 72 |
-| Compatibility state, parest 221 | 72 |
-| End window, parest 202 | 2 |
-| Season coefficients, parest 217 | 1 |
-| Region coefficients, parest 216 | 50 |
-| Region-season coefficients, parest 218 | 50 |
-| Terminal penalty, parest 397 | 0 (disabled) |
-
-The OPR structure is fixed at Y72-E2-S01-R50-I50. Terminal penalty is disabled in every OPR model and is not a sensitivity axis. OPR is activated in phase 3, movement in phase 4, and regional scaling in phase 5.
-Reviewed BET OPR apply_opr() semantics from PacificCommunity/ofp-sam-bet-2026-stepwise@experiment/step12-opr-terminal-penalty-lf-sensitivity, maintained in R/prepare_doitall.R.
 
 Status: generated and ready for validation; Kflow has not been submitted.

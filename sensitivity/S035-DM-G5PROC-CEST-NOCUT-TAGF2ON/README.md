@@ -1,4 +1,4 @@
-# BET 2026 S045-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON BASE075 corrected N5 DM-noRE G5PROC C-estimated NOCUT OPR Y72 E2 S01 R50 I50 TAGF2ON
+# BET 2026 S035-DM-G5PROC-CEST-NOCUT-TAGF2ON BASE075 corrected SA28-N5 DM G5PROC CEST NOCUT TAGF2ON
 
 This model is one LF Dirichlet-multinomial-noRE sensitivity in the BET 2026 set.
 
@@ -48,22 +48,5 @@ Corrected selectivity source: `PacificCommunity/ofp-sam-bet-yft-2026-single-area
 ## 41-model design context
 
 This model belongs to the public 41-model design: 30 core age-length/LF combinations, two targeted N8 controls, five core TAGF2ON controls, and normal plus DM OPR tag-control pairs. Every model uses the complete single-area-derived selectivity baseline, including F29-F33 first-two-age zeros; N8 changes only F12 PS.JP.1 and F13 PL.JP.1. Age-length levels are BASE075, REG075, REG100, SUB075, and SUB100. DM models use DM-noRE, G5PROC, estimated relative sample-size exponent C, and Nmax 1000. TAGF2ON changes only all 98 tag_flags(:,2) values. OPR is activated in phase 3, movement in phase 4, and regional scaling in phase 5; terminal penalty is disabled. Fish flag 26=2 evaluates the flag-57 cubic spline on scaled mean length-at-age to produce final selectivity-at-age; flag-61 nodes use that coordinate, while flags 75/3/16 remain age constraints. This setting is separate from the LF likelihood. This model uses age-length level BASE075.
-
-## Recruitment OPR control
-
-This model uses the reviewed BET `apply_opr()` switch semantics.
-
-| MFCL control | Fixed value |
-| --- | ---: |
-| Annual OPR coefficients, parest 155 | 72 |
-| Compatibility state, parest 221 | 72 |
-| End window, parest 202 | 2 |
-| Season coefficients, parest 217 | 1 |
-| Region coefficients, parest 216 | 50 |
-| Region-season coefficients, parest 218 | 50 |
-| Terminal penalty, parest 397 | 0 (disabled) |
-
-The OPR structure is fixed at Y72-E2-S01-R50-I50. Terminal penalty is disabled in every OPR model and is not a sensitivity axis. OPR is activated in phase 3, movement in phase 4, and regional scaling in phase 5.
-Reviewed BET OPR apply_opr() semantics from PacificCommunity/ofp-sam-bet-2026-stepwise@experiment/step12-opr-terminal-penalty-lf-sensitivity, maintained in R/prepare_doitall.R.
 
 Status: generated and ready for validation; Kflow has not been submitted.

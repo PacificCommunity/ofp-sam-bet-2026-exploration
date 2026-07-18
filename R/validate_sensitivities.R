@@ -35,29 +35,32 @@ models <- config_env$stepwise_models
 if (!is.data.frame(models)) fail("job-config.R did not create the stepwise_models data frame")
 
 core_prefixes <- sprintf("S%03d", 1:30)
-selectivity_prefixes <- c("S032", "S035")
-tag_prefixes <- sprintf("S%03d", 37:41)
-opr_prefixes <- sprintf("S%03d", 42:45)
+selectivity_prefixes <- c("S031", "S032")
+tag_prefixes <- sprintf("S%03d", 33:37)
+opr_prefixes <- sprintf("S%03d", 38:41)
 expected_prefixes <- c(core_prefixes, selectivity_prefixes, tag_prefixes, opr_prefixes)
 actual_prefixes <- sub("-.*$", "", as.character(models$step_id))
 if (nrow(models) != 41L || !identical(actual_prefixes, expected_prefixes)) {
-  fail("Expected 41 models with prefixes S001:S030, S032, S035, and S037:S045")
+  fail("Expected 41 models with prefixes S001:S030, S031, S032, and S033:S041")
 }
 if (anyDuplicated(models$step_id)) fail("Model IDs are not unique")
-if (any(actual_prefixes %in% c("S031", "S033", "S034", "S036"))) {
-  fail("Retired duplicate N5/IDX identities S031/S033/S034/S036 remain in the design")
-}
 
+selection_path <- file.path(repo_root, "SENSITIVITY_SELECTION.csv")
+selection <- read.csv(selection_path, stringsAsFactors = FALSE, check.names = FALSE)
+if (nrow(selection) != 41L ||
+    !identical(as.character(selection$model), as.character(models$step_id))) {
+  fail("SENSITIVITY_SELECTION.csv must contain exactly the current S001:S041 models")
+}
 tag_controls <- c(
-  "S037-TC1-NOCUT-DW1-TAGF2ON" = "S001-TC1-NOCUT-DW1",
-  "S038-TC1-CUT90-DW1-TAGF2ON" = "S003-TC1-CUT90-DW1",
-  "S039-DM-G5PROC-CEST-NOCUT-TAGF2ON" = "S005-DM-G5PROC-CEST-NOCUT",
-  "S040-DM-G5PROC-CEST-CUT90-TAGF2ON" = "S006-DM-G5PROC-CEST-CUT90",
-  "S041-TC1-NOCUT-DW10-TAGF2ON" = "S002-TC1-NOCUT-DW10",
-  "S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON" =
-    "S042-OPR-Y72-E2-S01-R50-I50",
-  "S045-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON" =
-    "S044-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50"
+  "S033-TC1-NOCUT-DW1-TAGF2ON" = "S001-TC1-NOCUT-DW1",
+  "S034-TC1-CUT90-DW1-TAGF2ON" = "S003-TC1-CUT90-DW1",
+  "S035-DM-G5PROC-CEST-NOCUT-TAGF2ON" = "S005-DM-G5PROC-CEST-NOCUT",
+  "S036-DM-G5PROC-CEST-CUT90-TAGF2ON" = "S006-DM-G5PROC-CEST-CUT90",
+  "S037-TC1-NOCUT-DW10-TAGF2ON" = "S002-TC1-NOCUT-DW10",
+  "S039-OPR-Y72-E2-S01-R50-I50-TAGF2ON" =
+    "S038-OPR-Y72-E2-S01-R50-I50",
+  "S041-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON" =
+    "S040-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50"
 )
 if (!all(names(tag_controls) %in% models$step_id)) {
   fail("TAGF2ON identities do not match the confirmed seven-model design")
@@ -94,7 +97,7 @@ for (i in seq_along(tag_index)) {
 }
 
 expected_selectivity <- c(
-  "S032" = "sa28_n8", "S035" = "sa28_n8"
+  "S031" = "sa28_n8", "S032" = "sa28_n8"
 )
 selectivity_index <- match(names(expected_selectivity), actual_prefixes)
 if (anyNA(selectivity_index) ||
@@ -120,10 +123,10 @@ if (any(models$dm_grouping[dm] != "process5") ||
 }
 
 opr_ids <- c(
-  "S042-OPR-Y72-E2-S01-R50-I50",
-  "S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON",
-  "S044-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50",
-  "S045-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON"
+  "S038-OPR-Y72-E2-S01-R50-I50",
+  "S039-OPR-Y72-E2-S01-R50-I50-TAGF2ON",
+  "S040-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50",
+  "S041-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON"
 )
 opr_index <- match(opr_ids, models$step_id)
 normal_opr_index <- opr_index[1:2]
@@ -194,7 +197,7 @@ doitall_semantic_sha256 <- function(ids) {
   sha256_file(manifest)
 }
 expected_doitall_semantic_sha256 <-
-  "09a68b725061100d2076fb84ab806d79c0b021b3d4a7f7a885eb46d8d37f826c"
+  "fc218ddecf439fbdc29c32ca88a15348cfd7f57b6c951fbf07c4678003cb9184"
 actual_doitall_semantic_sha256 <- doitall_semantic_sha256(models$step_id)
 if (!identical(actual_doitall_semantic_sha256, expected_doitall_semantic_sha256)) {
   fail("Generated doitall command semantics changed; only comments were permitted")
@@ -518,7 +521,7 @@ for (id in models$step_id) {
     fail(id, " must retain exactly one global cubic-spline flag 57=3")
   }
   flag61 <- selectivity_flags[selectivity_flags$flag == 61L, , drop = FALSE]
-  expected_nodes <- if (startsWith(id, "S032-") || startsWith(id, "S035-")) {
+  expected_nodes <- if (startsWith(id, "S031-") || startsWith(id, "S032-")) {
     data.frame(actor = c(-999L, -12L, -13L), value = c(5L, 8L, 8L))
   } else {
     data.frame(actor = -999L, value = 5L)
@@ -584,7 +587,7 @@ for (id in models$step_id) {
 strip_n8 <- function(block) block[!grepl(
   "^[[:space:]]*-(12|13)[[:space:]]+61[[:space:]]+8([[:space:]]|$)", block
 )]
-for (pair in list(c("S032", "S003"), c("S035", "S006"))) {
+for (pair in list(c("S031", "S003"), c("S032", "S006"))) {
   treatment_id <- models$step_id[actual_prefixes == pair[[1L]]]
   control_id <- models$step_id[actual_prefixes == pair[[2L]]]
   block <- selectivity_block(treatment_id)
@@ -623,18 +626,18 @@ if (anyDuplicated(signatures)) {
 
 readme <- paste(readLines(file.path(repo_root, "README.md"), warn = FALSE), collapse = "\n")
 required_readme_terms <- c(
-  "41", "F12", "PS.JP.1", "F13", "PL.JP.1", "S031", "S033",
-  "S034", "S036", "corrected", "five", "eight", "F29-F33",
-  "S042-OPR-Y72-E2-S01-R50-I50", "S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON",
-  "S044-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50",
-  "S045-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON",
+  "41", "S001", "S041", "contiguous", "F12", "PS.JP.1", "F13",
+  "PL.JP.1", "S031", "S032", "corrected", "five", "eight", "F29-F33",
+  "S038-OPR-Y72-E2-S01-R50-I50", "S039-OPR-Y72-E2-S01-R50-I50-TAGF2ON",
+  "S040-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50",
+  "S041-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON",
   "Terminal penalty is disabled", expected_runtime_image,
   "DM final-report and model-payload generation requires Tuna Flow v2.5",
   "scaled mean length-at-age", "flag 26", "phase 5"
 )
 if (any(!vapply(required_readme_terms, grepl, logical(1), x = readme,
                 fixed = TRUE))) {
-  fail("README does not document the promoted baseline, targets, count, and retired duplicates")
+  fail("README does not document the contiguous design, promoted baseline, and targets")
 }
 
 public_documents <- c(
@@ -669,10 +672,10 @@ for (path in public_documents) {
 }
 
 cat("Validation passed: 41 non-duplicate sensitivity models.\n")
-cat("Core S001-S030 and TAGF2ON S037-S041 inherit the exact corrected N5 baseline.\n")
+cat("Core S001-S030 and TAGF2ON S033-S037 inherit the exact corrected N5 baseline.\n")
 cat("N8 axis: only F12 PS.JP.1 and F13 PL.JP.1 change flag 61 from 5 to 8.\n")
 cat("Index baseline: every model has flag 75=2 for F29-F33 Index R1-R5.\n")
-cat("Retired duplicates: S031, S033, S034, and S036. Retained N8: S032 and S035.\n")
+cat("Identifiers are contiguous S001:S041; retained N8 models are S031 and S032.\n")
 cat("OPR pairs: normal S001 and DM S005 controls use the exact reviewed Y72-E2-S01-R50-I50 transform with parest 397=0.\n")
 cat("DM OPR controls retain G5PROC, C estimation, Nmax 1000, and phase order OPR/movement/regional scaling = 3/4/5.\n")
 cat("All seven TAGF2ON models differ from their controls only in all 98 tag_flags(:,2) values.\n")
@@ -680,4 +683,4 @@ cat("Public README/manifests contain full design context without local paths or 
 cat("Runtime image: exact tested Tuna Flow v2.5 digest pin verified.\n")
 cat("Selectivity semantics: all 41 models retain one global flag 26=2, flag 57=3, and the intended flag-61 nodes.\n")
 cat("Index selectivity: F29-F33 share through phase 4 and split from phase 5 onward in every model.\n")
-cat("Comment-only audit: aggregate doitall command semantic SHA-256 is unchanged.\n")
+cat("Command audit: contiguous-design doitall semantic SHA-256 matches the locked value.\n")

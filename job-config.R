@@ -526,7 +526,7 @@ for (age_variant in .design_ages) {
 }
 
 .design_selectivity_specs <- data.frame(
-  number = c(32L, 35L),
+  number = c(31L, 32L),
   slug = c(
     "TC1-CUT90-DW1-SA28-N8",
     "DM-G5PROC-CEST-CUT90-SA28-N8"
@@ -561,7 +561,7 @@ for (configuration in seq_len(nrow(.design_selectivity_specs))) {
 }
 
 .design_tag_flag2_specs <- data.frame(
-  number = 37:41,
+  number = 33:37,
   control_index = c(1L, 3L, 5L, 6L, 2L),
   slug = c(
     "TC1-NOCUT-DW1-TAGF2ON",
@@ -601,7 +601,7 @@ for (configuration in seq_len(nrow(.design_tag_flag2_specs))) {
 .design_opr_control_id <- .design_rows[[1L]]$step_id[[1L]]
 .design_opr_control <- .design_set_identity(
   row = .design_rows[[1L]],
-  number = 42L,
+  number = 38L,
   slug = "OPR-Y72-E2-S01-R50-I50",
   age_variant = "BASE075",
   label = "BASE075 corrected N5 normal TC1 NOCUT DW1 OPR Y72 E2 S01 R50 I50",
@@ -610,10 +610,10 @@ for (configuration in seq_len(nrow(.design_tag_flag2_specs))) {
   selectivity_reference = .design_opr_control_id
 )
 .design_rows[[length(.design_rows) + 1L]] <- .design_opr_control
-.design_opr_tag_id <- "S042-OPR-Y72-E2-S01-R50-I50"
+.design_opr_tag_id <- "S038-OPR-Y72-E2-S01-R50-I50"
 .design_rows[[length(.design_rows) + 1L]] <- .design_set_identity(
   row = .design_opr_control,
-  number = 43L,
+  number = 39L,
   slug = "OPR-Y72-E2-S01-R50-I50-TAGF2ON",
   age_variant = "BASE075",
   label = "BASE075 corrected N5 normal TC1 NOCUT DW1 OPR Y72 E2 S01 R50 I50 TAGF2ON",
@@ -625,7 +625,7 @@ for (configuration in seq_len(nrow(.design_tag_flag2_specs))) {
 .design_opr_dm_control_id <- .design_rows[[5L]]$step_id[[1L]]
 .design_opr_dm_control <- .design_set_identity(
   row = .design_rows[[5L]],
-  number = 44L,
+  number = 40L,
   slug = "OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50",
   age_variant = "BASE075",
   label = paste(
@@ -638,10 +638,10 @@ for (configuration in seq_len(nrow(.design_tag_flag2_specs))) {
 )
 .design_rows[[length(.design_rows) + 1L]] <- .design_opr_dm_control
 
-.design_opr_dm_tag_id <- "S044-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50"
+.design_opr_dm_tag_id <- "S040-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50"
 .design_rows[[length(.design_rows) + 1L]] <- .design_set_identity(
   row = .design_opr_dm_control,
-  number = 45L,
+  number = 41L,
   slug = "OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON",
   age_variant = "BASE075",
   label = paste(
@@ -656,20 +656,20 @@ for (configuration in seq_len(nrow(.design_tag_flag2_specs))) {
 stepwise_models <- do.call(rbind, .design_rows)
 rownames(stepwise_models) <- NULL
 stepwise_models$tag_flag2 <- 0L
-stepwise_models$tag_flag2[grepl("^S0(37|38|39|40|41|43|45)-", stepwise_models$step_id)] <- 1L
+stepwise_models$tag_flag2[grepl("^S0(33|34|35|36|37|39|41)-", stepwise_models$step_id)] <- 1L
 stepwise_models$tag_flag2_reference <- stepwise_models$step_id
 stepwise_models$tag_flag2_reference[
-  grepl("^S0(37|38|39|40|41)-", stepwise_models$step_id)
+  grepl("^S0(33|34|35|36|37)-", stepwise_models$step_id)
 ] <- .design_tag_flag2_controls
 stepwise_models$tag_flag2_reference[
-  stepwise_models$step_id == "S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON"
+  stepwise_models$step_id == "S039-OPR-Y72-E2-S01-R50-I50-TAGF2ON"
 ] <- .design_opr_tag_id
 stepwise_models$tag_flag2_reference[
   stepwise_models$step_id ==
-    "S045-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON"
+    "S041-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON"
 ] <- .design_opr_dm_tag_id
 
-stepwise_models$opr_enabled <- grepl("^S0(42|43|44|45)-OPR-", stepwise_models$step_id)
+stepwise_models$opr_enabled <- grepl("^S0(38|39|40|41)-OPR-", stepwise_models$step_id)
 stepwise_models$opr_year_effect <- ifelse(stepwise_models$opr_enabled, 72L, NA_integer_)
 stepwise_models$opr_terminal_year_constraint <- ifelse(
   stepwise_models$opr_enabled, 2L, NA_integer_
@@ -688,12 +688,12 @@ stepwise_models$opr_source <- ifelse(
   ""
 )
 
-.design_expected_prefix <- sprintf("S%03d", c(1:30, 32, 35, 37:45))
+.design_expected_prefix <- sprintf("S%03d", 1:41)
 .design_actual_prefix <- sub("-.*$", "", stepwise_models$step_id)
 if (nrow(stepwise_models) != 41L ||
     anyDuplicated(stepwise_models$step_id) ||
     !identical(.design_actual_prefix, .design_expected_prefix)) {
-  stop("Canonical design must contain the 41 retained stable model IDs", call. = FALSE)
+  stop("Canonical design must contain the contiguous model IDs S001:S041", call. = FALSE)
 }
 if (!identical(
   as.integer(table(factor(

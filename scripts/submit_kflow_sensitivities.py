@@ -37,18 +37,18 @@ from typing import Any, Iterable
 import yaml
 
 
-DEFAULT_TASK_CODE = "ofp-sam-bet-2026-lf-conflict-sensitivities-standalone"
-DEFAULT_TASK_NAME = "BET 2026 LF conflict sensitivities"
-DEFAULT_TASK_TITLE = "LF conflict sensitivity fit"
+DEFAULT_TASK_CODE = "ofp-sam-bet-2026-integrated-sensitivities-20260718"
+DEFAULT_TASK_NAME = "BET 2026 integrated sensitivities"
+DEFAULT_TASK_TITLE = "BET 2026 sensitivity fit"
 DEFAULT_TASK_DESCRIPTION = (
-    "Evaluate LF tail compression, upper-tail observed-count cutoffs, "
-    "and F21/F22/F23 LF downweighting from committed Job 5319-derived inputs."
+    "Run the curated BET 2026 age-length, LF likelihood, tag flag, "
+    "selectivity-node, and OPR sensitivity set."
 )
-DEFAULT_CAMPAIGN = "lf-conflict-sensitivities-v1"
-DEFAULT_MODEL_SELECTOR = "S001:S036"
-DEFAULT_EXPECTED_MODELS = 36
-CURRENT_AGE_LENGTH_MODEL_SELECTOR = "S001:S017,S035:S051,S069:S085"
-CURRENT_AGE_LENGTH_FORBIDDEN = "S018:S034,S052:S068"
+DEFAULT_CAMPAIGN = "bet-2026-integrated-sensitivities-20260718"
+DEFAULT_MODEL_SELECTOR = "S001:S041"
+DEFAULT_EXPECTED_MODELS = 41
+CURRENT_AGE_LENGTH_MODEL_SELECTOR = "S001:S041"
+CURRENT_AGE_LENGTH_FORBIDDEN = ""
 INPUT_JOB = "5319"
 
 SUVA_HOST = "suvofpsubmit.corp.spc.int"
@@ -59,7 +59,10 @@ CPUS = 2
 MEMORY = "8GB"
 DISK = "10GB"
 PROGRAM_PATH = "/home/mfcl/mfclo64"
-DOCKER_IMAGE = "ghcr.io/pacificcommunity/tuna-flow:v2.4"
+DOCKER_IMAGE = (
+    "ghcr.io/pacificcommunity/tuna-flow:v2.5@"
+    "sha256:c87f1f6d9d4f62dc447844b58afe35f96af175bf933cb6cffbbbe39a59172360"
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 KFLOW_CONFIG = REPO_ROOT / "kflow.yaml"
@@ -67,10 +70,18 @@ SENSITIVITY_ROOT = REPO_ROOT / "sensitivity"
 SENSITIVITY_SELECTION_CSV = REPO_ROOT / "SENSITIVITY_SELECTION.csv"
 CHECKS_REPO = Path("/home/kyuhank/Desktop/SPC/ofp-sam-bet-2026-checks")
 CHECKS_HELPER = CHECKS_REPO / "scripts/submit_kflow_checks.py"
-KFLOW_REPO = Path("/home/kyuhank/Desktop/SPC/Kflow")
-MFCLKIT_REPO = Path("/home/kyuhank/Desktop/SPC/ofp-sam-mfclkit")
-MFCLSHINY_REPO = Path("/home/kyuhank/Desktop/SPC/mfclshiny")
-MFCL_IMAGE_REPO = Path("/home/kyuhank/Desktop/SPC/ofp-sam-docker-images")
+KFLOW_REPO = Path(os.environ.get("KFLOW_SOURCE_REPO", "/home/kyuhank/Desktop/SPC/Kflow"))
+MFCLKIT_REPO = Path(
+    os.environ.get("MFCLKIT_SOURCE_REPO", "/home/kyuhank/Desktop/SPC/ofp-sam-mfclkit")
+)
+MFCLSHINY_REPO = Path(
+    os.environ.get("MFCLSHINY_SOURCE_REPO", "/home/kyuhank/Desktop/SPC/mfclshiny")
+)
+MFCL_IMAGE_REPO = Path(
+    os.environ.get(
+        "MFCL_IMAGE_SOURCE_REPO", "/home/kyuhank/Desktop/SPC/ofp-sam-docker-images"
+    )
+)
 MFCL_BINARY = MFCL_IMAGE_REPO / "tuna-flow/mfclo64"
 MFCL_DOCKERFILE = MFCL_IMAGE_REPO / "tuna-flow/Dockerfile"
 
@@ -1628,7 +1639,7 @@ def parse_args() -> argparse.Namespace:
         epilog=(
             "Examples:\n"
             "  submit_kflow_sensitivities.py --offline\n"
-            "  submit_kflow_sensitivities.py --offline --models S001:S017,S035:S051,S069:S085 --expected-count 51\n"
+            "  submit_kflow_sensitivities.py --offline --models S001:S041 --expected-count 51\n"
             "  submit_kflow_sensitivities.py --submit --fits-only --source-commit <40-char-sha>\n"
             "  submit_kflow_sensitivities.py --submit --diagnostics-only --resume --source-commit <40-char-sha>\n\n"
             "KFLOW_URL and KFLOW_API_TOKEN are required for online dry-runs and submit runs.\n"
@@ -1661,7 +1672,7 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_MODEL_SELECTOR,
         help=(
             "Comma-separated model IDs or inclusive ranges, e.g. "
-            "S001:S017,S035:S051,S069:S085 "
+            "S001:S041 "
             f"(default legacy selector: {DEFAULT_MODEL_SELECTOR})."
         ),
     )
