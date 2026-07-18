@@ -11,6 +11,24 @@ script_path <- if (length(script_arg)) {
 repo_root <- dirname(dirname(script_path))
 sensitivity_root <- file.path(repo_root, "sensitivity")
 
+expected_runtime_image <- paste0(
+  "ghcr.io/pacificcommunity/tuna-flow:v2.5@sha256:",
+  "c87f1f6d9d4f62dc447844b58afe35f96af175bf933cb6cffbbbe39a59172360"
+)
+kflow_path <- file.path(repo_root, "kflow.yaml")
+if (!file.exists(kflow_path)) fail("Missing kflow.yaml")
+kflow_lines <- readLines(kflow_path, warn = FALSE)
+docker_image_lines <- grep("^[[:space:]]*docker_image:[[:space:]]*", kflow_lines, value = TRUE)
+actual_runtime_image <- if (length(docker_image_lines) == 1L) {
+  trimws(sub("^[[:space:]]*docker_image:[[:space:]]*", "", docker_image_lines))
+} else {
+  ""
+}
+if (length(docker_image_lines) != 1L ||
+    !identical(actual_runtime_image, expected_runtime_image)) {
+  fail("kflow.yaml must use the exact tested digest-pinned Tuna Flow v2.5 image")
+}
+
 config_env <- new.env(parent = globalenv())
 sys.source(file.path(repo_root, "job-config.R"), envir = config_env)
 models <- config_env$stepwise_models
@@ -19,11 +37,11 @@ if (!is.data.frame(models)) fail("job-config.R did not create the stepwise_model
 core_prefixes <- sprintf("S%03d", 1:30)
 selectivity_prefixes <- c("S032", "S035")
 tag_prefixes <- sprintf("S%03d", 37:41)
-opr_prefixes <- c("S042", "S043")
+opr_prefixes <- sprintf("S%03d", 42:45)
 expected_prefixes <- c(core_prefixes, selectivity_prefixes, tag_prefixes, opr_prefixes)
 actual_prefixes <- sub("-.*$", "", as.character(models$step_id))
-if (nrow(models) != 39L || !identical(actual_prefixes, expected_prefixes)) {
-  fail("Expected 39 models with prefixes S001:S030, S032, S035, and S037:S043")
+if (nrow(models) != 41L || !identical(actual_prefixes, expected_prefixes)) {
+  fail("Expected 41 models with prefixes S001:S030, S032, S035, and S037:S045")
 }
 if (anyDuplicated(models$step_id)) fail("Model IDs are not unique")
 if (any(actual_prefixes %in% c("S031", "S033", "S034", "S036"))) {
@@ -37,10 +55,12 @@ tag_controls <- c(
   "S040-DM-G5PROC-CEST-CUT90-TAGF2ON" = "S006-DM-G5PROC-CEST-CUT90",
   "S041-TC1-NOCUT-DW10-TAGF2ON" = "S002-TC1-NOCUT-DW10",
   "S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON" =
-    "S042-OPR-Y72-E2-S01-R50-I50"
+    "S042-OPR-Y72-E2-S01-R50-I50",
+  "S045-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON" =
+    "S044-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50"
 )
 if (!all(names(tag_controls) %in% models$step_id)) {
-  fail("TAGF2ON identities do not match the confirmed six-model design")
+  fail("TAGF2ON identities do not match the confirmed seven-model design")
 }
 
 tag_index <- match(names(tag_controls), models$step_id)
@@ -87,8 +107,8 @@ age_counts <- table(factor(
   models$age_length_variant,
   levels = c("BASE075", "REG075", "REG100", "SUB075", "SUB100")
 ))
-if (!identical(as.integer(age_counts), c(15L, 6L, 6L, 6L, 6L))) {
-  fail("Expected age-length counts BASE075=15 and all other variants=6")
+if (!identical(as.integer(age_counts), c(17L, 6L, 6L, 6L, 6L))) {
+  fail("Expected age-length counts BASE075=17 and all other variants=6")
 }
 dm <- models$lf_likelihood == "dm_nore"
 normal <- models$lf_likelihood == "normal"
@@ -101,26 +121,36 @@ if (any(models$dm_grouping[dm] != "process5") ||
 
 opr_ids <- c(
   "S042-OPR-Y72-E2-S01-R50-I50",
-  "S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON"
+  "S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON",
+  "S044-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50",
+  "S045-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON"
 )
 opr_index <- match(opr_ids, models$step_id)
-if (anyNA(opr_index) || sum(models$opr_enabled) != 2L ||
+normal_opr_index <- opr_index[1:2]
+dm_opr_index <- opr_index[3:4]
+if (anyNA(opr_index) || sum(models$opr_enabled) != 4L ||
     any(models$age_length_variant[opr_index] != "BASE075") ||
-    any(models$lf_likelihood[opr_index] != "normal") ||
-    any(models$tail_compression_percent[opr_index] != 1L) ||
     any(is.finite(models$cutoff_cm[opr_index])) ||
-    any(models$lf_downweight_factor[opr_index] != 1L) ||
-    any(models$lf_size_divisor[opr_index] != 20L) ||
     any(models$selectivity_treatment[opr_index] != "sa28_n5") ||
+    any(models$lf_likelihood[normal_opr_index] != "normal") ||
+    any(models$tail_compression_percent[normal_opr_index] != 1L) ||
+    any(models$lf_downweight_factor[normal_opr_index] != 1L) ||
+    any(models$lf_size_divisor[normal_opr_index] != 20L) ||
+    any(models$lf_likelihood[dm_opr_index] != "dm_nore") ||
+    any(models$dm_grouping[dm_opr_index] != "process5") ||
+    any(!models$dm_estimate_relative_sample_size[dm_opr_index]) ||
+    any(models$tail_compression_percent[dm_opr_index] != 0L) ||
+    any(!is.na(models$lf_downweight_factor[dm_opr_index])) ||
+    any(!is.na(models$lf_size_divisor[dm_opr_index])) ||
     any(models$opr_year_effect[opr_index] != 72L) ||
     any(models$opr_terminal_year_constraint[opr_index] != 2L) ||
     any(models$opr_season_effect[opr_index] != 1L) ||
     any(models$opr_region_effect[opr_index] != 50L) ||
     any(models$opr_region_season_effect[opr_index] != 50L) ||
     any(models$opr_terminal_penalty_flag[opr_index] != 0L) ||
-    !identical(models$tag_flag2[opr_index], c(0L, 1L)) ||
+    !identical(models$tag_flag2[opr_index], c(0L, 1L, 0L, 1L)) ||
     any(grepl("Y71|TP[0-9]", models$step_id))) {
-  fail("OPR pair must be fixed Y72-E2-S01-R50-I50 with penalty disabled and tag flags 0/1")
+  fail("Normal and DM OPR pairs must be fixed Y72-E2-S01-R50-I50 with penalty disabled and tag flags 0/1")
 }
 
 generated_ids <- sort(list.dirs(sensitivity_root, recursive = FALSE, full.names = FALSE))
@@ -146,6 +176,28 @@ sha256_file <- function(path) {
   status <- attr(output, "status")
   if (!is.null(status) && status != 0L) fail("sha256sum failed for ", path)
   sub("[[:space:]].*$", "", output[[1L]])
+}
+
+doitall_semantic_sha256 <- function(ids) {
+  output <- character()
+  for (id in sort(ids)) {
+    path <- model_file(id, "doitall.sh")
+    lines <- readLines(path, warn = FALSE)
+    lines <- sub("#.*$", "", lines)
+    lines <- gsub("[[:space:]]+", " ", trimws(lines))
+    lines <- lines[nzchar(lines)]
+    output <- c(output, paste0(id, "/model/doitall.sh"), lines)
+  }
+  manifest <- tempfile("doitall-semantic-")
+  on.exit(unlink(manifest), add = TRUE)
+  writeLines(output, manifest, useBytes = TRUE)
+  sha256_file(manifest)
+}
+expected_doitall_semantic_sha256 <-
+  "09a68b725061100d2076fb84ab806d79c0b021b3d4a7f7a885eb46d8d37f826c"
+actual_doitall_semantic_sha256 <- doitall_semantic_sha256(models$step_id)
+if (!identical(actual_doitall_semantic_sha256, expected_doitall_semantic_sha256)) {
+  fail("Generated doitall command semantics changed; only comments were permitted")
 }
 same_file <- function(left, right) identical(sha256_file(left), sha256_file(right))
 
@@ -209,38 +261,44 @@ for (id in names(tag_controls)) {
   }
 }
 
-opr_control_id <- opr_ids[[1L]]
-opr_tag_id <- opr_ids[[2L]]
-opr_base_id <- "S001-TC1-NOCUT-DW1"
-for (name in setdiff(model_inputs, "doitall.sh")) {
-  if (!same_file(model_file(opr_control_id, name), model_file(opr_base_id, name))) {
-    fail(opr_control_id, " differs from S001 outside the reviewed OPR doitall change: ", name)
+opr_pairs <- list(
+  c(control = opr_ids[[1L]], tag = opr_ids[[2L]], base = "S001-TC1-NOCUT-DW1"),
+  c(control = opr_ids[[3L]], tag = opr_ids[[4L]], base = "S005-DM-G5PROC-CEST-NOCUT")
+)
+for (pair in opr_pairs) {
+  for (name in setdiff(model_inputs, "doitall.sh")) {
+    if (!same_file(model_file(pair[["control"]], name), model_file(pair[["base"]], name))) {
+      fail(pair[["control"]], " differs from its non-OPR control outside doitall.sh: ", name)
+    }
   }
 }
 opr_env <- new.env(parent = globalenv())
 sys.source(file.path(repo_root, "R", "prepare_common.R"), envir = opr_env)
 sys.source(file.path(repo_root, "R", "prepare_doitall.R"), envir = opr_env)
 if (!is.function(opr_env$apply_opr)) fail("Missing reviewed apply_opr() helper")
-expected_opr_doitall <- opr_env$apply_opr(
-  readLines(model_file(opr_base_id, "doitall.sh"), warn = FALSE),
-  year_effect = 72L,
-  season_effect = 1L,
-  region_effect = 50L,
-  region_season_effect = 50L,
-  terminal_year_constraint = 2L,
-  terminal_penalty_flag = 0L,
-  compatibility_year_effect = 72L
-)
-actual_opr_doitall <- readLines(model_file(opr_control_id, "doitall.sh"), warn = FALSE)
-if (!identical(actual_opr_doitall, expected_opr_doitall) ||
-    any(grepl("^[[:space:]]*1[[:space:]]+397[[:space:]]+100([[:space:]]|$)",
-              actual_opr_doitall))) {
-  fail(opr_control_id, " is not the exact reviewed Y72-E2-S01-R50-I50 penalty-off OPR transform")
+for (pair in opr_pairs) {
+  expected_opr_doitall <- opr_env$apply_opr(
+    readLines(model_file(pair[["base"]], "doitall.sh"), warn = FALSE),
+    year_effect = 72L,
+    season_effect = 1L,
+    region_effect = 50L,
+    region_season_effect = 50L,
+    terminal_year_constraint = 2L,
+    terminal_penalty_flag = 0L,
+    compatibility_year_effect = 72L
+  )
+  actual_opr_doitall <- readLines(model_file(pair[["control"]], "doitall.sh"), warn = FALSE)
+  if (!identical(actual_opr_doitall, expected_opr_doitall) ||
+      any(grepl("^[[:space:]]*1[[:space:]]+397[[:space:]]+100([[:space:]]|$)",
+                actual_opr_doitall))) {
+    fail(pair[["control"]], " is not the exact reviewed Y72-E2-S01-R50-I50 penalty-off OPR transform")
+  }
 }
 opr_settings_paths <- file.path(sensitivity_root, opr_ids, "opr_settings.csv")
-if (any(!file.exists(opr_settings_paths)) ||
-    !same_file(opr_settings_paths[[1L]], opr_settings_paths[[2L]])) {
-  fail("OPR pair must have identical machine-readable OPR settings")
+if (any(!file.exists(opr_settings_paths)) || any(!vapply(
+  opr_settings_paths[-1L], same_file, logical(1), left = opr_settings_paths[[1L]]
+))) {
+  fail("All OPR controls must have identical machine-readable OPR settings")
 }
 opr_settings <- utils::read.csv(opr_settings_paths[[1L]], stringsAsFactors = FALSE)
 if (nrow(opr_settings) != 1L || opr_settings$year_effect != 72L ||
@@ -267,6 +325,66 @@ for (id in opr_ids) {
 canonical <- function(line) {
   line <- sub("#.*$", "", line)
   gsub("[[:space:]]+", " ", trimws(line))
+}
+
+phase_bounds <- function(lines, phase, id) {
+  start <- grep(sprintf("<<PHASE%d[[:space:]]*$", phase), lines)
+  end <- grep(sprintf("^PHASE%d[[:space:]]*$", phase), lines)
+  if (length(start) != 1L || length(end) != 1L || start >= end) {
+    fail(id, " does not contain one complete phase ", phase)
+  }
+  c(start = start, end = end)
+}
+require_in_phase <- function(lines, value, bounds, id) {
+  hits <- which(vapply(lines, canonical, character(1)) == value)
+  if (length(hits) != 1L || hits <= bounds[["start"]] || hits >= bounds[["end"]]) {
+    fail(id, " requires exactly one `", value, "` inside the expected phase")
+  }
+}
+dm_group_map <- integer(33L)
+dm_group_map[1:11] <- 1L
+dm_group_map[c(12L, 19L, 20L, 25:28)] <- 2L
+dm_group_map[17:18] <- 3L
+dm_group_map[c(13:16, 21:24)] <- 4L
+dm_group_map[29:33] <- 5L
+for (id in opr_ids[3:4]) {
+  lines <- readLines(model_file(id, "doitall.sh"), warn = FALSE)
+  phase1 <- phase_bounds(lines, 1L, id)
+  phase2 <- phase_bounds(lines, 2L, id)
+  phase3 <- phase_bounds(lines, 3L, id)
+  phase4 <- phase_bounds(lines, 4L, id)
+  phase5 <- phase_bounds(lines, 5L, id)
+  if (!(phase1[["end"]] < phase2[["start"]] &&
+        phase2[["end"]] < phase3[["start"]] &&
+        phase3[["end"]] < phase4[["start"]] &&
+        phase4[["end"]] < phase5[["start"]])) {
+    fail(id, " does not preserve the phase 1-5 order")
+  }
+  require_in_phase(lines, "1 141 11", phase1, id)
+  require_in_phase(lines, "1 320 5", phase1, id)
+  require_in_phase(lines, "1 342 1000", phase1, id)
+  require_in_phase(lines, "-999 69 1", phase1, id)
+  require_in_phase(lines, "-999 89 0", phase1, id)
+  require_in_phase(lines, "-999 89 1", phase2, id)
+  require_in_phase(lines, "1 155 72", phase3, id)
+  require_in_phase(lines, "1 202 2", phase3, id)
+  require_in_phase(lines, "1 217 1", phase3, id)
+  require_in_phase(lines, "1 216 50", phase3, id)
+  require_in_phase(lines, "1 218 50", phase3, id)
+  require_in_phase(lines, "1 397 0", phase3, id)
+  require_in_phase(lines, "2 68 1", phase4, id)
+  require_in_phase(lines, "2 69 1", phase4, id)
+  for (value in c("1 77 50", "1 78 1", "1 79 240", "1 80 220", "1 81 1")) {
+    require_in_phase(lines, value, phase5, id)
+  }
+  for (fishery in seq_len(33L)) {
+    require_in_phase(
+      lines,
+      sprintf("-%d 68 %d", fishery, dm_group_map[[fishery]]),
+      phase1,
+      id
+    )
+  }
 }
 selectivity_block <- function(id) {
   lines <- readLines(model_file(id, "doitall.sh"), warn = FALSE)
@@ -365,6 +483,90 @@ for (id in models$step_id) {
   for (fishery in 29:33) require_triple(flags, -fishery, 75L, 2L, id)
 }
 
+ambiguous_comment <- paste("set length-dependent", "selectivity option")
+tracked_comment_paths <- c(
+  file.path(repo_root, "R", "prepare_bet_2026_step_inputs.R"),
+  file.path(repo_root, "templates", "5-region", "doitall.sh"),
+  file.path(repo_root, "reference-inputs", "job-5319", "mfcl-inputs", "doitall.sh"),
+  vapply(models$step_id, model_file, character(1), name = "doitall.sh")
+)
+for (path in tracked_comment_paths) {
+  if (any(grepl(ambiguous_comment, readLines(path, warn = FALSE), fixed = TRUE))) {
+    fail("Ambiguous fish-flag-26 comment remains in ", path)
+  }
+}
+
+expected_flag26_comment <- paste(
+  "-999 26 2  # build selectivity-at-age by evaluating the spline on scaled",
+  "mean length-at-age (not length-bin selectivity)"
+)
+expected_flag57_comment <- "-999 57 3  # cubic spline basis for selectivity"
+expected_flag61_comment <-
+  "-999 61 5  # five spline nodes on the scaled mean-length-at-age coordinate"
+for (id in models$step_id) {
+  lines <- readLines(model_file(id, "doitall.sh"), warn = FALSE)
+  canonical_lines <- vapply(lines, canonical, character(1))
+  all_flags <- flag_triples(lines, id)
+  selectivity_flags <- flag_triples(selectivity_block(id), id)
+
+  flag26 <- all_flags[all_flags$flag == 26L, , drop = FALSE]
+  if (nrow(flag26) != 1L || flag26$actor != -999L || flag26$value != 2L) {
+    fail(id, " must retain exactly one global fish flag 26=2 with no override")
+  }
+  flag57 <- selectivity_flags[selectivity_flags$flag == 57L, , drop = FALSE]
+  if (nrow(flag57) != 1L || flag57$actor != -999L || flag57$value != 3L) {
+    fail(id, " must retain exactly one global cubic-spline flag 57=3")
+  }
+  flag61 <- selectivity_flags[selectivity_flags$flag == 61L, , drop = FALSE]
+  expected_nodes <- if (startsWith(id, "S032-") || startsWith(id, "S035-")) {
+    data.frame(actor = c(-999L, -12L, -13L), value = c(5L, 8L, 8L))
+  } else {
+    data.frame(actor = -999L, value = 5L)
+  }
+  actual_nodes <- flag61[, c("actor", "value"), drop = FALSE]
+  rownames(actual_nodes) <- NULL
+  if (!identical(actual_nodes, expected_nodes)) {
+    fail(id, " has an unexpected flag-61 node control")
+  }
+  required_comments <- c(
+    expected_flag26_comment,
+    expected_flag57_comment,
+    expected_flag61_comment
+  )
+  if (any(!vapply(required_comments, function(comment) {
+    sum(trimws(lines) == comment) == 1L
+  }, logical(1)))) {
+    fail(id, " lacks the required unambiguous global selectivity comments")
+  }
+
+  phase1 <- phase_bounds(lines, 1L, id)
+  phase5 <- phase_bounds(lines, 5L, id)
+  for (fishery in 29:33) {
+    pattern <- sprintf("^-%d 24 ", fishery)
+    hits <- grep(pattern, canonical_lines)
+    initial <- hits[hits > phase1[["start"]] & hits < phase1[["end"]]]
+    split <- hits[hits > phase5[["start"]] & hits < phase5[["end"]]]
+    if (length(hits) != 2L || length(initial) != 1L || length(split) != 1L ||
+        canonical_lines[[initial]] != sprintf("-%d 24 25", fishery) ||
+        canonical_lines[[split]] != sprintf("-%d 24 %d", fishery, fishery - 4L) ||
+        any(hits > phase5[["end"]])) {
+      fail(id, " must share F29-F33 through phase 4 and split them from phase 5 onward")
+    }
+    expected_initial_comment <- sprintf(
+      "-%d 24 25  # Index R%d; shared initialization group through phase 4",
+      fishery, fishery - 28L
+    )
+    expected_split_comment <- sprintf(
+      "-%d 24 %d  # Index R%d; separate final selectivity from phase 5 onward",
+      fishery, fishery - 4L, fishery - 28L
+    )
+    if (sum(trimws(lines) == expected_initial_comment) != 1L ||
+        sum(trimws(lines) == expected_split_comment) != 1L) {
+      fail(id, " lacks clear phase-specific index selectivity comments")
+    }
+  }
+}
+
 map_reference <- model_file(n5_reference_id, "fishery_map.R")
 map_env <- new.env(parent = globalenv())
 sys.source(map_reference, envir = map_env)
@@ -421,20 +623,61 @@ if (anyDuplicated(signatures)) {
 
 readme <- paste(readLines(file.path(repo_root, "README.md"), warn = FALSE), collapse = "\n")
 required_readme_terms <- c(
-  "39", "F12", "PS.JP.1", "F13", "PL.JP.1", "S031", "S033",
+  "41", "F12", "PS.JP.1", "F13", "PL.JP.1", "S031", "S033",
   "S034", "S036", "corrected", "five", "eight", "F29-F33",
   "S042-OPR-Y72-E2-S01-R50-I50", "S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON",
-  "Terminal penalty is disabled"
+  "S044-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50",
+  "S045-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON",
+  "Terminal penalty is disabled", expected_runtime_image,
+  "DM final-report and model-payload generation requires Tuna Flow v2.5",
+  "scaled mean length-at-age", "flag 26", "phase 5"
 )
 if (any(!vapply(required_readme_terms, grepl, logical(1), x = readme,
                 fixed = TRUE))) {
   fail("README does not document the promoted baseline, targets, count, and retired duplicates")
 }
 
-cat("Validation passed: 39 non-duplicate sensitivity models.\n")
+public_documents <- c(
+  file.path(repo_root, "README.md"),
+  list.files(
+    sensitivity_root,
+    pattern = "(README\\.md|input_manifest\\.csv)$",
+    recursive = TRUE,
+    full.names = TRUE
+  )
+)
+forbidden_public_text <- paste0(
+  "(?i)(/home/|/tmp/|/Users/|[A-Z]:[/\\\\]Users[/\\\\]|",
+  "\\b(?:paul|john|thom|kyuhan|kyuhank)\\b)"
+)
+required_generated_terms <- c(
+  "41-model", "single-area-derived", "F29-F33", "BASE075", "REG075",
+  "REG100", "SUB075", "SUB100", "G5PROC", "Nmax 1000", "F12 PS.JP.1",
+  "F13 PL.JP.1", "TAGF2ON", "phase 3", "phase 4", "phase 5",
+  "terminal penalty is disabled"
+)
+for (path in public_documents) {
+  text <- paste(readLines(path, warn = FALSE), collapse = "\n")
+  if (grepl(forbidden_public_text, text, perl = TRUE)) {
+    fail("Public documentation contains a local path or personal-name wording: ", path)
+  }
+  if (!identical(path, file.path(repo_root, "README.md")) &&
+      any(!vapply(required_generated_terms, grepl, logical(1), x = text,
+                  fixed = TRUE))) {
+    fail("Generated public documentation lacks the complete design context: ", path)
+  }
+}
+
+cat("Validation passed: 41 non-duplicate sensitivity models.\n")
 cat("Core S001-S030 and TAGF2ON S037-S041 inherit the exact corrected N5 baseline.\n")
 cat("N8 axis: only F12 PS.JP.1 and F13 PL.JP.1 change flag 61 from 5 to 8.\n")
 cat("Index baseline: every model has flag 75=2 for F29-F33 Index R1-R5.\n")
 cat("Retired duplicates: S031, S033, S034, and S036. Retained N8: S032 and S035.\n")
-cat("OPR pair: exact reviewed Y72-E2-S01-R50-I50 transform with parest 397=0.\n")
-cat("All six TAGF2ON models differ from their controls only in all 98 tag_flags(:,2) values.\n")
+cat("OPR pairs: normal S001 and DM S005 controls use the exact reviewed Y72-E2-S01-R50-I50 transform with parest 397=0.\n")
+cat("DM OPR controls retain G5PROC, C estimation, Nmax 1000, and phase order OPR/movement/regional scaling = 3/4/5.\n")
+cat("All seven TAGF2ON models differ from their controls only in all 98 tag_flags(:,2) values.\n")
+cat("Public README/manifests contain full design context without local paths or personal-name wording.\n")
+cat("Runtime image: exact tested Tuna Flow v2.5 digest pin verified.\n")
+cat("Selectivity semantics: all 41 models retain one global flag 26=2, flag 57=3, and the intended flag-61 nodes.\n")
+cat("Index selectivity: F29-F33 share through phase 4 and split from phase 5 onward in every model.\n")
+cat("Comment-only audit: aggregate doitall command semantic SHA-256 is unchanged.\n")

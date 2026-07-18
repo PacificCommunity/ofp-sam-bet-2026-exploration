@@ -1,0 +1,2 @@
+"year_effect","terminal_year_constraint","season_effect","region_effect","region_season_effect","compatibility_year_effect","terminal_penalty_flag","source"
+72,2,1,50,50,72,0,"R/prepare_doitall.R::apply_opr"

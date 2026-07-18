@@ -1,6 +1,6 @@
 # BET 2026 LF observation-model sensitivities
 
-This branch defines a focused set of **39 non-duplicate BET sensitivity models**. Generated model inputs live under `sensitivity/` and should be rebuilt from the scripts rather than edited by hand.
+This branch defines a focused set of **41 non-duplicate BET sensitivity models**. Generated model inputs live under `sensitivity/` and should be rebuilt from the scripts rather than edited by hand.
 
 ## Final design
 
@@ -30,11 +30,14 @@ All 30 core models use the corrected single-area-derived N5 selectivity baseline
 The complete corrected baseline has these audited rules:
 
 - F1-F28 extraction coefficients are independent: F1-F24 use groups 1:24 and F25-F28 use groups 30:33.
-- F29-F33 regional indices share group 25 in phases 1-4 and split into groups 25:29 in phase 5.
+- F29-F33 regional indices share group 25 through phases 1-4 for stable initialization. In phase 5 they split into groups 25:29, so their final selectivities are estimated separately. All five retain the first-two-age zero baseline.
 - Early ages are fixed to zero for F1-F12 (first two), F13 (first one), F15 (first five), and every regional index F29-F33 (first two).
 - Monotonicity is applied only to F9.
 - Upper-age settings are F12=25, F13=30, F15-F19=25, F21=10, F22=7, F23=6, F24-F26=25, and F27=30. F20 and F28 have no override.
-- The common oldest age is 37, with length-dependent cubic-spline selectivity and five nodes by default.
+- Fish flag 26 is intentionally retained at `2` from the single-area-derived structure. MFCL evaluates the cubic selectivity spline on scaled mean length-at-age and uses the result as final selectivity-at-age in the catch and population equations. This is neither the ordinary normalized-age coordinate used by flag 26=`0` nor fully length-bin-specific selectivity under flag 26=`3`.
+- Fish flag 57=`3` selects the cubic spline. The default flag 61=`5` nodes, or the targeted F12/F13 flag 61=`8` nodes, lie on the scaled mean-length-at-age coordinate under flag 26=`2`.
+- Flags 75, 3, and 16 remain age constraints. The LF likelihood choice is separate from these selectivity controls, so this design is not described as pure age-axis selectivity.
+- The common oldest age is 37.
 
 Two genuinely distinct `BASE075` selectivity comparisons remain:
 
@@ -52,14 +55,21 @@ Five `BASE075` tag-flag tests use the same corrected N5 baseline. Each is identi
 | `S040` | `S006` | DM noRE, G5PROC, C estimated, CUT90 |
 | `S041` | `S002` | Normal, TC1, NOCUT, DW10 |
 
-Two additional `BASE075` models form one fixed-structure recruitment OPR tag pair:
+Two additional `BASE075` models form a normal-LF fixed-structure recruitment OPR tag pair:
 
 | Model | Tag flag column 2 | OPR structure |
 |---|---:|---|
 | `S042-OPR-Y72-E2-S01-R50-I50` | 0 | Y72-E2-S01-R50-I50 |
 | `S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON` | 1 | Y72-E2-S01-R50-I50 |
 
-Both OPR models inherit the normal `S001` controls: TC1, NOCUT, DW1, BASE075, corrected N5 selectivity, and F29-F33 first-two-age zeros. They use the reviewed BET `apply_opr()` semantics with parest 155=72, 221=72, 202=2, 217=1, 216=50, 218=50, and 397=0. Terminal penalty is disabled in both models and is not a sensitivity axis. `S043` differs from `S042` only in all 98 `tag_flags(:,2)` values.
+Two more `BASE075` models apply the same OPR structure to the exact `S005` DM control:
+
+| Model | Tag flag column 2 | DM and OPR structure |
+|---|---:|---|
+| `S044-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50` | 0 | DM-noRE, G5PROC, C estimated, NOCUT; Y72-E2-S01-R50-I50 |
+| `S045-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON` | 1 | Same as S044 |
+
+All four OPR models use the reviewed BET `apply_opr()` semantics with parest 155=72, 221=72, 202=2, 217=1, 216=50, 218=50, and 397=0. OPR is activated in phase 3, movement remains in phase 4, and regional scaling remains in phase 5. Terminal penalty is disabled in every OPR model and is not a sensitivity axis. `S043` differs from `S042`, and `S045` differs from `S044`, only in all 98 `tag_flags(:,2)` values. Apart from the reviewed OPR transform and metadata, `S044` is identical to `S005`, including DM grouping, C-estimation phase controls, Nmax, age-length input, and selectivity/index constraints.
 
 There are no `DW5`, `CUT70`, fixed-`C0`, or non-`G5PROC` models in the final design.
 
@@ -73,14 +83,18 @@ There are no `DW5`, `CUT70`, fixed-`C0`, or non-`G5PROC` models in the final des
 
 The reference INI is taken from [`BET/ini.mix-period/bet.2026.mix-0.2.ini`](https://github.com/PacificCommunity/ofp-sam-2026-BET-YFT-build-ini/blob/548de05aff9bdc96a9ee7a817bbfd8068020ba26/BET/ini.mix-period/bet.2026.mix-0.2.ini) at commit `548de05aff9bdc96a9ee7a817bbfd8068020ba26` of `PacificCommunity/ofp-sam-2026-BET-YFT-build-ini`.
 
-For the 33 flag-column-2=0 models, the only intentional deviation from that file is in `# tag flags`: column 2 is changed from `1` to `0` for all 98 tag-release rows. `S037`-`S041` and `S043` restore those 98 values to the upstream value 1. Column 1, columns 3 onward, and all non-tag-flag INI settings remain unchanged. In particular, the upstream common prior for fisheries F25-F28 remains reporting group `16`, target `52.015`, and penalty `485.2`.
+For the 34 flag-column-2=0 models, the only intentional deviation from that file is in `# tag flags`: column 2 is changed from `1` to `0` for all 98 tag-release rows. `S037`-`S041`, `S043`, and `S045` restore those 98 values to the upstream value 1. Column 1, columns 3 onward, and all non-tag-flag INI settings remain unchanged. In particular, the upstream common prior for fisheries F25-F28 remains reporting group `16`, target `52.015`, and penalty `485.2`.
 
 Reference checksums:
 
 ```text
-Reference input bundle: 66532e40a12135811e23ef92434e7d011a3db3a8846e56928ec4080106b97fa3
+Reference input bundle: a864b81f4d07321e977454a0d4c8389c8008b00159f374601f40ad6a6f7379d7
 Derived bet.ini:        932f57a96140400ae327cc47291316840c63c492542724a967c48ed002157117
 ```
+
+## Runtime compatibility
+
+DM final-report and model-payload generation requires Tuna Flow v2.5. Kflow uses the tested image `ghcr.io/pacificcommunity/tuna-flow:v2.5@sha256:c87f1f6d9d4f62dc447844b58afe35f96af175bf933cb6cffbbbe39a59172360`; the digest pin should remain unchanged unless a replacement image has passed the same compatibility checks.
 
 ## Generate and validate
 

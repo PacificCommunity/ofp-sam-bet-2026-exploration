@@ -12,11 +12,9 @@ description: Run one BET 2026 sensitivity with the regional-scaling input aligne
 # Command executed inside the Docker container after checkout.
 command: bash run.sh
 
-# Use the tagged tuna-flow image so local/Kflow runs do not drift unexpectedly.
-# Change deliberately, for example:
-#   ghcr.io/pacificcommunity/tuna-flow:v2.0
-#   ghcr.io/pacificcommunity/tuna-flow:latest
-docker_image: ghcr.io/pacificcommunity/tuna-flow:v2.4
+# Tuna Flow v2.5 is required for compatible DM final-report and payload output.
+# Pin the tested digest so task execution cannot drift to a different image.
+docker_image: ghcr.io/pacificcommunity/tuna-flow:v2.5@sha256:c87f1f6d9d4f62dc447844b58afe35f96af175bf933cb6cffbbbe39a59172360
 
 # HTCondor resource request. Increase memory/disk before increasing CPUs unless
 # the MFCL command itself can use more threads.

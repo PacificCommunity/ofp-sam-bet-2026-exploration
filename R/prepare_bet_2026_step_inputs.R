@@ -1,6 +1,7 @@
 ## Rebuild the 30-model BET 2026 LF-age-length design (five age-length
 ## variants crossed with six LF configurations), two non-duplicate BASE075
-## N8 models, five core TAGF2ON models, and one Y72-E2 OPR tag-control pair.
+## N8 models, five core TAGF2ON models, and normal/DM Y72-E2 OPR tag-control
+## pairs.
 ## The complete corrected single-area-derived SA28-N5 treatment, including
 ## F29-F33 early-age zeros, is the common baseline.
 ##
@@ -67,7 +68,7 @@ reference_required <- c(
   "mfcl.cfg",
   "tag_rep_map.R"
 )
-expected_reference_sha256 <- "66532e40a12135811e23ef92434e7d011a3db3a8846e56928ec4080106b97fa3"
+expected_reference_sha256 <- "a864b81f4d07321e977454a0d4c8389c8008b00159f374601f40ad6a6f7379d7"
 expected_frq_sha256 <-
   "d77f97c348409f845f1f0fc801af808d15b6cb119349d1f083308cfc9d4fba8c"
 expected_ini_sha256 <-
@@ -82,9 +83,12 @@ sys.source(file.path(root, "R", "prepare_doitall.R"), envir = opr_helper_env)
 if (!is.function(opr_helper_env$apply_opr)) {
   fail("R/prepare_doitall.R must provide the reviewed BET apply_opr() helper")
 }
+opr_source_repo <- "PacificCommunity/ofp-sam-bet-2026-stepwise"
+opr_source_ref <- "experiment/step12-opr-terminal-penalty-lf-sensitivity"
 opr_source_note <- paste(
-  "Reviewed BET OPR apply_opr() semantics from the existing local",
-  "ofp-sam-bet-2026-opr-sensitivities worktree, maintained in R/prepare_doitall.R."
+  "Reviewed BET OPR apply_opr() semantics from",
+  paste0(opr_source_repo, "@", opr_source_ref, ","),
+  "maintained in R/prepare_doitall.R."
 )
 
 sha256_file <- function(path) {
@@ -145,7 +149,9 @@ tag_flag_sensitivity_controls <- c(
   "S040-DM-G5PROC-CEST-CUT90-TAGF2ON" = "S006-DM-G5PROC-CEST-CUT90",
   "S041-TC1-NOCUT-DW10-TAGF2ON" = "S002-TC1-NOCUT-DW10",
   "S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON" =
-    "S042-OPR-Y72-E2-S01-R50-I50"
+    "S042-OPR-Y72-E2-S01-R50-I50",
+  "S045-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON" =
+    "S044-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50"
 )
 tag_flag_sensitivity_ids <- names(tag_flag_sensitivity_controls)
 
@@ -213,9 +219,9 @@ required_selectivity_columns <- c(
 )
 if (!is.data.frame(models) ||
     !all(required_selectivity_columns %in% names(models)) ||
-    nrow(models) != 39L ||
+    nrow(models) != 41L ||
     anyDuplicated(models$step_id) || any(!models$enabled)) {
-  fail("job-config.R must define exactly 39 unique enabled sensitivity cells")
+  fail("job-config.R must define exactly 41 unique enabled sensitivity cells")
 }
 if (!all(models$run_mode == "doitall") ||
     !all(models$regional_scaling_weight == 50L)) {
@@ -256,11 +262,11 @@ if (any(models$selectivity_treatment[!selectivity_rows] != "sa28_n5")) {
 
 expected_age_levels <- c("BASE075", "REG075", "REG100", "SUB075", "SUB100")
 age_level_counts <- table(factor(models$age_length_variant, levels = expected_age_levels))
-if (!identical(as.integer(age_level_counts), c(15L, rep(6L, 4L))) ||
+if (!identical(as.integer(age_level_counts), c(17L, rep(6L, 4L))) ||
     anyDuplicated(models[core_rows, c("base_sensitivity", "age_length_variant")])) {
   fail(paste(
     "Expected 30 core models (five age-length variants x six LF configurations)",
-    "plus two BASE075 N8 models, five core TAGF2ON models, and the two-model OPR tag pair"
+    "plus two BASE075 N8 models, five core TAGF2ON models, and two two-model OPR tag pairs"
   ))
 }
 base_rows <- models$age_length_variant == "BASE075"
@@ -384,32 +390,49 @@ tag_flag_control_columns <- unique(c(
 
 expected_opr_ids <- c(
   "S042-OPR-Y72-E2-S01-R50-I50",
-  "S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON"
+  "S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON",
+  "S044-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50",
+  "S045-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON"
 )
 opr_indices <- match(expected_opr_ids, models$step_id)
-opr_base_index <- match("S001-TC1-NOCUT-DW1", models$step_id)
-if (anyNA(opr_indices) || is.na(opr_base_index) || sum(opr_rows) != 2L ||
+normal_opr_indices <- opr_indices[1:2]
+dm_opr_indices <- opr_indices[3:4]
+opr_base_indices <- match(
+  c("S001-TC1-NOCUT-DW1", "S005-DM-G5PROC-CEST-NOCUT"),
+  models$step_id
+)
+if (anyNA(opr_indices) || anyNA(opr_base_indices) || sum(opr_rows) != 4L ||
     !identical(as.character(models$step_id[opr_rows]), expected_opr_ids) ||
     any(models$age_length_variant[opr_indices] != "BASE075") ||
     any(models$selectivity_treatment[opr_indices] != "sa28_n5") ||
-    any(models$lf_likelihood[opr_indices] != "normal") ||
-    any(models$tail_compression_percent[opr_indices] != 1L) ||
     any(is.finite(models$cutoff_cm[opr_indices])) ||
-    any(models$lf_downweight_factor[opr_indices] != 1L) ||
-    any(models$lf_size_divisor[opr_indices] != 20L) ||
+    any(models$lf_likelihood[normal_opr_indices] != "normal") ||
+    any(models$tail_compression_percent[normal_opr_indices] != 1L) ||
+    any(models$lf_downweight_factor[normal_opr_indices] != 1L) ||
+    any(models$lf_size_divisor[normal_opr_indices] != 20L) ||
+    any(models$lf_likelihood[dm_opr_indices] != "dm_nore") ||
+    any(models$dm_grouping[dm_opr_indices] != "process5") ||
+    any(!models$dm_estimate_relative_sample_size[dm_opr_indices]) ||
+    any(models$tail_compression_percent[dm_opr_indices] != 0L) ||
+    any(!is.na(models$lf_downweight_factor[dm_opr_indices])) ||
+    any(!is.na(models$lf_size_divisor[dm_opr_indices])) ||
     any(models$opr_year_effect[opr_indices] != 72L) ||
     any(models$opr_terminal_year_constraint[opr_indices] != 2L) ||
     any(models$opr_season_effect[opr_indices] != 1L) ||
     any(models$opr_region_effect[opr_indices] != 50L) ||
     any(models$opr_region_season_effect[opr_indices] != 50L) ||
     any(models$opr_terminal_penalty_flag[opr_indices] != 0L) ||
-    !identical(models$tag_flag2[opr_indices], c(0L, 1L))) {
-  fail("OPR pair must be BASE075 S001 controls with Y72 E2 S01 R50 I50 and penalty disabled")
+    !identical(models$tag_flag2[opr_indices], c(0L, 1L, 0L, 1L))) {
+  fail("OPR pairs must retain exact S001/S005 controls with Y72 E2 S01 R50 I50 and penalty disabled")
 }
-for (column in c(paired_control_columns, "selectivity_treatment")) {
-  if (!identical(models[[column]][[opr_indices[[1L]]]],
-                 models[[column]][[opr_base_index]])) {
-    fail("S042 OPR control differs from S001 in non-OPR setting ", column)
+for (pair in seq_along(opr_base_indices)) {
+  control_index <- opr_indices[c(1L, 3L)[[pair]]]
+  for (column in c(paired_control_columns, "selectivity_treatment")) {
+    if (!identical(models[[column]][[control_index]],
+                   models[[column]][[opr_base_indices[[pair]]]])) {
+      fail(expected_opr_ids[[c(1L, 3L)[[pair]]]],
+           " differs from its non-OPR control in setting ", column)
+    }
   }
 }
 tag_flag_indices <- match(tag_flag_sensitivity_ids, models$step_id)
@@ -422,7 +445,7 @@ if (anyNA(tag_flag_indices) || anyNA(tag_flag_reference_indices) ||
     any(models$tag_flag2_reference[tag_flag_indices] !=
           unname(tag_flag_sensitivity_controls)) ||
     any(models$selectivity_treatment[tag_flag_indices] != "sa28_n5")) {
-  fail("The six TAGF2ON identities, controls, BASE075 inputs, or SA28-N5 baseline are wrong")
+  fail("The seven TAGF2ON identities, controls, BASE075 inputs, or SA28-N5 baseline are wrong")
 }
 for (i in seq_along(tag_flag_indices)) {
   if (any(!vapply(
@@ -613,7 +636,9 @@ selectivity_treatment_note <- function(treatment) {
       "The corrected N5 baseline assigns independent selectivity groups to F1-F28,",
       "applies the audited young-age, F9 monotonicity, and upper-age constraints,",
       "fixes the first two ages of F29-F33 to zero, uses five nodes, and splits",
-      "regional-index groups F29-F33 in phase 5."
+      "regional-index groups F29-F33 in phase 5. Fish flag 26=2 evaluates the",
+      "flag-57 cubic spline on scaled mean length-at-age to produce final",
+      "selectivity-at-age; flag 61 supplies nodes on that coordinate."
     ),
     sa28_n8 = paste(
       "The corrected N8 treatment is identical to N5 except that F12 PS.JP.1",
@@ -634,8 +659,8 @@ single_area_selectivity_block <- function(nodes) {
   )
   node_lines <- if (nodes == 8L) {
     c(
-      "  -12 61 8  # SA28-N8 Japanese purse-seine spline nodes",
-      "  -13 61 8  # SA28-N8 Japanese pole-and-line spline nodes"
+      "  -12 61 8  # eight spline nodes on scaled mean length-at-age for PS.JP.1",
+      "  -13 61 8  # eight spline nodes on scaled mean length-at-age for PL.JP.1"
     )
   } else {
     character()
@@ -643,9 +668,9 @@ single_area_selectivity_block <- function(nodes) {
   c(
     "# Selectivity settings",
     "  -999 3 37  # all selectivities equal for age class 37 and older",
-    "  -999 26 2  # set length-dependent selectivity option",
-    "  -999 57 3  # uses cubic spline selectivity",
-    "  -999 61 5  # default five nodes for cubic spline",
+    "  -999 26 2  # build selectivity-at-age by evaluating the spline on scaled mean length-at-age (not length-bin selectivity)",
+    "  -999 57 3  # cubic spline basis for selectivity",
+    "  -999 61 5  # five spline nodes on the scaled mean-length-at-age coordinate",
     node_lines,
     "# SA28: independent extraction selectivity; preserve current index group slots.",
     sprintf(
@@ -654,11 +679,11 @@ single_area_selectivity_block <- function(nodes) {
       extraction_group_ids,
       extraction_labels
     ),
-    "  -29 24 25  # Index R1; current shared PHASE1-PHASE4 group",
-    "  -30 24 25  # Index R2; current shared PHASE1-PHASE4 group",
-    "  -31 24 25  # Index R3; current shared PHASE1-PHASE4 group",
-    "  -32 24 25  # Index R4; current shared PHASE1-PHASE4 group",
-    "  -33 24 25  # Index R5; current shared PHASE1-PHASE4 group",
+    "  -29 24 25  # Index R1; shared initialization group through phase 4",
+    "  -30 24 25  # Index R2; shared initialization group through phase 4",
+    "  -31 24 25  # Index R3; shared initialization group through phase 4",
+    "  -32 24 25  # Index R4; shared initialization group through phase 4",
+    "  -33 24 25  # Index R5; shared initialization group through phase 4",
     "# Single-area extraction monotonicity constraint.",
     "   -9 16 1",
     "# Single-area extraction young-age constraints.",
@@ -882,12 +907,32 @@ write_sensitivity_doitall <- function(
   invisible(to)
 }
 
+design_context_note <- function(row) {
+  paste(
+    "This model belongs to the public 41-model design: 30 core age-length/LF",
+    "combinations, two targeted N8 controls, five core TAGF2ON controls,",
+    "and normal plus DM OPR tag-control pairs. Every model uses the complete",
+    "single-area-derived selectivity baseline, including F29-F33 first-two-age",
+    "zeros; N8 changes only F12 PS.JP.1 and F13 PL.JP.1. Age-length levels are",
+    "BASE075, REG075, REG100, SUB075, and SUB100. DM models use DM-noRE,",
+    "G5PROC, estimated relative sample-size exponent C, and Nmax 1000.",
+    "TAGF2ON changes only all 98 tag_flags(:,2) values. OPR is activated in",
+    "phase 3, movement in phase 4, and regional scaling in phase 5; terminal",
+    "penalty is disabled. Fish flag 26=2 evaluates the flag-57 cubic spline on",
+    "scaled mean length-at-age to produce final selectivity-at-age; flag-61",
+    "nodes use that coordinate, while flags 75/3/16 remain age constraints.",
+    "This setting is separate from the LF likelihood. This model uses age-length level",
+    paste0(as.character(row$age_length_variant), ".")
+  )
+}
+
 write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
   reference_source <- file.path(
     "reference-inputs", "job-5319", "mfcl-inputs"
   )
   anchor_note <- paste0(
-    "Byte-identical to the retained Job 5319 anchor in the refreshed reference ",
+    "MFCL-setting-identical to the retained Job 5319 anchor; public explanatory ",
+    "doitall comments are normalized in the refreshed reference ",
     "bundle; reference-set SHA-256 ", expected_reference_sha256, "."
   )
   stepwise_refresh_note <- paste0(
@@ -1112,6 +1157,17 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
     ),
     stringsAsFactors = FALSE
   )
+  manifest <- rbind(
+    manifest,
+    data.frame(
+      role = "design_context",
+      file = "job-config.R",
+      source = "job-config.R",
+      source_commit = NA_character_,
+      note = design_context_note(row),
+      stringsAsFactors = FALSE
+    )
+  )
   if (has_cutoff) {
     manifest <- rbind(
       manifest,
@@ -1171,6 +1227,18 @@ add_age_length_readme <- function(lines, row) {
       "Every other model input and all inherited normal/DM/cutoff controls are",
       "identical to the paired BASE075 sensitivity."
     )
+  )
+  append(lines, section, after = status_line[[1L]] - 2L)
+}
+
+add_design_context_readme <- function(lines, row) {
+  status_line <- grep("^Status:", lines)
+  if (length(status_line) != 1L) fail("Generated model README must contain one status line")
+  section <- c(
+    "",
+    "## 41-model design context",
+    "",
+    design_context_note(row)
   )
   append(lines, section, after = status_line[[1L]] - 2L)
 }
@@ -1246,7 +1314,8 @@ append_opr_readme <- function(step_dir, row) {
     "",
     paste(
       "The OPR structure is fixed at Y72-E2-S01-R50-I50. Terminal penalty",
-      "is disabled in both models and is not a sensitivity axis."
+      "is disabled in every OPR model and is not a sensitivity axis. OPR is",
+      "activated in phase 3, movement in phase 4, and regional scaling in phase 5."
     ),
     opr_source_note
   )
@@ -1393,6 +1462,7 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
     )
     lines <- add_selectivity_readme(lines, row)
     lines <- add_age_length_readme(lines, row)
+    lines <- add_design_context_readme(lines, row)
     writeLines(lines, file.path(step_dir, "README.md"), useBytes = TRUE)
     return(invisible(step_dir))
   }
@@ -1503,6 +1573,7 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
   )
   lines <- add_selectivity_readme(lines, row)
   lines <- add_age_length_readme(lines, row)
+  lines <- add_design_context_readme(lines, row)
   writeLines(lines, file.path(step_dir, "README.md"), useBytes = TRUE)
 }
 

@@ -622,10 +622,41 @@ for (configuration in seq_len(nrow(.design_tag_flag2_specs))) {
   selectivity_reference = .design_opr_tag_id
 )
 
+.design_opr_dm_control_id <- .design_rows[[5L]]$step_id[[1L]]
+.design_opr_dm_control <- .design_set_identity(
+  row = .design_rows[[5L]],
+  number = 44L,
+  slug = "OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50",
+  age_variant = "BASE075",
+  label = paste(
+    "BASE075 corrected N5 DM-noRE G5PROC C-estimated NOCUT",
+    "OPR Y72 E2 S01 R50 I50"
+  ),
+  base_sensitivity = .design_opr_dm_control_id,
+  selectivity_treatment = "sa28_n5",
+  selectivity_reference = .design_opr_dm_control_id
+)
+.design_rows[[length(.design_rows) + 1L]] <- .design_opr_dm_control
+
+.design_opr_dm_tag_id <- "S044-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50"
+.design_rows[[length(.design_rows) + 1L]] <- .design_set_identity(
+  row = .design_opr_dm_control,
+  number = 45L,
+  slug = "OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON",
+  age_variant = "BASE075",
+  label = paste(
+    "BASE075 corrected N5 DM-noRE G5PROC C-estimated NOCUT",
+    "OPR Y72 E2 S01 R50 I50 TAGF2ON"
+  ),
+  base_sensitivity = .design_opr_dm_tag_id,
+  selectivity_treatment = "sa28_n5",
+  selectivity_reference = .design_opr_dm_tag_id
+)
+
 stepwise_models <- do.call(rbind, .design_rows)
 rownames(stepwise_models) <- NULL
 stepwise_models$tag_flag2 <- 0L
-stepwise_models$tag_flag2[grepl("^S0(37|38|39|40|41|43)-", stepwise_models$step_id)] <- 1L
+stepwise_models$tag_flag2[grepl("^S0(37|38|39|40|41|43|45)-", stepwise_models$step_id)] <- 1L
 stepwise_models$tag_flag2_reference <- stepwise_models$step_id
 stepwise_models$tag_flag2_reference[
   grepl("^S0(37|38|39|40|41)-", stepwise_models$step_id)
@@ -633,8 +664,12 @@ stepwise_models$tag_flag2_reference[
 stepwise_models$tag_flag2_reference[
   stepwise_models$step_id == "S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON"
 ] <- .design_opr_tag_id
+stepwise_models$tag_flag2_reference[
+  stepwise_models$step_id ==
+    "S045-OPR-DM-G5PROC-CEST-Y72-E2-S01-R50-I50-TAGF2ON"
+] <- .design_opr_dm_tag_id
 
-stepwise_models$opr_enabled <- grepl("^S0(42|43)-OPR-", stepwise_models$step_id)
+stepwise_models$opr_enabled <- grepl("^S0(42|43|44|45)-OPR-", stepwise_models$step_id)
 stepwise_models$opr_year_effect <- ifelse(stepwise_models$opr_enabled, 72L, NA_integer_)
 stepwise_models$opr_terminal_year_constraint <- ifelse(
   stepwise_models$opr_enabled, 2L, NA_integer_
@@ -653,36 +688,36 @@ stepwise_models$opr_source <- ifelse(
   ""
 )
 
-.design_expected_prefix <- sprintf("S%03d", c(1:30, 32, 35, 37:43))
+.design_expected_prefix <- sprintf("S%03d", c(1:30, 32, 35, 37:45))
 .design_actual_prefix <- sub("-.*$", "", stepwise_models$step_id)
-if (nrow(stepwise_models) != 39L ||
+if (nrow(stepwise_models) != 41L ||
     anyDuplicated(stepwise_models$step_id) ||
     !identical(.design_actual_prefix, .design_expected_prefix)) {
-  stop("Canonical design must contain the 39 retained stable model IDs", call. = FALSE)
+  stop("Canonical design must contain the 41 retained stable model IDs", call. = FALSE)
 }
 if (!identical(
   as.integer(table(factor(
     stepwise_models$age_length_variant,
     levels = .design_ages
   ))),
-  c(15L, 6L, 6L, 6L, 6L)
+  c(17L, 6L, 6L, 6L, 6L)
 )) {
   stop("Canonical design has incorrect age-length variant counts", call. = FALSE)
 }
 if (!identical(
       stepwise_models$tag_flag2,
-      c(rep(0L, 32L), rep(1L, 5L), 0L, 1L)
+      c(rep(0L, 32L), rep(1L, 5L), 0L, 1L, 0L, 1L)
     ) ||
     !identical(
       stepwise_models$tag_flag2_reference[stepwise_models$tag_flag2 == 1L],
-      c(.design_tag_flag2_controls, .design_opr_tag_id)
+      c(.design_tag_flag2_controls, .design_opr_tag_id, .design_opr_dm_tag_id)
     )) {
   stop(
     "TAGF2ON models must be isolated copies of their corrected controls",
     call. = FALSE
   )
 }
-if (sum(stepwise_models$opr_enabled) != 2L ||
+if (sum(stepwise_models$opr_enabled) != 4L ||
     any(stepwise_models$opr_year_effect[stepwise_models$opr_enabled] != 72L) ||
     any(stepwise_models$opr_terminal_year_constraint[stepwise_models$opr_enabled] != 2L) ||
     any(stepwise_models$opr_season_effect[stepwise_models$opr_enabled] != 1L) ||
@@ -726,6 +761,9 @@ rm(
   .design_opr_control_id,
   .design_opr_control,
   .design_opr_tag_id,
+  .design_opr_dm_control_id,
+  .design_opr_dm_control,
+  .design_opr_dm_tag_id,
   .design_expected_prefix,
   .design_actual_prefix,
   .design_obsolete,

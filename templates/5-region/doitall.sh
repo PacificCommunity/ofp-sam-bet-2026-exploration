@@ -170,9 +170,9 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -33 32 21  # Index R5
 # Selectivity settings
   -999 3 37  # all selectivities equal for age class 37 and older
-  -999 26 2  # set length-dependent selectivity option
-  -999 57 3  # uses cubic spline selectivity
-  -999 61 5  # with 5 nodes for cubic spline
+  -999 26 2  # build selectivity-at-age by evaluating the spline on scaled mean length-at-age (not length-bin selectivity)
+  -999 57 3  # cubic spline basis for selectivity
+  -999 61 5  # five spline nodes on the scaled mean-length-at-age coordinate
 # Grouping of fisheries with common selectivity, mapped from BET_PHrev_FNL.xlsx.
 # The old 29 groups become 25 groups here: 24 extraction groups + 1 index group.
    -1 24 1   # LL.WEST.1, old1
@@ -203,11 +203,11 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -26 24 23  # PS.ASS.EAST.3, old15
   -27 24 18  # PS.UNA.WEST.3, old14 + old26
   -28 24 24  # PS.UNA.EAST.3, old16
-  -29 24 25  # Index R1
-  -30 24 25  # Index R2
-  -31 24 25  # Index R3
-  -32 24 25  # Index R4
-  -33 24 25  # Index R5
+  -29 24 25  # Index R1; shared initialization group through phase 4
+  -30 24 25  # Index R2; shared initialization group through phase 4
+  -31 24 25  # Index R3; shared initialization group through phase 4
+  -32 24 25  # Index R4; shared initialization group through phase 4
+  -33 24 25  # Index R5; shared initialization group through phase 4
 # Non-decreasing selectivity for the old6-derived longline fishery.
    -5 16 1
 # Selected old-derived longline fisheries set to zero for first two age classes.
