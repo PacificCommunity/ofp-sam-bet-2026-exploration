@@ -112,7 +112,7 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   1 111 4     # set likelihood function for tags to negative binomial
   1 141 11    # LF Dirichlet-multinomial likelihood without random effects
   1 320 5     # DM LF tail compression; retain at least five class intervals
-  1 342 50  # DM-noRE maximum LF effective sample size
+  1 342 25  # DM-noRE maximum LF effective sample size
   1 139 3     # set likelihood function for WF data to normal
   -999 49 20  # divide LF sample sizes by 20
   -1 68 1  # DM LF group: Longline extraction
