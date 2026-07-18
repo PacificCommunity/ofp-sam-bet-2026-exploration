@@ -1437,3 +1437,19 @@ cat(sprintf("Tag-prep main source commit: %s\n", tag_prep_commit))
 cat("Regional scaling: active 20x5 plus retained full 292x5 source\n")
 cat("Effort creep reapplied: no\n")
 cat("Kflow submitted: no\n")
+
+# Remove reporting Group 17 prior order dependence after model assembly.
+# The helper preflights all 97 generated models before replacing any files.
+source(file.path("R", "tag_reporting_group17_prior.R"), local = FALSE)
+tag_reporting_group17_audit <- harmonize_tag_reporting_group17_tree(
+  sensitivity_root = "sensitivity",
+  model_ids = models$step_id,
+  expected_model_count = 97L
+)
+message(
+  "Harmonized reporting Group 17 in ",
+  nrow(tag_reporting_group17_audit),
+  " models (",
+  unique(tag_reporting_group17_audit$positive_cell_count),
+  " positive cells/model; target 52.015; penalty 336.854)."
+)

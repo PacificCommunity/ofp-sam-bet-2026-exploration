@@ -104,3 +104,7 @@ The corresponding flag-49 divisors are 20, 100, and 200 for F21/F22/F23 only. Ev
 - Active regional scaling is `20 x 5`; the complete `292 x 5` source matrix is retained for alternative period sensitivities.
 
 All 91 directories are explicit run candidates on this branch. The 68 alternative age-length models and six focused grouping models have not been submitted to Kflow. Use `main` to inspect the complete 36-model LF design.
+
+## Reporting-prior decision
+
+- [Tag reporting Group 17 prior harmonization](notes/tag-reporting-group17-prior.md)
