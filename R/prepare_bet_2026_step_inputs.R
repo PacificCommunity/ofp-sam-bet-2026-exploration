@@ -1,6 +1,6 @@
 ## Rebuild the 30-model BET 2026 LF-age-length design (five age-length
-## variants crossed with six LF configurations) plus six paired BASE075
-## selectivity models.
+## variants crossed with six LF configurations), six paired BASE075
+## selectivity models, and one BASE075 tag-flag sensitivity.
 ##
 ## Every cell retains the exact effort-crept FRQ archived by Kflow Job 5319.
 ## The tag-control INI is the current upstream build-ini file wholesale, with
@@ -125,12 +125,69 @@ if (!identical(tag_sha256, expected_tag_sha256)) {
   fail("Refreshed bet.tag SHA-256 mismatch: ", tag_sha256)
 }
 
+tag_flag_sensitivity_id <- "S037-TC1-NOCUT-DW1-TAGF2ON"
+
+restore_upstream_tag_flag_column2 <- function(path, expected_rows = 98L) {
+  lines <- readLines(path, warn = FALSE)
+  header <- which(trimws(lines) == "# tag flags")
+  if (length(header) != 1L) {
+    fail("Expected exactly one '# tag flags' section in ", path)
+  }
+
+  later_headers <- which(
+    seq_along(lines) > header & grepl("^[[:space:]]*#", lines)
+  )
+  section_end <- if (length(later_headers)) min(later_headers) - 1L else length(lines)
+  section_rows <- seq.int(header + 1L, section_end)
+  section_rows <- section_rows[nzchar(trimws(lines[section_rows]))]
+  numeric_pattern <- paste0(
+    "^([[:space:]]*[+-]?[0-9]+)([[:space:]]+)",
+    "([+-]?[0-9]+)(.*)$"
+  )
+  matches <- lapply(lines[section_rows], function(line) {
+    match <- regexec(numeric_pattern, line, perl = TRUE)
+    regmatches(line, match)[[1L]]
+  })
+  if (length(section_rows) != expected_rows ||
+      any(lengths(matches) != 5L)) {
+    fail(
+      "Tag flags in ", path, " must contain exactly ", expected_rows,
+      " valid numeric rows"
+    )
+  }
+
+  first_values <- vapply(matches, `[[`, character(1), 2L)
+  second_values <- suppressWarnings(as.integer(vapply(matches, `[[`, character(1), 4L)))
+  trailing_values <- vapply(matches, `[[`, character(1), 5L)
+  if (anyNA(second_values) || any(second_values != 0L)) {
+    fail("S037 must start from the derived reference INI with tag_flags(:,2) all zero")
+  }
+
+  updated <- vapply(matches, function(parts) {
+    paste0(parts[[2L]], parts[[3L]], "1", parts[[5L]])
+  }, character(1))
+  updated_matches <- lapply(updated, function(line) {
+    match <- regexec(numeric_pattern, line, perl = TRUE)
+    regmatches(line, match)[[1L]]
+  })
+  if (any(lengths(updated_matches) != 5L) ||
+      !identical(first_values, vapply(updated_matches, `[[`, character(1), 2L)) ||
+      !identical(trailing_values, vapply(updated_matches, `[[`, character(1), 5L)) ||
+      any(as.integer(vapply(updated_matches, `[[`, character(1), 4L)) != 1L)) {
+    fail("Could not safely restore tag_flags(:,2) for ", path)
+  }
+
+  lines[section_rows] <- updated
+  writeLines(lines, path, useBytes = TRUE)
+  invisible(path)
+}
+
 required_selectivity_columns <- c("selectivity_treatment", "selectivity_reference")
 if (!is.data.frame(models) ||
     !all(required_selectivity_columns %in% names(models)) ||
-    nrow(models) != 36L ||
+    nrow(models) != 37L ||
     anyDuplicated(models$step_id) || any(!models$enabled)) {
-  fail("job-config.R must define exactly 36 unique enabled sensitivity cells")
+  fail("job-config.R must define exactly 37 unique enabled sensitivity cells")
 }
 if (!all(models$run_mode == "doitall") ||
     !all(models$regional_scaling_weight == 50L)) {
@@ -148,7 +205,8 @@ if (!all(models$lf_likelihood %in% c("normal", "dm_nore"))) {
 }
 dm_rows <- models$lf_likelihood == "dm_nore"
 selectivity_rows <- models$selectivity_treatment != "reference"
-core_rows <- !selectivity_rows
+tag_flag_rows <- models$step_id == tag_flag_sensitivity_id
+core_rows <- !selectivity_rows & !tag_flag_rows
 finite_cutoff_rows <- is.finite(models$cutoff_cm)
 if (any(models$cutoff_cm[finite_cutoff_rows] != 90) ||
     any(!models$lf_downweight_factor[normal_rows] %in% c(1L, 10L)) ||
@@ -166,11 +224,11 @@ if (any(models$dm_grouping[dm_rows] != "process5") ||
 
 expected_age_levels <- c("BASE075", "REG075", "REG100", "SUB075", "SUB100")
 age_level_counts <- table(factor(models$age_length_variant, levels = expected_age_levels))
-if (!identical(as.integer(age_level_counts), c(12L, rep(6L, 4L))) ||
-    anyDuplicated(models[, c("base_sensitivity", "age_length_variant")])) {
+if (!identical(as.integer(age_level_counts), c(13L, rep(6L, 4L))) ||
+    anyDuplicated(models[core_rows, c("base_sensitivity", "age_length_variant")])) {
   fail(paste(
     "Expected 30 core models (five age-length variants x six LF configurations)",
-    "plus six paired BASE075 selectivity models"
+    "plus six paired BASE075 selectivity models and one BASE075 tag-flag sensitivity"
   ))
 }
 base_rows <- models$age_length_variant == "BASE075"
@@ -290,6 +348,30 @@ for (i in which(selectivity_rows)) {
   ))) {
     fail("Selectivity sensitivity does not inherit its paired reference: ", models$step_id[[i]])
   }
+}
+
+tag_flag_reference_id <- "S001-TC1-NOCUT-DW1"
+tag_flag_index <- which(tag_flag_rows)
+tag_flag_reference_index <- match(tag_flag_reference_id, models$step_id)
+tag_flag_control_columns <- unique(c(
+  paired_control_columns,
+  "selectivity_treatment", "selectivity_reference"
+))
+if (length(tag_flag_index) != 1L || is.na(tag_flag_reference_index) ||
+    models$age_length_variant[[tag_flag_index]] != "BASE075" ||
+    models$lf_likelihood[[tag_flag_index]] != "normal" ||
+    is.finite(models$cutoff_cm[[tag_flag_index]]) ||
+    models$lf_downweight_factor[[tag_flag_index]] != 1L ||
+    models$lf_size_divisor[[tag_flag_index]] != 20L ||
+    any(!vapply(
+      tag_flag_control_columns,
+      function(column) identical(
+        models[[column]][[tag_flag_index]],
+        models[[column]][[tag_flag_reference_index]]
+      ),
+      logical(1)
+    ))) {
+  fail("S037 must be an otherwise exact BASE075 copy of S001")
 }
 
 fishery_map_env <- new.env(parent = globalenv())
@@ -769,6 +851,9 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
     " path ", build_ini_source_path, "."
   )
   is_dm <- identical(as.character(row$lf_likelihood), "dm_nore")
+  is_tag_flag_sensitivity <- identical(
+    as.character(row$step_id), tag_flag_sensitivity_id
+  )
   selectivity_treatment <- as.character(row$selectivity_treatment)
   has_selectivity_sensitivity <- !identical(selectivity_treatment, "reference")
   selectivity_note <- selectivity_treatment_note(selectivity_treatment)
@@ -919,10 +1004,17 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
       paste(
         build_ini_note,
         paste0("Tag-control ini SHA-256 ", expected_ini_sha256, ";"),
-        paste(
-          "the only intentional deviation from that upstream file is that all 98",
-          "tag_flags(:,2) values are 0."
-        )
+        if (is_tag_flag_sensitivity) {
+          paste(
+            "S037 restores all 98 tag_flags(:,2) values to the upstream value 1;",
+            "column 1 and every other INI value remain unchanged."
+          )
+        } else {
+          paste(
+            "the only intentional deviation from that upstream file is that all 98",
+            "tag_flags(:,2) values are 0."
+          )
+        }
       ),
       paste(
         paste0("Latest tag data from ", tag_prep_source, "@", tag_prep_commit, " (main);"),
@@ -1051,6 +1143,9 @@ add_selectivity_readme <- function(lines, row) {
 
 write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
   is_dm <- identical(as.character(row$lf_likelihood), "dm_nore")
+  is_tag_flag_sensitivity <- identical(
+    as.character(row$step_id), tag_flag_sensitivity_id
+  )
   if (is_dm) {
     grouping <- as.character(row$dm_grouping)
     grouping_text <- switch(
@@ -1242,11 +1337,20 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       "The retained Job 5319 effort-crept `bet.frq` has SHA-256 `", expected_frq_sha256,
       "`; effort creep is not reapplied."
     ),
-    paste0(
-      "`bet.ini` comes wholesale from `", build_ini_source, "@", build_ini_commit,
-      "` path `", build_ini_source_path,
-      "`; the only intentional deviation is changing all 98 `tag_flags(:,2)` values from 1 to 0."
-    ),
+    if (is_tag_flag_sensitivity) {
+      paste0(
+        "`bet.ini` starts from `", build_ini_source, "@", build_ini_commit,
+        "` path `", build_ini_source_path,
+        "`. S037 restores all 98 `tag_flags(:,2)` values to the upstream value 1; ",
+        "column 1 and every other INI value remain unchanged."
+      )
+    } else {
+      paste0(
+        "`bet.ini` comes wholesale from `", build_ini_source, "@", build_ini_commit,
+        "` path `", build_ini_source_path,
+        "`; the only intentional deviation is changing all 98 `tag_flags(:,2)` values from 1 to 0."
+      )
+    },
     paste0(
       "`fishery_map.R` comes from stepwise commit `", stepwise_refresh_commit,
       "`; `tag_rep_map.R` is regenerated from that metadata and the derived `bet.ini`."
@@ -1353,6 +1457,10 @@ for (i in seq_len(nrow(models))) {
       row.names = FALSE,
       na = ""
     )
+  }
+
+  if (identical(as.character(row$step_id), tag_flag_sensitivity_id)) {
+    restore_upstream_tag_flag_column2(file.path(model_dir, "bet.ini"))
   }
 
   write_sensitivity_doitall(

@@ -1,6 +1,6 @@
 # BET 2026 LF observation-model sensitivities
 
-This branch defines a focused set of **36 BET sensitivity models**. Generated model inputs live under `sensitivity/` and should be rebuilt from the scripts rather than edited by hand.
+This branch defines a focused set of **37 BET sensitivity models**. Generated model inputs live under `sensitivity/` and should be rebuilt from the scripts rather than edited by hand.
 
 ## Final design
 
@@ -31,6 +31,8 @@ The remaining six models are `BASE075` selectivity sensitivities. Three selectiv
 - Dirichlet-multinomial likelihood with `G5PROC-CEST-CUT90`.
 
 There are no `DW5`, `CUT70`, fixed-`C0`, or non-`G5PROC` models in the final design.
+
+The 37th model, `S037-TC1-NOCUT-DW1-TAGF2ON`, is an isolated `BASE075` clone of `S001-TC1-NOCUT-DW1`. It restores column 2 of all 98 upstream `tag_flags` rows from `0` to `1`; every other setting and input matches S001.
 
 ## DM settings
 

@@ -1,3 +1,77 @@
+# Keep the original 30-core plus six-selectivity validation view unchanged.
+# S037 is captured from job-config and validated separately at the end.
+.tagv_model_id <- "S037-TC1-NOCUT-DW1-TAGF2ON"
+.tagv_all_models <- NULL
+.tagv_base_source <- base::source
+.tagv_base_sys_source <- base::sys.source
+.tagv_base_list_dirs <- base::list.dirs
+.tagv_base_list_files <- base::list.files
+
+.tagv_capture_models <- function(envir) {
+  if (!is.environment(envir) ||
+      !exists("stepwise_models", envir = envir, inherits = FALSE)) {
+    return(invisible(NULL))
+  }
+
+  configured <- get("stepwise_models", envir = envir, inherits = FALSE)
+  id_name <- intersect(c("step_id", "model_id", "id"), names(configured))
+  if (length(id_name) == 0L) {
+    return(invisible(NULL))
+  }
+
+  ids <- as.character(configured[[id_name[[1L]]]])
+  if (!any(ids == .tagv_model_id)) {
+    return(invisible(NULL))
+  }
+
+  assign(".tagv_all_models", configured, envir = .GlobalEnv)
+  assign(
+    "stepwise_models",
+    configured[ids != .tagv_model_id, , drop = FALSE],
+    envir = envir
+  )
+  invisible(NULL)
+}
+
+source <- function(file, local = FALSE, ...) {
+  caller <- parent.frame()
+  target <- if (isTRUE(local)) caller else local
+  result <- .tagv_base_source(file = file, local = target, ...)
+  capture_envir <- if (is.environment(target)) {
+    target
+  } else if (identical(target, FALSE)) {
+    .GlobalEnv
+  } else {
+    caller
+  }
+  .tagv_capture_models(capture_envir)
+  result
+}
+
+sys.source <- function(file, envir = baseenv(), ...) {
+  result <- .tagv_base_sys_source(file = file, envir = envir, ...)
+  .tagv_capture_models(envir)
+  result
+}
+
+.tagv_hidden_path <- function(path) {
+  path <- gsub("\\\\", "/", path)
+  grepl(
+    paste0("(^|/)", .tagv_model_id, "(/|$)"),
+    path,
+    perl = TRUE
+  )
+}
+
+list.dirs <- function(...) {
+  paths <- .tagv_base_list_dirs(...)
+  paths[!.tagv_hidden_path(paths)]
+}
+
+list.files <- function(...) {
+  paths <- .tagv_base_list_files(...)
+  paths[!.tagv_hidden_path(paths)]
+}
 ## Fail-fast validation for the curated 36-model BET sensitivity set.
 
 script_arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
@@ -481,6 +555,347 @@ for (path in cut90_paths[-1L]) {
 assert_true(!same_file(reference_frq, cut90_reference),
             "CUT90 FRQ is byte-identical to NOCUT")
 validate_cut90(reference_frq, cut90_reference)
-pass("36 generated directories and configured age/cutoff inputs")
+pass("36 core/selectivity directories and configured age/cutoff inputs")
 
-cat("VALIDATION PASSED: 36 curated BET sensitivities; all invariants hold.\n")
+cat("BASE VALIDATION PASSED: 36 core/selectivity sensitivities.\n")
+
+# Restore unfiltered filesystem/config helpers for the explicit 37-model checks.
+source <- .tagv_base_source
+sys.source <- .tagv_base_sys_source
+list.dirs <- .tagv_base_list_dirs
+list.files <- .tagv_base_list_files
+
+.tagv_fail <- function(message) {
+  stop(paste0("[FAIL] ", message), call. = FALSE)
+}
+
+.tagv_assert <- function(condition, message) {
+  if (length(condition) != 1L || is.na(condition) || !condition) {
+    .tagv_fail(message)
+  }
+  invisible(TRUE)
+}
+
+.tagv_equal <- function(left, right) {
+  isTRUE(all.equal(left, right, check.attributes = FALSE))
+}
+
+.tagv_normalise <- function(value) {
+  toupper(gsub("[^A-Z0-9]+", "", as.character(value)))
+}
+
+.tagv_sha256 <- function(path) {
+  command <- Sys.which("sha256sum")
+  .tagv_assert(nzchar(command), "sha256sum is required")
+  output <- system2(
+    unname(command),
+    args = shQuote(path),
+    stdout = TRUE,
+    stderr = TRUE
+  )
+  .tagv_assert(length(output) >= 1L, paste("could not hash", path))
+  tolower(strsplit(trimws(output[[1L]]), "[[:space:]]+")[[1L]][[1L]])
+}
+
+.tagv_same_bytes <- function(left, right) {
+  left_size <- file.info(left)$size
+  right_size <- file.info(right)$size
+  if (is.na(left_size) || is.na(right_size) || left_size != right_size) {
+    return(FALSE)
+  }
+  identical(
+    readBin(left, what = "raw", n = left_size),
+    readBin(right, what = "raw", n = right_size)
+  )
+}
+
+.tagv_relative <- function(path, parent) {
+  prefix <- paste0(normalizePath(parent, mustWork = TRUE), .Platform$file.sep)
+  absolute <- normalizePath(path, mustWork = TRUE)
+  .tagv_assert(startsWith(absolute, prefix), paste(path, "is outside", parent))
+  substring(absolute, nchar(prefix) + 1L)
+}
+
+.tagv_numeric_line <- function(line) {
+  text <- trimws(line)
+  if (!nzchar(text) || grepl("^#", text)) {
+    return(NULL)
+  }
+  fields <- strsplit(text, "[[:space:]]+")[[1L]]
+  values <- suppressWarnings(as.numeric(fields))
+  if (length(values) < 2L || anyNA(values)) {
+    return(NULL)
+  }
+  values
+}
+
+.tagv_read_tag_flags <- function(path) {
+  lines <- readLines(path, warn = FALSE)
+  header <- which(trimws(lines) == "# tag flags")
+  .tagv_assert(length(header) == 1L, paste("tag-flags section missing in", path))
+  following <- which(
+    seq_along(lines) > header & grepl("^[[:space:]]*#", lines)
+  )
+  .tagv_assert(length(following) > 0L, paste("tag-flags section is unterminated in", path))
+  row_indices <- seq.int(header + 1L, following[[1L]] - 1L)
+  row_indices <- row_indices[nzchar(trimws(lines[row_indices]))]
+  matrix <- read_ini_matrix(lines, "# tag flags", path)
+  .tagv_assert(
+    nrow(matrix) == 98L && length(row_indices) == 98L,
+    paste("could not identify exactly 98 tag-flag rows in", path)
+  )
+  list(lines = lines, row_indices = row_indices, matrix = matrix)
+}
+
+.tagv_assert(
+  is.data.frame(.tagv_all_models),
+  "job-config did not expose the full S001-S037 model table"
+)
+
+.tagv_id_name <- intersect(
+  c("step_id", "model_id", "id"),
+  names(.tagv_all_models)
+)
+.tagv_assert(length(.tagv_id_name) >= 1L, "job-config has no model ID column")
+.tagv_id_name <- .tagv_id_name[[1L]]
+.tagv_ids <- as.character(.tagv_all_models[[.tagv_id_name]])
+
+.tagv_assert(nrow(.tagv_all_models) == 37L, "expected exactly 37 configured models")
+.tagv_assert(length(unique(.tagv_ids)) == 37L, "the 37 model IDs must be unique")
+.tagv_assert(
+  sum(.tagv_ids == .tagv_model_id) == 1L,
+  paste("expected exactly one", .tagv_model_id)
+)
+.tagv_assert(
+  sum(.tagv_ids != .tagv_model_id) == 36L,
+  "S037 must be outside the 30-core plus six-selectivity factorial"
+)
+
+.tagv_s001_id <- .tagv_ids[grepl("^S001(?:-|$)", .tagv_ids, perl = TRUE)]
+.tagv_assert(length(.tagv_s001_id) == 1L, "expected exactly one S001 model")
+.tagv_s001_id <- .tagv_s001_id[[1L]]
+
+.tagv_age_name <- intersect(
+  c("age_length_variant", "age_variant"),
+  names(.tagv_all_models)
+)
+.tagv_assert(length(.tagv_age_name) >= 1L, "job-config has no age variant column")
+.tagv_age_name <- .tagv_age_name[[1L]]
+.tagv_assert(
+  sum(.tagv_normalise(.tagv_all_models[[.tagv_age_name]]) == "BASE075") == 13L,
+  "BASE075 must contain 13 models: 12 factorial/selectivity models plus S037"
+)
+
+.tagv_s001_row <- .tagv_all_models[
+  .tagv_ids == .tagv_s001_id,
+  ,
+  drop = FALSE
+]
+.tagv_s037_row <- .tagv_all_models[
+  .tagv_ids == .tagv_model_id,
+  ,
+  drop = FALSE
+]
+
+.tagv_identity_metadata <- names(.tagv_all_models)[
+  grepl(
+    paste0(
+      "^(step_id|model_id|id|substep|job_key|job_title|job_name|title|label|",
+      "model_label|change_axis|description|notes?|sequence|order|index|sensitivity_id)$|",
+      "(^|_)(output|work|job|model)_(dir|path|name)$"
+    ),
+    names(.tagv_all_models),
+    ignore.case = TRUE,
+    perl = TRUE
+  )
+]
+.tagv_tag_controls <- names(.tagv_all_models)[
+  grepl("tag.*flag|flag.*tag", names(.tagv_all_models), ignore.case = TRUE)
+]
+.tagv_setting_names <- setdiff(
+  names(.tagv_all_models),
+  unique(c(.tagv_identity_metadata, .tagv_tag_controls))
+)
+.tagv_assert(
+  length(.tagv_setting_names) >= 1L,
+  "no modeling settings were available for S001/S037 comparison"
+)
+
+for (.tagv_name in .tagv_setting_names) {
+  .tagv_assert(
+    .tagv_equal(
+      .tagv_s001_row[[.tagv_name]],
+      .tagv_s037_row[[.tagv_name]]
+    ),
+    paste("S037 differs from S001 in modeling setting", .tagv_name)
+  )
+}
+
+.tagv_root <- NULL
+for (.tagv_root_name in c("root", "repo_root", "project_root")) {
+  if (exists(.tagv_root_name, inherits = FALSE)) {
+    .tagv_candidate_root <- get(.tagv_root_name, inherits = FALSE)
+    if (is.character(.tagv_candidate_root) &&
+        length(.tagv_candidate_root) == 1L &&
+        dir.exists(.tagv_candidate_root)) {
+      .tagv_root <- normalizePath(.tagv_candidate_root, mustWork = TRUE)
+      break
+    }
+  }
+}
+if (is.null(.tagv_root)) {
+  .tagv_root <- normalizePath(getwd(), mustWork = TRUE)
+}
+
+.tagv_sensitivity_root <- file.path(.tagv_root, "sensitivity")
+.tagv_model_dirs <- setNames(
+  as.list(file.path(.tagv_sensitivity_root, .tagv_ids, "model")),
+  .tagv_ids
+)
+.tagv_assert(
+  all(vapply(.tagv_model_dirs, dir.exists, logical(1))),
+  "every configured sensitivity must contain a model directory"
+)
+.tagv_siblings <- base::list.dirs(
+  .tagv_sensitivity_root,
+  full.names = FALSE,
+  recursive = FALSE
+)
+.tagv_sibling_models <- .tagv_siblings[
+  grepl("^S[0-9]{3}(?:-|$)", .tagv_siblings, perl = TRUE)
+]
+.tagv_assert(
+  length(.tagv_sibling_models) == 37L &&
+    setequal(.tagv_sibling_models, .tagv_ids),
+  "generated model directories must match exactly the 37 configured model IDs"
+)
+
+.tagv_ini_hash <- "932f57a96140400ae327cc47291316840c63c492542724a967c48ed002157117"
+.tagv_s001_dir <- .tagv_model_dirs[[.tagv_s001_id]]
+.tagv_s037_dir <- .tagv_model_dirs[[.tagv_model_id]]
+.tagv_s001_ini_candidates <- base::list.files(
+  .tagv_s001_dir,
+  pattern = "\\.ini$",
+  full.names = TRUE,
+  recursive = TRUE,
+  ignore.case = TRUE
+)
+.tagv_s001_ini_hashes <- vapply(
+  .tagv_s001_ini_candidates,
+  .tagv_sha256,
+  character(1)
+)
+.tagv_s001_ini <- .tagv_s001_ini_candidates[
+  .tagv_s001_ini_hashes == .tagv_ini_hash
+]
+.tagv_assert(
+  length(.tagv_s001_ini) == 1L,
+  "S001 must contain exactly one INI matching the reference INI hash"
+)
+.tagv_s001_ini <- .tagv_s001_ini[[1L]]
+.tagv_ini_relative <- .tagv_relative(.tagv_s001_ini, .tagv_s001_dir)
+.tagv_s037_ini <- file.path(.tagv_s037_dir, .tagv_ini_relative)
+.tagv_assert(file.exists(.tagv_s037_ini), "S037 is missing the S001-relative INI")
+.tagv_assert(
+  .tagv_sha256(.tagv_s037_ini) != .tagv_ini_hash,
+  "S037 INI must differ from the zero-valued reference tag flags"
+)
+
+for (.tagv_id in setdiff(.tagv_ids, .tagv_model_id)) {
+  .tagv_ini <- file.path(.tagv_model_dirs[[.tagv_id]], .tagv_ini_relative)
+  .tagv_assert(file.exists(.tagv_ini), paste(.tagv_id, "is missing its INI"))
+  .tagv_assert(
+    .tagv_sha256(.tagv_ini) == .tagv_ini_hash,
+    paste(.tagv_id, "INI differs from the zero-valued reference INI")
+  )
+}
+
+.tagv_required_names <- NULL
+for (.tagv_object_name in ls(envir = .GlobalEnv, all.names = TRUE)) {
+  .tagv_object <- get(.tagv_object_name, envir = .GlobalEnv)
+  if (!is.character(.tagv_object) || length(.tagv_object) != 10L) {
+    next
+  }
+  .tagv_names <- basename(.tagv_object)
+  if (sum(grepl("\\.ini$", .tagv_names, ignore.case = TRUE)) == 1L &&
+      any(grepl("\\.frq$", .tagv_names, ignore.case = TRUE)) &&
+      any(grepl("\\.tag$", .tagv_names, ignore.case = TRUE))) {
+    .tagv_required_names <- .tagv_names
+    break
+  }
+}
+if (is.null(.tagv_required_names)) {
+  .tagv_input_files <- base::list.files(
+    dirname(.tagv_s001_ini),
+    full.names = FALSE,
+    recursive = FALSE
+  )
+  .tagv_required_names <- .tagv_input_files[
+    !grepl(
+      "readme|manifest|audit|log",
+      .tagv_input_files,
+      ignore.case = TRUE
+    )
+  ]
+}
+.tagv_required_names <- unique(.tagv_required_names)
+.tagv_assert(
+  length(.tagv_required_names) == 10L,
+  "could not identify the exact ten-file generated input bundle"
+)
+
+for (.tagv_file_name in .tagv_required_names) {
+  .tagv_s001_hits <- file.path(.tagv_s001_dir, .tagv_file_name)
+  .tagv_s037_hits <- file.path(.tagv_s037_dir, .tagv_file_name)
+  .tagv_assert(
+    file.exists(.tagv_s001_hits) && file.exists(.tagv_s037_hits),
+    paste("S001/S037 must each contain input", .tagv_file_name)
+  )
+
+  if (!grepl("\\.ini$", .tagv_file_name, ignore.case = TRUE)) {
+    .tagv_assert(
+      .tagv_same_bytes(.tagv_s001_hits, .tagv_s037_hits),
+      paste("S037 input differs from S001:", .tagv_file_name)
+    )
+  }
+}
+
+.tagv_s001_flags <- .tagv_read_tag_flags(.tagv_s001_ini)
+.tagv_s037_flags <- .tagv_read_tag_flags(.tagv_s037_ini)
+.tagv_m001 <- .tagv_s001_flags$matrix
+.tagv_m037 <- .tagv_s037_flags$matrix
+
+.tagv_assert(nrow(.tagv_m001) == 98L, "S001 tag flags must have 98 rows")
+.tagv_assert(nrow(.tagv_m037) == 98L, "S037 tag flags must have 98 rows")
+.tagv_assert(
+  ncol(.tagv_m001) == ncol(.tagv_m037) && ncol(.tagv_m001) >= 2L,
+  "S001 and S037 tag-flag matrices must have the same width"
+)
+.tagv_assert(
+  all(.tagv_m001[, 1L] %in% 0:4) && all(.tagv_m037[, 1L] %in% 0:4),
+  "S001/S037 tag-flags column 1 must preserve upstream values"
+)
+.tagv_assert(all(.tagv_m001[, 2L] == 0), "S001 tag-flags column 2 must be 0")
+.tagv_assert(all(.tagv_m037[, 2L] == 1), "S037 tag-flags column 2 must be 1")
+
+.tagv_unchanged_columns <- setdiff(seq_len(ncol(.tagv_m001)), 2L)
+.tagv_assert(
+  identical(
+    unname(.tagv_m001[, .tagv_unchanged_columns, drop = FALSE]),
+    unname(.tagv_m037[, .tagv_unchanged_columns, drop = FALSE])
+  ),
+  "S001/S037 tag-flags columns other than column 2 must be identical"
+)
+.tagv_assert(
+  identical(
+    .tagv_s001_flags$lines[-.tagv_s001_flags$row_indices],
+    .tagv_s037_flags$lines[-.tagv_s037_flags$row_indices]
+  ),
+  "S037 changes INI content outside the 98 tag-flag data rows"
+)
+
+cat(
+  paste0(
+    "[PASS] validated 37 models, including isolated S037 tag-flags column 2\n"
+  )
+)

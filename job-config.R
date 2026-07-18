@@ -333,8 +333,9 @@ stepwise_models <- data.frame(
 )
 
 # Canonical enabled design: 5 age-length variants x 6 core configurations,
-# followed by 6 BASE075 selectivity sensitivities. Existing rows are used only
-# as schema-complete setting templates; no obsolete model remains enabled.
+# followed by 6 BASE075 selectivity sensitivities and one isolated BASE075
+# tag-flag sensitivity. Existing rows are used only as schema-complete setting
+# templates; no obsolete model remains enabled.
 .design_catalogue <- stepwise_models
 .design_ages <- c("BASE075", "REG075", "REG100", "SUB075", "SUB100")
 
@@ -490,7 +491,7 @@ stepwise_models <- data.frame(
   names(.design_catalogue),
   value = TRUE
 )
-.design_rows <- vector("list", 36L)
+.design_rows <- vector("list", 37L)
 .design_number <- 0L
 
 for (age_variant in .design_ages) {
@@ -568,24 +569,62 @@ for (configuration in seq_len(nrow(.design_selectivity_specs))) {
   )
 }
 
+.design_tag_flag2_reference <- .design_rows[[1L]]$step_id[[1L]]
+.design_number <- .design_number + 1L
+.design_tag_flag2_row <- .design_set_identity(
+  row = .design_rows[[1L]],
+  number = .design_number,
+  slug = "TC1-NOCUT-DW1-TAGF2ON",
+  age_variant = "BASE075",
+  label = "BASE075 normal TC1 NOCUT DW1 TAGF2ON",
+  base_sensitivity = .design_tag_flag2_reference,
+  selectivity_treatment = "reference",
+  selectivity_reference = .design_tag_flag2_reference
+)
+if ("model_title" %in% names(.design_tag_flag2_row)) {
+  .design_tag_flag2_row$model_title <-
+    "BASE075 normal TC1 NOCUT DW1 TAGF2ON"
+}
+if ("model_key" %in% names(.design_tag_flag2_row)) {
+  .design_tag_flag2_row$model_key <-
+    "S037-TC1-NOCUT-DW1-TAGF2ON"
+}
+.design_rows[[.design_number]] <- .design_tag_flag2_row
+
 stepwise_models <- do.call(rbind, .design_rows)
 rownames(stepwise_models) <- NULL
+stepwise_models$tag_flag2 <- 0L
+stepwise_models$tag_flag2[
+  stepwise_models$step_id == "S037-TC1-NOCUT-DW1-TAGF2ON"
+] <- 1L
+stepwise_models$tag_flag2_reference <- stepwise_models$step_id
+stepwise_models$tag_flag2_reference[
+  stepwise_models$step_id == "S037-TC1-NOCUT-DW1-TAGF2ON"
+] <- .design_tag_flag2_reference
 
-.design_expected_prefix <- sprintf("S%03d", seq_len(36L))
+.design_expected_prefix <- sprintf("S%03d", seq_len(37L))
 .design_actual_prefix <- sub("-.*$", "", stepwise_models$step_id)
-if (nrow(stepwise_models) != 36L ||
+if (nrow(stepwise_models) != 37L ||
     anyDuplicated(stepwise_models$step_id) ||
     !identical(.design_actual_prefix, .design_expected_prefix)) {
-  stop("Canonical design must contain sequential S001-S036 IDs", call. = FALSE)
+  stop("Canonical design must contain sequential S001-S037 IDs", call. = FALSE)
 }
 if (!identical(
   as.integer(table(factor(
     stepwise_models$age_length_variant,
     levels = .design_ages
   ))),
-  c(12L, 6L, 6L, 6L, 6L)
+  c(13L, 6L, 6L, 6L, 6L)
 )) {
   stop("Canonical design has incorrect age-length variant counts", call. = FALSE)
+}
+if (!identical(stepwise_models$tag_flag2, c(rep(0L, 36L), 1L)) ||
+    stepwise_models$tag_flag2_reference[[37L]] !=
+      "S001-TC1-NOCUT-DW1") {
+  stop(
+    "TAGF2ON must be an isolated S001-based flag-column-2 sensitivity",
+    call. = FALSE
+  )
 }
 if (any(grepl(
   "DW5|CUT70|(?:^|-)C0(?:-|$)|(?:^|-)G(?:1|2|4|7)(?:-|$)",
@@ -617,6 +656,8 @@ rm(
   .design_dm_cut90,
   .design_normal_reference,
   .design_dm_reference,
+  .design_tag_flag2_reference,
+  .design_tag_flag2_row,
   .design_expected_prefix,
   .design_actual_prefix,
   .design_obsolete,
