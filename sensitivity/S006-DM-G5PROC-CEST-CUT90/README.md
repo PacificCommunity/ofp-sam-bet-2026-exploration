@@ -10,7 +10,8 @@ This model is one LF Dirichlet-multinomial-noRE sensitivity in the BET 2026 set.
 | LF grouping | G5PROC: longline F1:F11; large-scale purse seine F12/F19:F20/F25:F28; domestic purse seine F17:F18; other extraction F13:F16/F21:F24; index F29:F33 |
 | Group scalar exponent d | Starts at MFCL default zero; estimated from PHASE1 with fish flag 69 |
 | Relative sample-size exponent c | CEST: c is fixed at zero in PHASE1 and estimated from PHASE2 |
-| DM maximum effective sample size | 50 |
+| DM maximum effective sample size | 30 |
+| DM fitting continuation | Nmax 50 through PHASE9; 40 in PHASE10; final target 30 in PHASE11 |
 | LF preprocessing | Enabled; inherited N < 50 filter retained |
 | LF tail compression | Percentage compression disabled; DM compression retains at least five class intervals (`parest flag 320 = 5`) |
 | LF cutoff | Established F21/F22/F23 upper-bin cutoff above 90 cm |
