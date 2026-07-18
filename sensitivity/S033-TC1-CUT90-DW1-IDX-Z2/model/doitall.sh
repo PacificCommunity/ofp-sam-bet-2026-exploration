@@ -177,72 +177,73 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -999 3 37  # all selectivities equal for age class 37 and older
   -999 26 2  # set length-dependent selectivity option
   -999 57 3  # uses cubic spline selectivity
-  -999 61 5  # with 5 nodes for cubic spline
-# Grouping of fisheries with common selectivity, mapped from BET_PHrev_FNL.xlsx.
-# The old 29 groups become 25 groups here: 24 extraction groups + 1 index group.
-   -1 24 1   # LL.WEST.1, old1
-   -2 24 2   # LL.EAST.1, old2
-   -3 24 3   # LL.US.1, old3
-   -4 24 4   # LL.ALL.2, old7
-   -5 24 5   # LL.OS.2, old6
-   -6 24 6   # LL.ARCH.3, old8
-   -7 24 7   # LL.WEST.3, old4
-   -8 24 8   # LL.EAST.3, old9
-   -9 24 9   # LL.OS.3, old5
-  -10 24 10  # LL.ALL.5, old11 + old12 + old29
-  -11 24 11  # LL.AU.5, old10 + old27
-  -12 24 12  # PS.JP.1, old19
-  -13 24 13  # PL.JP.1, old20
-  -14 24 14  # HL.ID.2, part of old18
-  -15 24 14  # HL.PH.2, part of old18
-  -16 24 15  # PL.ALL.2, old28
-  -17 24 16  # PS.ID.2, split old24
-  -18 24 16  # PS.PH.2, split old24
-  -19 24 17  # PS.ASS.2, old30; share with PS.ASS.WEST.3
-  -20 24 18  # PS.UNA.2, old31; share with PS.UNA.WEST.3
-  -21 24 19  # DOM.ID.2, old23
-  -22 24 20  # DOM.PH.2, old17
-  -23 24 21  # DOM.VN.2, old32
-  -24 24 22  # PL.ALL.WEST.3, old21 + old22
-  -25 24 17  # PS.ASS.WEST.3, old13 + old25
-  -26 24 23  # PS.ASS.EAST.3, old15
-  -27 24 18  # PS.UNA.WEST.3, old14 + old26
-  -28 24 24  # PS.UNA.EAST.3, old16
-  -29 24 25  # Index R1
-  -30 24 25  # Index R2
-  -31 24 25  # Index R3
-  -32 24 25  # Index R4
-  -33 24 25  # Index R5
-# Non-decreasing selectivity for the old6-derived longline fishery.
-   -5 16 1
-# Selected old-derived longline fisheries set to zero for first two age classes.
-   -2 75 2
-   -4 75 2
-   -5 75 2
-   -7 75 2
-   -8 75 2
-   -9 75 2
+  -999 61 5  # default five nodes for cubic spline
+# SA28: independent extraction selectivity; preserve current index group slots.
+  -1 24 1  # LL.WEST.ALL.1
+  -2 24 2  # LL.EAST.ALL.1
+  -3 24 3  # LL.US.1
+  -4 24 4  # LL.ALL.2
+  -5 24 5  # LL.OS.2
+  -6 24 6  # LL.ARCH.3
+  -7 24 7  # LL.WEST.3
+  -8 24 8  # LL.EAST.4
+  -9 24 9  # LL.OS.3
+  -10 24 10  # LL.ALL.5
+  -11 24 11  # LL.AU.5
+  -12 24 12  # PS.JP.1
+  -13 24 13  # PL.JP.1
+  -14 24 14  # HL.ID.2
+  -15 24 15  # HL.PH.2
+  -16 24 16  # PL.ALL.2
+  -17 24 17  # PS.ID.2
+  -18 24 18  # PS.PH.2
+  -19 24 19  # PS.ASS.2
+  -20 24 20  # PS.UNA.2
+  -21 24 21  # MISC.ID.2
+  -22 24 22  # MISC.PH.2
+  -23 24 23  # MISC.VN.2
+  -24 24 24  # PL.ALL.WEST.3
+  -25 24 30  # PS.ASSOC.WEST.3
+  -26 24 31  # PS.ASSOC.EAST.4
+  -27 24 32  # PS.UNASSOC.WEST.3
+  -28 24 33  # PS.UNASSOC.EAST.4
+  -29 24 25  # Index R1; current shared PHASE1-PHASE4 group
+  -30 24 25  # Index R2; current shared PHASE1-PHASE4 group
+  -31 24 25  # Index R3; current shared PHASE1-PHASE4 group
+  -32 24 25  # Index R4; current shared PHASE1-PHASE4 group
+  -33 24 25  # Index R5; current shared PHASE1-PHASE4 group
+# Single-area extraction monotonicity constraint.
+   -9 16 1
+# Single-area extraction young-age constraints.
+  -1 75 2
+  -2 75 2
+  -3 75 2
+  -4 75 2
+  -5 75 2
+  -6 75 2
+  -7 75 2
+  -8 75 2
+  -9 75 2
   -10 75 2
-# Old18 split into HL.ID.2 and HL.PH.2.
-  -14 75 5
+  -11 75 2
+  -12 75 2
+  -13 75 1
   -15 75 5
-# Age-based spline constraints mapped from old fishery recipes.
-  -19 16 2  -19 3 25  # PS.ASS.2, old30
-  -25 16 2  -25 3 25  # PS.ASS.WEST.3, old13 + old25
-  -26 16 2 -26 3 25 -26 75 1  # PS.ASS.EAST.3, old15
-  -20 16 0 -20 3 37  # PS.UNA.2, old31
-  -27 16 2  -27 3 30  # PS.UNA.WEST.3, old14 + old26
-  -28 16 0 -28 3 37  # PS.UNA.EAST.3, old16
-  -17 16 2 -17 3 6  # PS.ID.2, split old24
-  -18 16 2  -18 3 12  # PS.PH.2, split old24
-  -12 16 2 -12 3 25 -12 75 2  # PS.JP.1, old19
-  -13 16 2  -13 3 25  # PL.JP.1, old20
-# Upper-age selectivity constraints mapped from old fishery recipes.
-  -22 16 2  -22 3 9   # DOM.PH.2, old17
-  -24 16 2  -24 3 10  # PL.ALL.WEST.3, old21 + old22
-  -21 16 2  -21 3 6   # DOM.ID.2, old23
-  -16 16 2  -16 3 7   # PL.ALL.2, old28
-  -23 16 2  -23 3 9   # DOM.VN.2, old32
+# Single-area extraction age-spline and upper-age constraints.
+  -12 16 2  -12 3 25
+  -13 16 2  -13 3 30
+  -15 16 2  -15 3 25
+  -17 16 2  -17 3 25
+  -18 16 2  -18 3 25
+  -19 16 2  -19 3 25
+  -25 16 2  -25 3 25
+  -26 16 2  -26 3 25
+  -27 16 2  -27 3 30
+  -16 16 2  -16 3 25
+  -24 16 2  -24 3 25
+  -21 16 2  -21 3 10
+  -22 16 2  -22 3 7
+  -23 16 2  -23 3 6
 # IDX-Z2: first two ages fixed to zero for regional indices only.
   -29 75 2  # Index R1
   -30 75 2  # Index R2

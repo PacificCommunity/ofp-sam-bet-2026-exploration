@@ -40,11 +40,11 @@ No MFCL source or executable is changed.
 ## Selectivity sensitivity
 
 Semantic treatment: `SA28-N8`.
-Paired reference: `S006-DM-G5PROC-CEST-CUT90`.
-SA28-N8 assigns independent selectivity to F1-F28 and applies the exact single-area extraction young-age, monotonic, upper-age, and eight-node F12/F13 settings. F29-F33 retain the current five-region index configuration.
-This adds the exact eight-node F12/F13 single-area complexity to the same independent extraction and support-constraint treatment.
+Paired corrected-N5 reference: `S006-DM-G5PROC-CEST-CUT90`.
+The corrected N8 treatment is identical to N5 except that F12 PS.JP.1 and F13 PL.JP.1 use eight rather than five spline nodes.
+This changes only F12 PS.JP.1 and F13 PL.JP.1 from five to eight nodes relative to the complete corrected N5 baseline.
 The LF likelihood, CUT90 transform, composition weighting, BASE075 age-length input, tag controls, phase sequence, and regional-scaling settings are inherited from the paired reference.
-Extraction and index selectivity changes are not combined in this design.
-Extraction mapping source: `PacificCommunity/ofp-sam-bet-yft-2026-single-area@5363029b509cacf902aef2866efdc04634c89045`.
+All non-F12/F13 selectivity settings are required to be identical to corrected N5.
+Corrected selectivity source: `PacificCommunity/ofp-sam-bet-yft-2026-single-area@5363029b509cacf902aef2866efdc04634c89045`.
 
 Status: generated and ready for validation; Kflow has not been submitted.

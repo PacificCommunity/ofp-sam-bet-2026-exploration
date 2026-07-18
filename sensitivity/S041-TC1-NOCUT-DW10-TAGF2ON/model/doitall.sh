@@ -110,46 +110,12 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   2 94 1 2 128 100  # initial Z = 1.0*M, i.e. initial F = 0
 # Likelihood component settings
   1 111 4     # set likelihood function for tags to negative binomial
-  1 141 11    # LF Dirichlet-multinomial likelihood without random effects
-  1 320 5     # DM LF tail compression; retain at least five class intervals
-  1 342 1000  # DM-noRE maximum LF effective sample size
+  1 141 3     # set likelihood function for LF data to normal
   1 139 3     # set likelihood function for WF data to normal
   -999 49 20  # divide LF sample sizes by 20
-  -1 68 1  # DM LF group: Longline extraction
-  -2 68 1  # DM LF group: Longline extraction
-  -3 68 1  # DM LF group: Longline extraction
-  -4 68 1  # DM LF group: Longline extraction
-  -5 68 1  # DM LF group: Longline extraction
-  -6 68 1  # DM LF group: Longline extraction
-  -7 68 1  # DM LF group: Longline extraction
-  -8 68 1  # DM LF group: Longline extraction
-  -9 68 1  # DM LF group: Longline extraction
-  -10 68 1  # DM LF group: Longline extraction
-  -11 68 1  # DM LF group: Longline extraction
-  -12 68 2  # DM LF group: Large-scale purse seine
-  -13 68 4  # DM LF group: Other extraction
-  -14 68 4  # DM LF group: Other extraction
-  -15 68 4  # DM LF group: Other extraction
-  -16 68 4  # DM LF group: Other extraction
-  -17 68 3  # DM LF group: Domestic purse seine
-  -18 68 3  # DM LF group: Domestic purse seine
-  -19 68 2  # DM LF group: Large-scale purse seine
-  -20 68 2  # DM LF group: Large-scale purse seine
-  -21 68 4  # DM LF group: Other extraction
-  -22 68 4  # DM LF group: Other extraction
-  -23 68 4  # DM LF group: Other extraction
-  -24 68 4  # DM LF group: Other extraction
-  -25 68 2  # DM LF group: Large-scale purse seine
-  -26 68 2  # DM LF group: Large-scale purse seine
-  -27 68 2  # DM LF group: Large-scale purse seine
-  -28 68 2  # DM LF group: Large-scale purse seine
-  -29 68 5  # DM LF group: Index
-  -30 68 5  # DM LF group: Index
-  -31 68 5  # DM LF group: Index
-  -32 68 5  # DM LF group: Index
-  -33 68 5  # DM LF group: Index
-  -999 69 1  # estimate group-specific DM LF scalar exponent
-  -999 89 0  # stage relative sample-size exponent as fixed at zero
+  -21 49 200  # sensitivity-only F21 LF effective-sample-size divisor
+  -22 49 200  # sensitivity-only F22 LF effective-sample-size divisor
+  -23 49 200  # sensitivity-only F23 LF effective-sample-size divisor
   -999 50 20  # divide WF sample sizes by 20
 # Additional LF/WF sample-size reductions retained from the inherited setup.
 # Index fisheries 29-33 are included; extraction labels need the 03 fishery map.
@@ -266,6 +232,7 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
 # Single-area extraction age-spline and upper-age constraints.
   -12 16 2  -12 3 25
   -13 16 2  -13 3 30
+  -15 16 2  -15 3 25
   -17 16 2  -17 3 25
   -18 16 2  -18 3 25
   -19 16 2  -19 3 25
@@ -283,9 +250,9 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   2 109 3  # select Lorenzen curve
   1 121 0  # do not estimate Lorenzen scaling parameter yet
 # Filter out comps with input samples less than 50
-  1 311 1 # retain LF preprocessing gate so the inherited N < 50 filter remains active
+  1 311 1   # set tail compression for LF data
   1 301 1   # set tail compression for WF data
-  1 313 0   # proportions in compressed tails for LF data
+  1 313 1   # proportions in compressed tails for LF data
   1 303 0   # proportions in compressed tails for WF data
   1 312 50  # set minimum obs sample size for LF data
   1 302 50  # set minimum obs sample size for WF data
@@ -298,11 +265,10 @@ PHASE1
 # ---------
 
 $program_path bet.frq 01.par 02.par -file - <<PHASE2
-  -999 89 1  # estimate group-specific DM LF relative sample-size exponent
   1 1 100  # set max. number of function evaluations per phase to 100
   1 50 0   # set convergence criterion to 1
   2 113 0  # scaling init pop - turned off
-  1 190 0 # defer DM plot reporting until the final phase; MFCL 2.4 crashes on the early report
+  1 190 1  # write plot-xxx.par.rep
 PHASE2
 
 # ---------
@@ -439,5 +405,4 @@ $program_path bet.frq 10.par 11.par -file - <<PHASE11
   1 1 5000
   1 50 $phase10_11_convergence  # convergence criteria; default quick -3, set BET_PHASE10_11_CONVERGENCE=-5 for strict
   1 246 1   # indepvar.rpt
-  1 190 1  # write the DM plot report only after all fitting phases are active
 PHASE11

@@ -234,6 +234,7 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
 # Single-area extraction age-spline and upper-age constraints.
   -12 16 2  -12 3 25
   -13 16 2  -13 3 30
+  -15 16 2  -15 3 25
   -17 16 2  -17 3 25
   -18 16 2  -18 3 25
   -19 16 2  -19 3 25

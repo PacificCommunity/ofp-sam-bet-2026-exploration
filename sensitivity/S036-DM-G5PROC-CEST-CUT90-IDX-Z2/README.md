@@ -1,4 +1,4 @@
-# BET 2026 S036-DM-G5PROC-CEST-CUT90-IDX-Z2 BASE075 DM G5PROC CEST CUT90 IDX-Z2
+# BET 2026 S036-DM-G5PROC-CEST-CUT90-IDX-Z2 BASE075 DM G5PROC CEST CUT90 corrected SA28-N5 plus IDX-Z2
 
 This model is one LF Dirichlet-multinomial-noRE sensitivity in the BET 2026 set.
 
@@ -39,12 +39,11 @@ No MFCL source or executable is changed.
 
 ## Selectivity sensitivity
 
-Semantic treatment: `IDX-Z2`.
-Paired reference: `S006-DM-G5PROC-CEST-CUT90`.
-IDX-Z2 retains the current extraction settings and five independent regional indices, adding first-two-age-zero constraints only to F29-F33.
-This isolates exclusion of the youngest ages from the five regional index selectivities without changing extraction selectivity.
+Semantic treatment: `SA28-N5-IDX-Z2`.
+Paired corrected-N5 reference: `S006-DM-G5PROC-CEST-CUT90`.
+IDX-Z2 starts from the complete corrected N5 baseline and additionally fixes the first two ages of regional indices F29-F33 to zero.
+This adds first-two-age zero constraints for F29-F33 to the complete corrected N5 baseline without changing extraction selectivity.
 The LF likelihood, CUT90 transform, composition weighting, BASE075 age-length input, tag controls, phase sequence, and regional-scaling settings are inherited from the paired reference.
-Extraction and index selectivity changes are not combined in this design.
-The current five-region extraction configuration is retained exactly.
+Corrected selectivity source: `PacificCommunity/ofp-sam-bet-yft-2026-single-area@5363029b509cacf902aef2866efdc04634c89045`.
 
 Status: generated and ready for validation; Kflow has not been submitted.

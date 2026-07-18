@@ -37,4 +37,12 @@ The tag-control `.ini` comes from `PacificCommunity/ofp-sam-2026-BET-YFT-build-i
 The tag data come from tag-prep commit `79733c429b320e84ed5047aa6c932c8f19dab187`.
 No MFCL source or executable is changed.
 
+## Corrected selectivity baseline
+
+Semantic treatment: `SA28-N5`.
+The corrected N5 baseline assigns independent selectivity groups to F1-F28, applies the audited young-age, F9 monotonicity, and upper-age constraints, uses five nodes, and splits regional-index groups F29-F33 in phase 5.
+This is the promoted core baseline: independent extraction groups, audited support constraints, five nodes, and phase-5 regional-index splitting.
+The LF likelihood, CUT90 transform, composition weighting, BASE075 age-length input, tag controls, phase sequence, and regional-scaling settings are inherited from the paired reference.
+Corrected selectivity source: `PacificCommunity/ofp-sam-bet-yft-2026-single-area@5363029b509cacf902aef2866efdc04634c89045`.
+
 Status: generated and ready for validation; Kflow has not been submitted.

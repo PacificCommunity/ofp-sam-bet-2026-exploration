@@ -1,10 +1,10 @@
 # BET 2026 LF observation-model sensitivities
 
-This branch defines a focused set of **37 BET sensitivity models**. Generated model inputs live under `sensitivity/` and should be rebuilt from the scripts rather than edited by hand.
+This branch defines a focused set of **39 non-duplicate BET sensitivity models**. Generated model inputs live under `sensitivity/` and should be rebuilt from the scripts rather than edited by hand.
 
 ## Final design
 
-The core design crosses five age-length variants with six LF configurations, giving 30 models.
+The core design crosses five age-length variants with six LF configurations, giving 30 models (`S001`-`S030`).
 
 | Age-length variant | Description |
 |---|---|
@@ -25,14 +25,35 @@ Each age-length variant uses exactly these six configurations:
 | Dirichlet-multinomial | `G5PROC-CEST-NOCUT` |
 | Dirichlet-multinomial | `G5PROC-CEST-CUT90` |
 
-The remaining six models are `BASE075` selectivity sensitivities. Three selectivity alternatives (`SA28-N5`, `SA28-N8`, and `IDX-Z2`) are each evaluated as a pair:
+All 30 core models use the corrected single-area-derived N5 selectivity baseline. The former exploration selectivity is retained in provenance, but it is no longer the core baseline.
 
-- Normal likelihood with `CUT90-DW1`.
-- Dirichlet-multinomial likelihood with `G5PROC-CEST-CUT90`.
+The complete corrected baseline has these audited rules:
+
+- F1-F28 extraction coefficients are independent: F1-F24 use groups 1:24 and F25-F28 use groups 30:33.
+- F29-F33 regional indices share group 25 in phases 1-4 and split into groups 25:29 in phase 5.
+- Early ages are fixed to zero for F1-F12 (first two), F13 (first one), and F15 (first five).
+- Monotonicity is applied only to F9.
+- Upper-age settings are F12=25, F13=30, F15-F19=25, F21=10, F22=7, F23=6, F24-F26=25, and F27=30. F20 and F28 have no override.
+- The common oldest age is 37, with length-dependent cubic-spline selectivity and five nodes by default.
+
+Four genuinely distinct `BASE075` selectivity comparisons remain:
+
+- `S032` and `S035` are the normal and DM N8 comparisons. Only F12 `PS.JP.1` and F13 `PL.JP.1` change from five to eight nodes.
+- `S033` and `S036` are the normal and DM `IDX-Z2` comparisons. They retain the full corrected N5 baseline and additionally fix the first two ages of F29-F33 to zero.
+
+The former standalone N5 sensitivities `S031` and `S034` became exact duplicates after the corrected N5 treatment was promoted to core. They are intentionally retired, and their generated directories are removed during reconciliation.
+
+Five `BASE075` tag-flag tests use the same corrected N5 baseline. Each is identical to its listed flag-column-2=0 control except that all 98 `tag_flags(:,2)` values are restored to upstream value 1:
+
+| Test | Exact control | Explicit dimensions |
+|---|---|---|
+| `S037` | `S001` | Normal, TC1, NOCUT, DW1 |
+| `S038` | `S003` | Normal, TC1, CUT90, DW1 |
+| `S039` | `S005` | DM noRE, G5PROC, C estimated, NOCUT |
+| `S040` | `S006` | DM noRE, G5PROC, C estimated, CUT90 |
+| `S041` | `S002` | Normal, TC1, NOCUT, DW10 |
 
 There are no `DW5`, `CUT70`, fixed-`C0`, or non-`G5PROC` models in the final design.
-
-The 37th model, `S037-TC1-NOCUT-DW1-TAGF2ON`, is an isolated `BASE075` clone of `S001-TC1-NOCUT-DW1`. It restores column 2 of all 98 upstream `tag_flags` rows from `0` to `1`; every other setting and input matches S001.
 
 ## DM settings
 
@@ -44,7 +65,7 @@ The 37th model, `S037-TC1-NOCUT-DW1-TAGF2ON`, is an isolated `BASE075` clone of 
 
 The reference INI is taken from [`BET/ini.mix-period/bet.2026.mix-0.2.ini`](https://github.com/PacificCommunity/ofp-sam-2026-BET-YFT-build-ini/blob/548de05aff9bdc96a9ee7a817bbfd8068020ba26/BET/ini.mix-period/bet.2026.mix-0.2.ini) at commit `548de05aff9bdc96a9ee7a817bbfd8068020ba26` of `PacificCommunity/ofp-sam-2026-BET-YFT-build-ini`.
 
-The only intentional deviation from that file is in `# tag flags`: column 2 is changed from `1` to `0` for all 98 tag-release rows. All other INI settings are retained. In particular, the upstream common prior for fisheries F25-F28 remains reporting group `16`, target `52.015`, and penalty `485.2`.
+For the 34 flag-column-2=0 models, the only intentional deviation from that file is in `# tag flags`: column 2 is changed from `1` to `0` for all 98 tag-release rows. `S037`-`S041` restore those 98 values to the upstream value 1. Column 1, columns 3 onward, and all non-tag-flag INI settings remain unchanged. In particular, the upstream common prior for fisheries F25-F28 remains reporting group `16`, target `52.015`, and penalty `485.2`.
 
 Reference checksums:
 
