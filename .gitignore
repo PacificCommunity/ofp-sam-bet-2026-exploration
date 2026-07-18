@@ -15,6 +15,7 @@
 /*_files/
 *.docx
 INPUT_PREP_NOTES.md
-notes/
+notes/*
+!notes/*.md
 steps/*/model/*.par
 steps/*/model/*.par[0-9]*
