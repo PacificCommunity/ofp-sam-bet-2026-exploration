@@ -1,6 +1,6 @@
-# BET 2026 LF and age-length sensitivity set
+# BET 2026 LF, age-length, and selectivity sensitivity set
 
-This branch retains the explicit `17 x 5 = 85` LF-age-length factorial and adds six focused BASE075 DM grouping models, for 91 models in total. S001:S017 retain the existing BASE075 names and files. S018:S085 pair each base configuration with REG075, REG100, SUB075, or SUB100 while changing only `model/bet.age_length`. S086:S091 change only the sharing of DM dispersion parameters and the established cutoff treatment.
+This branch retains the explicit `17 x 5 = 85` LF-age-length factorial, adds six focused BASE075 DM grouping models, and adds six paired BASE075 selectivity models, for 97 models in total. S001:S017 retain the existing BASE075 names and files. S018:S085 pair each base configuration with REG075, REG100, SUB075, or SUB100 while changing only `model/bet.age_length`. S086:S091 change only the sharing of DM dispersion parameters and the established cutoff treatment. S092:S097 isolate three selectivity treatments under matched CUT90 normal and G5PROC-CEST DM configurations.
 
 ## Age-length factorial
 
@@ -43,6 +43,25 @@ The 17 factorial LF configurations comprise the focused `3 x 3` TC1 cutoff/downw
 | `S089-DM-G7QUAL-CEST-NOCUT` | DM-noRE | None | n/a | Not run | - | - |
 | `S090-DM-G7QUAL-CEST-CUT70` | DM-noRE | 70 cm | n/a | Not run | - | - |
 | `S091-DM-G7QUAL-CEST-CUT90` | DM-noRE | 90 cm | n/a | Not run | - | - |
+| `S092-TC1-CUT90-DW5-SA28-N5` | Normal, TC1 | 90 cm | 5 | Not run | - | - |
+| `S093-TC1-CUT90-DW5-SA28-N8` | Normal, TC1 | 90 cm | 5 | Not run | - | - |
+| `S094-TC1-CUT90-DW5-IDX-Z2` | Normal, TC1 | 90 cm | 5 | Not run | - | - |
+| `S095-DM-G5PROC-CEST-CUT90-SA28-N5` | DM-noRE | 90 cm | n/a | Not run | - | - |
+| `S096-DM-G5PROC-CEST-CUT90-SA28-N8` | DM-noRE | 90 cm | n/a | Not run | - | - |
+| `S097-DM-G5PROC-CEST-CUT90-IDX-Z2` | DM-noRE | 90 cm | n/a | Not run | - | - |
+
+## Paired selectivity design
+
+The six new models form three isolated selectivity contrasts under two likelihood configurations. The normal reference is `S008-TC1-CUT90-DW5`; the DM reference is `S088-DM-G5PROC-CEST-CUT90`, which retains G5PROC and estimates the relative sample-size exponent from PHASE2. Every cell uses BASE075 age-length inputs and the established F21/F22/F23 CUT90 transform.
+
+| Selectivity state | Normal TC1-CUT90-DW5 | DM G5PROC-CEST-CUT90 |
+|---|---|---|
+| Current five-region reference | `S008` | `S088` |
+| `SA28-N5` | `S092` | `S095` |
+| `SA28-N8` | `S093` | `S096` |
+| `IDX-Z2` | `S094` | `S097` |
+
+`SA28-N5` and `SA28-N8` give F1:F28 independent selectivity groups and adopt the pinned single-area extraction young-age, monotonic, and upper-age constraints. `SA28-N5` retains five spline nodes for F12/F13; `SA28-N8` uses eight. Both preserve the current F29:F33 regional-index configuration. `IDX-Z2` retains current extraction settings and adds first-two-age-zero constraints only to F29:F33. No model combines the extraction and index treatments, and no CUT70 selectivity variant is generated.
 
 ## Dirichlet-multinomial pilot
 
@@ -62,7 +81,7 @@ The 2023 DM pilot increased the effective weight of composition data and degrade
 
 All index LF observations are retained. The normal-likelihood models use flag 49 to apply an extra `/2` to LF streams used as both extraction and index data, but MFCL option 11 ignores flag 49 and has no fixed `0.5` LF-contribution control. These are therefore deliberate grouping, self-weighting, and overdispersion sensitivities, not exact duplicate-use corrections. The retained LF representations can differ through aggregation, and the groups do not model their correlation. Their `dmsizemult`, convergence, Hessian, LF residuals, index fits, and key quantities should be reviewed together; raw objective values are not directly ranked against the normal-likelihood models.
 
-The complete machine-readable selection is in [`SENSITIVITY_SELECTION.csv`](SENSITIVITY_SELECTION.csv); the three retained fitted PDH results remain in [`PDH_SELECTION.csv`](PDH_SELECTION.csv). Historical IDs are replaced by branch-local sequential IDs. The former `S034-TC1-CUT70-DW100` result is preserved in Git history and is not attributed to `DW5` because its weighting changed.
+The authoritative 97-cell generation and discovery table is `job-config.R`. The original machine-readable 17 x 5 factorial selection remains in [`SENSITIVITY_SELECTION.csv`](SENSITIVITY_SELECTION.csv); the three retained fitted PDH results remain in [`PDH_SELECTION.csv`](PDH_SELECTION.csv). Historical IDs are replaced by branch-local sequential IDs. The former `S034-TC1-CUT70-DW100` result is preserved in Git history and is not attributed to `DW5` because its weighting changed.
 
 ## Historical 90 cm treatment
 

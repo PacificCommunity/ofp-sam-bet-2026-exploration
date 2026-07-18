@@ -2,6 +2,8 @@
 # The original 17 LF configurations are crossed with five age-length inputs.
 # Six focused BASE075 models add observation-process and quality-informed
 # Dirichlet-multinomial groupings without expanding the age-length factorial.
+# Six paired BASE075 models isolate three selectivity treatments under the
+# CUT90 normal and G5PROC-CEST likelihood configurations.
 
 stepwise_run <- list(
   default_step_select = "all",
@@ -167,6 +169,39 @@ focused_grouping_grid$dm_grouping <- focused_grouping_specs$dm_grouping
 sensitivity_grid <- rbind(sensitivity_grid, focused_grouping_grid)
 rownames(sensitivity_grid) <- NULL
 
+sensitivity_grid$selectivity_treatment <- "reference"
+sensitivity_grid$selectivity_reference <- sensitivity_grid$step_id
+
+focused_selectivity_specs <- data.frame(
+  source_id = c(
+    rep("S008-TC1-CUT90-DW5", 3L),
+    rep("S088-DM-G5PROC-CEST-CUT90", 3L)
+  ),
+  step_id = c(
+    "S092-TC1-CUT90-DW5-SA28-N5",
+    "S093-TC1-CUT90-DW5-SA28-N8",
+    "S094-TC1-CUT90-DW5-IDX-Z2",
+    "S095-DM-G5PROC-CEST-CUT90-SA28-N5",
+    "S096-DM-G5PROC-CEST-CUT90-SA28-N8",
+    "S097-DM-G5PROC-CEST-CUT90-IDX-Z2"
+  ),
+  selectivity_treatment = rep(c("sa28_n5", "sa28_n8", "idx_z2"), 2L),
+  stringsAsFactors = FALSE
+)
+focused_selectivity_grid <- sensitivity_grid[
+  match(focused_selectivity_specs$source_id, sensitivity_grid$step_id),
+  ,
+  drop = FALSE
+]
+focused_selectivity_grid$step_id <- focused_selectivity_specs$step_id
+focused_selectivity_grid$base_sensitivity <- focused_selectivity_specs$step_id
+focused_selectivity_grid$selectivity_treatment <-
+  focused_selectivity_specs$selectivity_treatment
+focused_selectivity_grid$selectivity_reference <-
+  focused_selectivity_specs$source_id
+sensitivity_grid <- rbind(sensitivity_grid, focused_selectivity_grid)
+rownames(sensitivity_grid) <- NULL
+
 generated_ids <- sensitivity_grid$step_id
 
 model_labels <- sprintf(
@@ -231,6 +266,30 @@ model_labels[alternative_age_rows] <- paste0(
   " from ",
   sensitivity_grid$age_length_source_file[alternative_age_rows]
 )
+selectivity_labels <- c(
+  sa28_n5 = paste(
+    "SA28-N5 extraction selectivity: independent F1-F28 groups with",
+    "single-area young-age, monotonic, and upper-age constraints;",
+    "F12/F13 retain five spline nodes; regional indices unchanged"
+  ),
+  sa28_n8 = paste(
+    "SA28-N8 extraction selectivity: independent F1-F28 groups with",
+    "single-area young-age, monotonic, upper-age, and eight-node F12/F13",
+    "settings; regional indices unchanged"
+  ),
+  idx_z2 = paste(
+    "IDX-Z2 index selectivity: current extraction and five-region index",
+    "grouping retained; F29-F33 fixed to zero for the first two ages"
+  )
+)
+selectivity_rows <- sensitivity_grid$selectivity_treatment != "reference"
+model_labels[selectivity_rows] <- paste0(
+  model_labels[selectivity_rows],
+  "; ",
+  unname(selectivity_labels[
+    sensitivity_grid$selectivity_treatment[selectivity_rows]
+  ])
+)
 
 stepwise_models <- data.frame(
   step_id = generated_ids,
@@ -268,5 +327,7 @@ stepwise_models <- data.frame(
   age_length_source_file = sensitivity_grid$age_length_source_file,
   age_length_source_path = sensitivity_grid$age_length_source_path,
   age_length_sha256 = sensitivity_grid$age_length_sha256,
+  selectivity_treatment = sensitivity_grid$selectivity_treatment,
+  selectivity_reference = sensitivity_grid$selectivity_reference,
   stringsAsFactors = FALSE
 )

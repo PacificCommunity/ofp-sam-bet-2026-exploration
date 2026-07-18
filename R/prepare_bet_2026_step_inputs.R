@@ -1,5 +1,5 @@
-## Rebuild the 17 x 5 BET 2026 LF-age-length factorial plus six focused
-## BASE075 DM grouping sensitivity folders.
+## Rebuild the 17 x 5 BET 2026 LF-age-length factorial, six focused BASE075
+## DM grouping folders, and six paired BASE075 selectivity folders.
 ##
 ## Every cell retains the exact effort-crept FRQ archived by Kflow Job 5319.
 ## Tag-group controls, display metadata, and regional-scaling inputs are
@@ -20,6 +20,10 @@ tag_prep_source <- "PacificCommunity/ofp-sam-2026-BET-YFT-tag-prep"
 age_length_source_repo <-
   "https://github.com/PacificCommunity/ofp-sam-2026-BET-YFT-age-length-build"
 age_length_source_commit <- "96a06d21ef3c666f39ce456d3a6818b6c17324c4"
+single_area_selectivity_source <-
+  "PacificCommunity/ofp-sam-bet-yft-2026-single-area"
+single_area_selectivity_commit <-
+  "5363029b509cacf902aef2866efdc04634c89045"
 required_project_files <- c(
   "job-config.R",
   file.path("R", "prepare_common.R"),
@@ -117,9 +121,12 @@ if (!identical(tag_sha256, expected_tag_sha256)) {
   fail("Refreshed bet.tag SHA-256 mismatch: ", tag_sha256)
 }
 
-if (!is.data.frame(models) || nrow(models) != 91L ||
+required_selectivity_columns <- c("selectivity_treatment", "selectivity_reference")
+if (!is.data.frame(models) ||
+    !all(required_selectivity_columns %in% names(models)) ||
+    nrow(models) != 97L ||
     anyDuplicated(models$step_id) || any(!models$enabled)) {
-  fail("job-config.R must define exactly 91 unique enabled sensitivity cells")
+  fail("job-config.R must define exactly 97 unique enabled sensitivity cells")
 }
 if (!all(models$run_mode == "doitall") ||
     !all(models$regional_scaling_weight == 50L)) {
@@ -138,9 +145,12 @@ if (!all(models$lf_likelihood %in% c("normal", "dm_nore"))) {
 dm_rows <- models$lf_likelihood == "dm_nore"
 expected_age_levels <- c("BASE075", "REG075", "REG100", "SUB075", "SUB100")
 age_level_counts <- table(factor(models$age_length_variant, levels = expected_age_levels))
-if (!identical(as.integer(age_level_counts), c(23L, rep(17L, 4L))) ||
+if (!identical(as.integer(age_level_counts), c(29L, rep(17L, 4L))) ||
     anyDuplicated(models[, c("base_sensitivity", "age_length_variant")])) {
-  fail("Expected the 17 x 5 factorial plus six focused BASE075 grouping models")
+  fail(paste(
+    "Expected the 17 x 5 factorial plus six focused BASE075 grouping",
+    "and six paired BASE075 selectivity models"
+  ))
 }
 base_rows <- models$age_length_variant == "BASE075"
 factorial_base_rows <- base_rows & grepl(
@@ -197,23 +207,26 @@ expected_dm_ids <- c(
   "S088-DM-G5PROC-CEST-CUT90",
   "S089-DM-G7QUAL-CEST-NOCUT",
   "S090-DM-G7QUAL-CEST-CUT70",
-  "S091-DM-G7QUAL-CEST-CUT90"
+  "S091-DM-G7QUAL-CEST-CUT90",
+  "S095-DM-G5PROC-CEST-CUT90-SA28-N5",
+  "S096-DM-G5PROC-CEST-CUT90-SA28-N8",
+  "S097-DM-G5PROC-CEST-CUT90-IDX-Z2"
 )
 expected_dm_grouping <- c(
   "gear4", "gear1", "gear1", "gear2", "gear2", "gear4", "gear4", "gear4",
-  rep("process5", 3L), rep("quality7", 3L)
+  rep("process5", 3L), rep("quality7", 3L), rep("process5", 3L)
 )
 expected_dm_c_estimated <- c(
   TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, TRUE, TRUE,
-  rep(TRUE, 6L)
+  rep(TRUE, 9L)
 )
 expected_dm_cutoff <- c(
   rep(NA_real_, 6L), 70, 90,
-  NA_real_, 70, 90, NA_real_, 70, 90
+  NA_real_, 70, 90, NA_real_, 70, 90, rep(90, 3L)
 )
 base_dm_rows <- dm_rows & base_rows
-if (sum(dm_rows) != 46L ||
-    sum(base_dm_rows) != 14L ||
+if (sum(dm_rows) != 49L ||
+    sum(base_dm_rows) != 17L ||
     !identical(as.character(models$step_id[base_dm_rows]), expected_dm_ids) ||
     !identical(as.character(models$dm_grouping[base_dm_rows]), expected_dm_grouping) ||
     !identical(
@@ -225,6 +238,62 @@ if (sum(dm_rows) != 46L ||
     any(!is.na(models$lf_size_divisor[dm_rows])) ||
     any(models$tail_compression_percent[dm_rows] != 0L)) {
   fail("DM sensitivities must match the reviewed grouping, C0/CEST, and cutoff design")
+}
+
+expected_selectivity_ids <- c(
+  "S092-TC1-CUT90-DW5-SA28-N5",
+  "S093-TC1-CUT90-DW5-SA28-N8",
+  "S094-TC1-CUT90-DW5-IDX-Z2",
+  "S095-DM-G5PROC-CEST-CUT90-SA28-N5",
+  "S096-DM-G5PROC-CEST-CUT90-SA28-N8",
+  "S097-DM-G5PROC-CEST-CUT90-IDX-Z2"
+)
+expected_selectivity_treatments <- rep(
+  c("sa28_n5", "sa28_n8", "idx_z2"),
+  2L
+)
+expected_selectivity_references <- c(
+  rep("S008-TC1-CUT90-DW5", 3L),
+  rep("S088-DM-G5PROC-CEST-CUT90", 3L)
+)
+selectivity_rows <- models$selectivity_treatment != "reference"
+if (sum(selectivity_rows) != 6L ||
+    !identical(as.character(models$step_id[selectivity_rows]), expected_selectivity_ids) ||
+    !identical(
+      as.character(models$selectivity_treatment[selectivity_rows]),
+      expected_selectivity_treatments
+    ) ||
+    !identical(
+      as.character(models$selectivity_reference[selectivity_rows]),
+      expected_selectivity_references
+    ) ||
+    any(models$age_length_variant[selectivity_rows] != "BASE075") ||
+    any(models$cutoff_cm[selectivity_rows] != 90) ||
+    any(models$dm_grouping[selectivity_rows & dm_rows] != "process5") ||
+    any(!models$dm_estimate_relative_sample_size[selectivity_rows & dm_rows])) {
+  fail(paste(
+    "Selectivity sensitivities must be the isolated CUT90 SA28-N5, SA28-N8,",
+    "and IDX-Z2 pairs based on S008 and S088"
+  ))
+}
+paired_control_columns <- c(
+  "run_mode", "region_count", "regional_scaling_weight",
+  "tail_compression_percent", "cutoff_cm", "cutoff_code",
+  "cutoff_description", "lf_downweight_factor", "lf_size_divisor",
+  "lf_likelihood", "dm_grouping", "dm_estimate_relative_sample_size",
+  "age_length_variant", "age_length_source_file", "age_length_source_path",
+  "age_length_sha256"
+)
+for (i in which(selectivity_rows)) {
+  reference_id <- as.character(models$selectivity_reference[[i]])
+  reference_index <- match(reference_id, models$step_id)
+  if (is.na(reference_index) || any(!vapply(
+    paired_control_columns,
+    function(column) identical(models[[column]][[i]], models[[column]][[reference_index]]),
+    logical(1)
+  ))) {
+    fail("Selectivity sensitivity does not inherit its paired reference: ", models$step_id[[i]])
+  }
 }
 
 fishery_map_env <- new.env(parent = globalenv())
@@ -390,13 +459,157 @@ replace_flag_value <- function(line, actor, flag, value) {
   paste0(match[[2L]], value, match[[4L]])
 }
 
+selectivity_treatment_note <- function(treatment) {
+  treatment <- as.character(treatment[[1L]])
+  switch(
+    treatment,
+    reference = "Reference five-region selectivity settings retained.",
+    sa28_n5 = paste(
+      "SA28-N5 assigns independent selectivity to F1-F28 and applies the",
+      "single-area extraction young-age, monotonic, and upper-age constraints,",
+      "while retaining five nodes for F12/F13. F29-F33 retain the current",
+      "five-region index configuration."
+    ),
+    sa28_n8 = paste(
+      "SA28-N8 assigns independent selectivity to F1-F28 and applies the exact",
+      "single-area extraction young-age, monotonic, upper-age, and eight-node",
+      "F12/F13 settings. F29-F33 retain the current five-region index configuration."
+    ),
+    idx_z2 = paste(
+      "IDX-Z2 retains the current extraction settings and five independent",
+      "regional indices, adding first-two-age-zero constraints only to F29-F33."
+    ),
+    fail("Unknown selectivity treatment: ", treatment)
+  )
+}
+
+single_area_selectivity_block <- function(nodes) {
+  nodes <- as.integer(nodes[[1L]])
+  if (!nodes %in% c(5L, 8L)) fail("SA28 F12/F13 nodes must be 5 or 8")
+  extraction_group_ids <- c(1:24, 30:33)
+  extraction_labels <- sub(
+    "^[0-9]+\\.",
+    "",
+    as.character(reference_fishery_map$fishery_name[1:28])
+  )
+  node_lines <- if (nodes == 8L) {
+    c(
+      "  -12 61 8  # SA28-N8 Japanese purse-seine spline nodes",
+      "  -13 61 8  # SA28-N8 Japanese pole-and-line spline nodes"
+    )
+  } else {
+    character()
+  }
+  c(
+    "# Selectivity settings",
+    "  -999 3 37  # all selectivities equal for age class 37 and older",
+    "  -999 26 2  # set length-dependent selectivity option",
+    "  -999 57 3  # uses cubic spline selectivity",
+    "  -999 61 5  # default five nodes for cubic spline",
+    node_lines,
+    "# SA28: independent extraction selectivity; preserve current index group slots.",
+    sprintf(
+      "  -%d 24 %d  # %s",
+      1:28,
+      extraction_group_ids,
+      extraction_labels
+    ),
+    "  -29 24 25  # Index R1; current shared PHASE1-PHASE4 group",
+    "  -30 24 25  # Index R2; current shared PHASE1-PHASE4 group",
+    "  -31 24 25  # Index R3; current shared PHASE1-PHASE4 group",
+    "  -32 24 25  # Index R4; current shared PHASE1-PHASE4 group",
+    "  -33 24 25  # Index R5; current shared PHASE1-PHASE4 group",
+    "# Single-area extraction monotonicity constraint.",
+    "   -9 16 1",
+    "# Single-area extraction young-age constraints.",
+    sprintf("  -%d 75 2", 1:12),
+    "  -13 75 1",
+    "  -15 75 5",
+    "# Single-area extraction age-spline and upper-age constraints.",
+    "  -12 16 2  -12 3 25",
+    "  -13 16 2  -13 3 30",
+    "  -17 16 2  -17 3 25",
+    "  -18 16 2  -18 3 25",
+    "  -19 16 2  -19 3 25",
+    "  -25 16 2  -25 3 25",
+    "  -26 16 2  -26 3 25",
+    "  -27 16 2  -27 3 30",
+    "  -16 16 2  -16 3 25",
+    "  -24 16 2  -24 3 25",
+    "  -21 16 2  -21 3 10",
+    "  -22 16 2  -22 3 7",
+    "  -23 16 2  -23 3 6"
+  )
+}
+
+apply_selectivity_treatment <- function(lines, treatment) {
+  treatment <- as.character(treatment[[1L]])
+  if (identical(treatment, "reference")) return(lines)
+  block_start <- grep("^# Selectivity settings[[:space:]]*$", lines)
+  block_end <- grep("^# Turn on weighted spline", lines)
+  if (length(block_start) != 1L || length(block_end) != 1L || block_start >= block_end) {
+    fail("Archived doitall.sh must contain one complete PHASE1 selectivity block")
+  }
+  if (treatment %in% c("sa28_n5", "sa28_n8")) {
+    nodes <- if (identical(treatment, "sa28_n8")) 8L else 5L
+    return(c(
+      lines[seq_len(block_start - 1L)],
+      single_area_selectivity_block(nodes),
+      lines[block_end:length(lines)]
+    ))
+  }
+  if (identical(treatment, "idx_z2")) {
+    selectivity_lines <- lines[seq.int(block_start, block_end - 1L)]
+    if (any(vapply(29:33, function(fishery) {
+      any(grepl(
+        sprintf("^[[:space:]]*-%d[[:space:]]+75[[:space:]]+", fishery),
+        selectivity_lines
+      ))
+    }, logical(1)))) {
+      fail("Archived doitall.sh unexpectedly contains index flag-75 constraints")
+    }
+    return(append(
+      lines,
+      c(
+        "# IDX-Z2: first two ages fixed to zero for regional indices only.",
+        sprintf("  -%d 75 2  # Index R%d", 29:33, 1:5)
+      ),
+      after = block_end - 1L
+    ))
+  }
+  fail("Unknown selectivity treatment: ", treatment)
+}
+
+apply_selectivity_fishery_map <- function(path, treatment) {
+  treatment <- as.character(treatment[[1L]])
+  if (!treatment %in% c("sa28_n5", "sa28_n8")) return(invisible(path))
+  lines <- readLines(path, warn = FALSE)
+  insertion <- grep("^selectivity_group_map <-", lines)
+  if (length(insertion) != 1L) {
+    fail("Generated fishery_map.R must contain one selectivity_group_map assignment")
+  }
+  overrides <- c(
+    "# SA28 extraction groups are independent; current index group IDs are retained.",
+    "fishery_map$selectivity_group[1:24] <- 1:24",
+    "fishery_map$selectivity_group[25:28] <- 30:33",
+    "fishery_map$selectivity_group[29:33] <- 25:29",
+    "fishery_map$selectivity_name[1:28] <- sub(\"^[0-9]+\\\\.\", \"\", fishery_map$fishery_name[1:28])",
+    "fishery_map$selectivity_name[29:33] <- paste0(\"Index R\", 1:5)",
+    ""
+  )
+  lines <- append(lines, overrides, after = insertion - 1L)
+  writeLines(lines, path, useBytes = TRUE)
+  invisible(path)
+}
+
 write_sensitivity_doitall <- function(
     to,
     tail_percent,
     divisor,
     lf_likelihood,
     dm_grouping,
-    dm_estimate_relative_sample_size) {
+    dm_estimate_relative_sample_size,
+    selectivity_treatment) {
   source_path <- file.path(reference_input_dir, "doitall.sh")
   lines <- readLines(source_path, warn = FALSE)
   tc_hit <- grep("^[[:space:]]*1[[:space:]]+313[[:space:]]+", lines)
@@ -533,6 +746,7 @@ write_sensitivity_doitall <- function(
       after = phase11_end - 1L
     )
   }
+  lines <- apply_selectivity_treatment(lines, selectivity_treatment)
   writeLines(lines, to, useBytes = TRUE)
   Sys.chmod(to, mode = "0755")
   invisible(to)
@@ -552,6 +766,9 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
   )
   is_dm <- identical(as.character(row$lf_likelihood), "dm_nore")
   is_s010 <- identical(as.character(row$step_id), "S010-DM-G4-CEST-NOCUT")
+  selectivity_treatment <- as.character(row$selectivity_treatment)
+  has_selectivity_sensitivity <- !identical(selectivity_treatment, "reference")
+  selectivity_note <- selectivity_treatment_note(selectivity_treatment)
   frq_note <- paste(
     paste0(
       "Exact retained Job 5319 effort-crept bet.frq; SHA-256 ",
@@ -634,10 +851,29 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
       paste0(
         "Retained Job 5319 doitall control sequence except parest flag ",
         "313=%d and three new flag-49 overrides for F21/F22/F23, each with ",
-        "divisor %d; inherited settings for every other fishery are unchanged."
+        "divisor %d; %s"
       ),
       as.integer(row$tail_compression_percent),
-      as.integer(row$lf_size_divisor)
+      as.integer(row$lf_size_divisor),
+      if (has_selectivity_sensitivity) {
+        "all inherited non-selectivity settings are unchanged."
+      } else {
+        "inherited settings for every other fishery are unchanged."
+      }
+    )
+  }
+  if (has_selectivity_sensitivity) {
+    doitall_note <- paste(
+      doitall_note,
+      selectivity_note,
+      if (selectivity_treatment %in% c("sa28_n5", "sa28_n8")) {
+        paste0(
+          "Extraction constraints are mapped from ",
+          single_area_selectivity_source, "@", single_area_selectivity_commit, "."
+        )
+      } else {
+        "No extraction selectivity control is changed."
+      }
     )
   }
 
@@ -701,7 +937,14 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
       ),
       doitall_note,
       anchor_note,
-      paste(refresh_note, "Updated fishery names used by MFCLShiny."),
+      paste(
+        refresh_note,
+        if (selectivity_treatment %in% c("sa28_n5", "sa28_n8")) {
+          "Updated fishery names plus generated independent F1-F28 selectivity display groups; current regional index groups retained."
+        } else {
+          "Updated fishery names used by MFCLShiny."
+        }
+      ),
       paste(refresh_note, "Updated reporting-group map matching bet.ini and bet.tag.")
     ),
     stringsAsFactors = FALSE
@@ -749,6 +992,52 @@ add_age_length_readme <- function(lines, row) {
       "Every other model input and all inherited normal/DM/cutoff controls are",
       "identical to the paired BASE075 sensitivity."
     )
+  )
+  append(lines, section, after = status_line[[1L]] - 2L)
+}
+
+add_selectivity_readme <- function(lines, row) {
+  treatment <- as.character(row$selectivity_treatment)
+  if (identical(treatment, "reference")) return(lines)
+  status_line <- grep("^Status:", lines)
+  if (length(status_line) != 1L) fail("Generated model README must contain one status line")
+  scientific_question <- switch(
+    treatment,
+    sa28_n5 = paste(
+      "This isolates independent extraction groups and the single-area support",
+      "constraints without adding the compensatory F12/F13 spline complexity."
+    ),
+    sa28_n8 = paste(
+      "This adds the exact eight-node F12/F13 single-area complexity to the",
+      "same independent extraction and support-constraint treatment."
+    ),
+    idx_z2 = paste(
+      "This isolates exclusion of the youngest ages from the five regional",
+      "index selectivities without changing extraction selectivity."
+    )
+  )
+  section <- c(
+    "",
+    "## Selectivity sensitivity",
+    "",
+    paste0("Semantic treatment: `", toupper(gsub("_", "-", treatment)), "`."),
+    paste0("Paired reference: `", as.character(row$selectivity_reference), "`."),
+    selectivity_treatment_note(treatment),
+    scientific_question,
+    paste(
+      "The LF likelihood, CUT90 transform, composition weighting, BASE075",
+      "age-length input, tag controls, phase sequence, and regional-scaling",
+      "settings are inherited from the paired reference."
+    ),
+    "Extraction and index selectivity changes are not combined in this design.",
+    if (treatment %in% c("sa28_n5", "sa28_n8")) {
+      paste0(
+        "Extraction mapping source: `", single_area_selectivity_source, "@",
+        single_area_selectivity_commit, "`."
+      )
+    } else {
+      "The current five-region extraction configuration is retained exactly."
+    }
   )
   append(lines, section, after = status_line[[1L]] - 2L)
 }
@@ -810,6 +1099,7 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       "",
       "Status: generated and ready for validation; Kflow has not been submitted."
     )
+    lines <- add_selectivity_readme(lines, row)
     lines <- add_age_length_readme(lines, row)
     writeLines(lines, file.path(step_dir, "README.md"), useBytes = TRUE)
     return(invisible(step_dir))
@@ -941,6 +1231,7 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       "",
       "Status: generated and ready for validation; Kflow has not been submitted."
     )
+    lines <- add_selectivity_readme(lines, row)
     lines <- add_age_length_readme(lines, row)
     writeLines(lines, file.path(step_dir, "README.md"), useBytes = TRUE)
     return(invisible(step_dir))
@@ -1014,11 +1305,19 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       "`bet.reg_scaling.full` retains the complete 292x5 sensitivity source.",
       "The active matrix is exactly full-source rows 53:72."
     ),
-    paste(
-      "The `doitall.sh` changes are limited to flag 313 and three new",
-      "F21/F22/F23 flag-49 overrides; all other inherited Job 5319 controls",
-      "remain unchanged."
-    ),
+    if (identical(as.character(row$selectivity_treatment), "reference")) {
+      paste(
+        "The `doitall.sh` changes are limited to flag 313 and three new",
+        "F21/F22/F23 flag-49 overrides; all other inherited Job 5319 controls",
+        "remain unchanged."
+      )
+    } else {
+      paste(
+        "Beyond the inherited CUT90 and flag-49 treatment, `doitall.sh` changes",
+        "only the documented selectivity treatment; all other Job 5319 controls",
+        "remain unchanged."
+      )
+    },
     "No MFCL source or executable is changed.",
     "",
     "## Cutoff audit",
@@ -1027,6 +1326,7 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
     "",
     "Status: generated and ready for validation; Kflow has not been submitted."
   )
+  lines <- add_selectivity_readme(lines, row)
   lines <- add_age_length_readme(lines, row)
   writeLines(lines, file.path(step_dir, "README.md"), useBytes = TRUE)
 }
@@ -1079,6 +1379,10 @@ for (i in seq_len(nrow(models))) {
     file.path(root, as.character(row$age_length_source_path)),
     file.path(model_dir, "bet.age_length")
   )
+  apply_selectivity_fishery_map(
+    file.path(model_dir, "fishery_map.R"),
+    as.character(row$selectivity_treatment)
+  )
 
   cutoff_cm <- as.numeric(row$cutoff_cm)
   cutoff_audit <- NULL
@@ -1103,7 +1407,8 @@ for (i in seq_len(nrow(models))) {
     lf_likelihood = as.character(row$lf_likelihood),
     dm_grouping = as.character(row$dm_grouping),
     dm_estimate_relative_sample_size =
-      isTRUE(row$dm_estimate_relative_sample_size[[1L]])
+      isTRUE(row$dm_estimate_relative_sample_size[[1L]]),
+    selectivity_treatment = as.character(row$selectivity_treatment)
   )
   treatment <- cutoff_sentence(cutoff_cm)
   write_model_manifest(
