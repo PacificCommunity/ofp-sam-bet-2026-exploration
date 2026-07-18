@@ -27,6 +27,8 @@ Each age-length variant uses exactly these six configurations:
 
 All 30 core models use the corrected single-area-derived N5 selectivity baseline. The former exploration selectivity is retained in provenance, but it is no longer the core baseline.
 
+All 41 models share the single-area-derived F1-F28 selectivity structure. Public labels therefore show only the meaningful node contrast, `N5` or `N8`, and omit the former common `SA28` prefix.
+
 The complete corrected baseline has these audited rules:
 
 - F1-F28 extraction coefficients are independent and use contiguous groups 1:28.

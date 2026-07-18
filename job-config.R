@@ -534,8 +534,8 @@ for (age_variant in .design_ages) {
   treatment = rep("sa28_n8", 2L),
   dm = c(FALSE, TRUE),
   label = c(
-    "BASE075 normal TC1 CUT90 DW1 SA28-N8",
-    "BASE075 DM G5PROC CEST CUT90 SA28-N8"
+    "BASE075 normal TC1 CUT90 DW1 N8",
+    "BASE075 DM G5PROC CEST CUT90 N8"
   ),
   stringsAsFactors = FALSE
 )
@@ -571,11 +571,11 @@ for (configuration in seq_len(nrow(.design_selectivity_specs))) {
     "TC1-NOCUT-DW10-TAGF2ON"
   ),
   label = c(
-    "BASE075 corrected SA28-N5 normal TC1 NOCUT DW1 TAGF2ON",
-    "BASE075 corrected SA28-N5 normal TC1 CUT90 DW1 TAGF2ON",
-    "BASE075 corrected SA28-N5 DM G5PROC CEST NOCUT TAGF2ON",
-    "BASE075 corrected SA28-N5 DM G5PROC CEST CUT90 TAGF2ON",
-    "BASE075 corrected SA28-N5 normal TC1 NOCUT DW10 TAGF2ON"
+    "BASE075 normal TC1 NOCUT DW1 TAGF2ON",
+    "BASE075 normal TC1 CUT90 DW1 TAGF2ON",
+    "BASE075 DM G5PROC CEST NOCUT TAGF2ON",
+    "BASE075 DM G5PROC CEST CUT90 TAGF2ON",
+    "BASE075 normal TC1 NOCUT DW10 TAGF2ON"
   ),
   stringsAsFactors = FALSE
 )

@@ -1290,9 +1290,13 @@ add_selectivity_readme <- function(lines, row) {
     "",
     if (is_promoted_baseline) "## Corrected selectivity baseline" else "## Selectivity sensitivity",
     "",
-    paste0("Semantic treatment: `", toupper(gsub("_", "-", treatment)), "`."),
+    paste0(
+      "Selectivity nodes: `",
+      if (treatment == "sa28_n8") "N8" else "N5",
+      "`. The single-area-derived F1-F28 structure is common to all 41 models."
+    ),
     if (!is_promoted_baseline) {
-      paste0("Paired corrected-N5 reference: `", as.character(row$selectivity_reference), "`.")
+      paste0("Paired N5 reference: `", as.character(row$selectivity_reference), "`.")
     } else NULL,
     selectivity_treatment_note(treatment),
     scientific_question,

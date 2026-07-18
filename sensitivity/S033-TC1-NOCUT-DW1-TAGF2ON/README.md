@@ -1,4 +1,4 @@
-# BET 2026 S033-TC1-NOCUT-DW1-TAGF2ON BASE075 corrected SA28-N5 normal TC1 NOCUT DW1 TAGF2ON
+# BET 2026 S033-TC1-NOCUT-DW1-TAGF2ON BASE075 normal TC1 NOCUT DW1 TAGF2ON
 
 This is one model in the curated BET 2026 TC1 LF sensitivity set.
 
@@ -34,7 +34,7 @@ No cutoff audit is required because bet.frq is byte-identical to the Job 5319 ar
 
 ## Corrected selectivity baseline
 
-Semantic treatment: `SA28-N5`.
+Selectivity nodes: `N5`. The single-area-derived F1-F28 structure is common to all 41 models.
 The corrected N5 baseline assigns independent selectivity groups to F1-F28, applies the audited young-age, F9 monotonicity, and upper-age constraints, fixes the first two ages of F29-F33 to zero, uses five nodes, and splits regional-index groups F29-F33 in phase 5. Fish flag 24 group labels are contiguous in every phase without changing group membership. Fish flag 26=2 evaluates the flag-57 cubic spline on scaled mean length-at-age to produce final selectivity-at-age; flag 61 supplies nodes on that coordinate.
 This is the promoted core baseline: independent extraction groups, audited support constraints, five nodes, and phase-5 regional-index splitting.
 The LF likelihood, CUT90 transform, composition weighting, BASE075 age-length input, tag controls, phase sequence, and regional-scaling settings are inherited from the paired reference.

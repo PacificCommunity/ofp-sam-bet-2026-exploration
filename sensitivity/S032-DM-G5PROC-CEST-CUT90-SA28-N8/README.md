@@ -1,4 +1,4 @@
-# BET 2026 S032-DM-G5PROC-CEST-CUT90-SA28-N8 BASE075 DM G5PROC CEST CUT90 SA28-N8
+# BET 2026 S032-DM-G5PROC-CEST-CUT90-SA28-N8 BASE075 DM G5PROC CEST CUT90 N8
 
 This model is one LF Dirichlet-multinomial-noRE sensitivity in the BET 2026 set.
 
@@ -39,8 +39,8 @@ No MFCL source or executable is changed.
 
 ## Selectivity sensitivity
 
-Semantic treatment: `SA28-N8`.
-Paired corrected-N5 reference: `S006-DM-G5PROC-CEST-CUT90`.
+Selectivity nodes: `N8`. The single-area-derived F1-F28 structure is common to all 41 models; F12 and F13 use eight nodes.
+Paired N5 reference: `S006-DM-G5PROC-CEST-CUT90`.
 The corrected N8 treatment is identical to N5 except that F12 PS.JP.1 and F13 PL.JP.1 use eight rather than five spline nodes.
 This changes only F12 PS.JP.1 and F13 PL.JP.1 from five to eight nodes relative to the complete corrected N5 baseline.
 The LF likelihood, CUT90 transform, composition weighting, BASE075 age-length input, tag controls, phase sequence, and regional-scaling settings are inherited from the paired reference.
