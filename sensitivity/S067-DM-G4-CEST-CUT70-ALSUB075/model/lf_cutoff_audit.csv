@@ -1,4 +1,0 @@
-"fishery","cutoff_cm","removed_count","affected_records","emptied_records","newly_below_minimum","transform"
-21,70,61,3,1,0,"lf_upper_cutoff"
-22,70,10125,128,1,4,"lf_upper_cutoff"
-23,70,4264,19,0,0,"lf_upper_cutoff"

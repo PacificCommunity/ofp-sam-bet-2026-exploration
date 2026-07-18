@@ -331,3 +331,298 @@ stepwise_models <- data.frame(
   selectivity_reference = sensitivity_grid$selectivity_reference,
   stringsAsFactors = FALSE
 )
+
+# Canonical enabled design: 5 age-length variants x 6 core configurations,
+# followed by 6 BASE075 selectivity sensitivities. Existing rows are used only
+# as schema-complete setting templates; no obsolete model remains enabled.
+.design_catalogue <- stepwise_models
+.design_ages <- c("BASE075", "REG075", "REG100", "SUB075", "SUB100")
+
+.design_one <- function(rows, description) {
+  if (nrow(rows) != 1L) {
+    stop(
+      "Expected exactly one existing template for ", description,
+      "; found ", nrow(rows),
+      call. = FALSE
+    )
+  }
+  rows
+}
+
+.design_reference_rows <- function(rows) {
+  if ("selectivity_treatment" %in% names(rows)) {
+    rows <- rows[rows$selectivity_treatment == "reference", , drop = FALSE]
+  }
+  rows
+}
+
+.design_normal_template <- function(age_variant, cutoff, data_weight) {
+  candidates <- .design_catalogue[
+    .design_catalogue$age_length_variant == age_variant,
+    ,
+    drop = FALSE
+  ]
+  candidates <- .design_reference_rows(candidates)
+  pattern <- paste0(
+    "-TC1-", cutoff, "-DW", data_weight, "(?:-|$)"
+  )
+  candidates <- candidates[
+    grepl(pattern, candidates$step_id, perl = TRUE),
+    ,
+    drop = FALSE
+  ]
+  .design_one(
+    candidates,
+    paste(age_variant, "normal", cutoff, paste0("DW", data_weight))
+  )
+}
+
+.design_dm_template <- function(cutoff) {
+  candidates <- .design_catalogue[
+    .design_catalogue$age_length_variant == "BASE075",
+    ,
+    drop = FALSE
+  ]
+  candidates <- .design_reference_rows(candidates)
+  pattern <- paste0("-DM-G5PROC-CEST-", cutoff, "(?:-|$)")
+  candidates <- candidates[
+    grepl(pattern, candidates$step_id, perl = TRUE),
+    ,
+    drop = FALSE
+  ]
+  .design_one(candidates, paste("BASE075 DM G5PROC CEST", cutoff))
+}
+
+.design_set_identity <- function(
+    row,
+    number,
+    slug,
+    age_variant,
+    label,
+    base_sensitivity = NULL,
+    selectivity_treatment = "reference",
+    selectivity_reference = NULL) {
+  step_id <- paste0(sprintf("S%03d", number), "-", slug)
+  row$step_id <- step_id
+  row$age_length_variant <- age_variant
+
+  if ("base_sensitivity" %in% names(row)) {
+    row$base_sensitivity <- if (is.null(base_sensitivity)) {
+      step_id
+    } else {
+      base_sensitivity
+    }
+  }
+  if ("selectivity_treatment" %in% names(row)) {
+    row$selectivity_treatment <- selectivity_treatment
+  }
+  if ("selectivity_reference" %in% names(row)) {
+    row$selectivity_reference <- if (is.null(selectivity_reference)) {
+      step_id
+    } else {
+      selectivity_reference
+    }
+  }
+  if ("model_label" %in% names(row)) {
+    row$model_label <- label
+  }
+  if ("model_description" %in% names(row)) {
+    row$model_description <- label
+  }
+  if ("enabled" %in% names(row)) {
+    row$enabled <- TRUE
+  }
+  if ("substep" %in% names(row)) {
+    row$substep <- sub("-.*$", "", step_id)
+  }
+  if ("change_axis" %in% names(row)) {
+    row$change_axis <- paste0(
+      "regional-scaling weight ", row$regional_scaling_weight,
+      "; ", label
+    )
+  }
+  if ("job_title" %in% names(row)) {
+    row$job_title <- paste("BET 2026", step_id, label)
+  }
+  if ("job_key" %in% names(row)) {
+    row$job_key <- tolower(gsub("[^A-Za-z0-9]+", "-", step_id))
+  }
+
+  numeric_id_columns <- intersect(
+    c("step", "step_number", "model_number", "sensitivity_number"),
+    names(row)
+  )
+  for (column in numeric_id_columns) {
+    if (is.integer(.design_catalogue[[column]])) {
+      row[[column]] <- as.integer(number)
+    } else if (is.numeric(.design_catalogue[[column]])) {
+      row[[column]] <- number
+    }
+  }
+  row
+}
+
+.design_core_specs <- data.frame(
+  slug = c(
+    "TC1-NOCUT-DW1",
+    "TC1-NOCUT-DW10",
+    "TC1-CUT90-DW1",
+    "TC1-CUT90-DW10",
+    "DM-G5PROC-CEST-NOCUT",
+    "DM-G5PROC-CEST-CUT90"
+  ),
+  label = c(
+    "normal TC1 NOCUT DW1",
+    "normal TC1 NOCUT DW10",
+    "normal TC1 CUT90 DW1",
+    "normal TC1 CUT90 DW10",
+    "DM G5PROC CEST NOCUT",
+    "DM G5PROC CEST CUT90"
+  ),
+  cutoff = c("NOCUT", "NOCUT", "CUT90", "CUT90", "NOCUT", "CUT90"),
+  data_weight = c("1", "10", "1", "10", NA, NA),
+  dm = c(FALSE, FALSE, FALSE, FALSE, TRUE, TRUE),
+  stringsAsFactors = FALSE
+)
+
+.design_age_columns <- grep(
+  "^age_length",
+  names(.design_catalogue),
+  value = TRUE
+)
+.design_rows <- vector("list", 36L)
+.design_number <- 0L
+
+for (age_variant in .design_ages) {
+  age_template <- .design_normal_template(age_variant, "NOCUT", "1")
+  age_suffix <- if (age_variant == "BASE075") "" else paste0("-", age_variant)
+
+  for (configuration in seq_len(nrow(.design_core_specs))) {
+    .design_number <- .design_number + 1L
+    spec <- .design_core_specs[configuration, , drop = FALSE]
+
+    if (spec$dm) {
+      row <- .design_dm_template(spec$cutoff)
+      row[, .design_age_columns] <- age_template[, .design_age_columns]
+    } else {
+      row <- .design_normal_template(
+        age_variant,
+        spec$cutoff,
+        spec$data_weight
+      )
+    }
+
+    .design_rows[[.design_number]] <- .design_set_identity(
+      row = row,
+      number = .design_number,
+      slug = paste0(spec$slug, age_suffix),
+      age_variant = age_variant,
+      label = paste(age_variant, spec$label),
+      base_sensitivity = paste0(
+        sprintf("S%03d", configuration), "-", spec$slug
+      )
+    )
+  }
+}
+
+.design_selectivity_specs <- data.frame(
+  slug = c(
+    "TC1-CUT90-DW1-SA28-N5",
+    "TC1-CUT90-DW1-SA28-N8",
+    "TC1-CUT90-DW1-IDX-Z2",
+    "DM-G5PROC-CEST-CUT90-SA28-N5",
+    "DM-G5PROC-CEST-CUT90-SA28-N8",
+    "DM-G5PROC-CEST-CUT90-IDX-Z2"
+  ),
+  treatment = rep(c("sa28_n5", "sa28_n8", "idx_z2"), 2L),
+  dm = rep(c(FALSE, TRUE), each = 3L),
+  label = c(
+    "BASE075 normal TC1 CUT90 DW1 SA28-N5",
+    "BASE075 normal TC1 CUT90 DW1 SA28-N8",
+    "BASE075 normal TC1 CUT90 DW1 IDX-Z2",
+    "BASE075 DM G5PROC CEST CUT90 SA28-N5",
+    "BASE075 DM G5PROC CEST CUT90 SA28-N8",
+    "BASE075 DM G5PROC CEST CUT90 IDX-Z2"
+  ),
+  stringsAsFactors = FALSE
+)
+.design_normal_cut90_dw1 <- .design_rows[[3L]]
+.design_dm_cut90 <- .design_rows[[6L]]
+.design_normal_reference <- .design_normal_cut90_dw1$step_id[[1L]]
+.design_dm_reference <- .design_dm_cut90$step_id[[1L]]
+
+for (configuration in seq_len(nrow(.design_selectivity_specs))) {
+  .design_number <- .design_number + 1L
+  spec <- .design_selectivity_specs[configuration, , drop = FALSE]
+  row <- if (spec$dm) .design_dm_cut90 else .design_normal_cut90_dw1
+  reference <- if (spec$dm) .design_dm_reference else .design_normal_reference
+
+  .design_rows[[.design_number]] <- .design_set_identity(
+    row = row,
+    number = .design_number,
+    slug = spec$slug,
+    age_variant = "BASE075",
+    label = spec$label,
+    selectivity_treatment = spec$treatment,
+    selectivity_reference = reference
+  )
+}
+
+stepwise_models <- do.call(rbind, .design_rows)
+rownames(stepwise_models) <- NULL
+
+.design_expected_prefix <- sprintf("S%03d", seq_len(36L))
+.design_actual_prefix <- sub("-.*$", "", stepwise_models$step_id)
+if (nrow(stepwise_models) != 36L ||
+    anyDuplicated(stepwise_models$step_id) ||
+    !identical(.design_actual_prefix, .design_expected_prefix)) {
+  stop("Canonical design must contain sequential S001-S036 IDs", call. = FALSE)
+}
+if (!identical(
+  as.integer(table(factor(
+    stepwise_models$age_length_variant,
+    levels = .design_ages
+  ))),
+  c(12L, 6L, 6L, 6L, 6L)
+)) {
+  stop("Canonical design has incorrect age-length variant counts", call. = FALSE)
+}
+if (any(grepl(
+  "DW5|CUT70|(?:^|-)C0(?:-|$)|(?:^|-)G(?:1|2|4|7)(?:-|$)",
+  stepwise_models$step_id,
+  perl = TRUE
+))) {
+  stop("Canonical design contains a prohibited configuration", call. = FALSE)
+}
+
+# Obsolete focused/special objects are not part of the exported configuration.
+.design_obsolete <- grep(
+  "focused|special",
+  ls(envir = environment()),
+  value = TRUE,
+  ignore.case = TRUE
+)
+if (length(.design_obsolete)) {
+  rm(list = .design_obsolete, envir = environment())
+}
+rm(
+  .design_catalogue,
+  .design_ages,
+  .design_core_specs,
+  .design_age_columns,
+  .design_rows,
+  .design_number,
+  .design_selectivity_specs,
+  .design_normal_cut90_dw1,
+  .design_dm_cut90,
+  .design_normal_reference,
+  .design_dm_reference,
+  .design_expected_prefix,
+  .design_actual_prefix,
+  .design_obsolete,
+  .design_one,
+  .design_reference_rows,
+  .design_normal_template,
+  .design_dm_template,
+  .design_set_identity
+)

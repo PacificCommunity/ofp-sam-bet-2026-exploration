@@ -1,4 +1,4 @@
-# BET 2026 S001-TC1-NOCUT-DW1 global MFCL LF tail compression 1%; F21/F22/F23 observed LF counts are unchanged; no cutoff is applied; F21/F22/F23 LF likelihood downweight 1x with flag-49 divisor 20
+# BET 2026 S001-TC1-NOCUT-DW1 BASE075 normal TC1 NOCUT DW1
 
 This is one model in the curated BET 2026 TC1 LF sensitivity set.
 
@@ -19,9 +19,10 @@ The bins remain as categories in the MFCL option-3 LF likelihood, and MFCL inter
 
 ## Provenance and controls
 
-The refreshed reference bundle has input-set SHA-256 `a8e0598d06a1f795bf5cd0ced5c19e4462fa16921fde7412b295e460cacc8dbc`.
+The refreshed reference bundle has input-set SHA-256 `66532e40a12135811e23ef92434e7d011a3db3a8846e56928ec4080106b97fa3`.
 The retained Job 5319 effort-crept `bet.frq` has SHA-256 `d77f97c348409f845f1f0fc801af808d15b6cb119349d1f083308cfc9d4fba8c`; effort creep is not reapplied.
-`bet.ini`, `fishery_map.R`, and `tag_rep_map.R` are refreshed from stepwise commit `26c74dc6f303faa951b1ab331d7de14ea20b7489`; the 98 `tag_flags(:,2)` values remain 0.
+`bet.ini` comes wholesale from `PacificCommunity/ofp-sam-2026-BET-YFT-build-ini@548de05aff9bdc96a9ee7a817bbfd8068020ba26` path `BET/ini.mix-period/bet.2026.mix-0.2.ini`; the only intentional deviation is changing all 98 `tag_flags(:,2)` values from 1 to 0.
+`fishery_map.R` comes from stepwise commit `26c74dc6f303faa951b1ab331d7de14ea20b7489`; `tag_rep_map.R` is regenerated from that metadata and the derived `bet.ini`.
 `bet.tag` is the latest tag-prep main file at commit `79733c429b320e84ed5047aa6c932c8f19dab187` and is byte-identical to PDH 13-DataWeighting.
 `bet.reg_scaling` is the MFCL-ready 20x5 active matrix and `bet.reg_scaling.full` retains the complete 292x5 sensitivity source. The active matrix is exactly full-source rows 53:72.
 The `doitall.sh` changes are limited to flag 313 and three new F21/F22/F23 flag-49 overrides; all other inherited Job 5319 controls remain unchanged.

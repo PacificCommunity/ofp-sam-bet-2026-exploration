@@ -1,20 +1,24 @@
-## Rebuild the 17 x 5 BET 2026 LF-age-length factorial, six focused BASE075
-## DM grouping folders, and six paired BASE075 selectivity folders.
+## Rebuild the 30-model BET 2026 LF-age-length design (five age-length
+## variants crossed with six LF configurations) plus six paired BASE075
+## selectivity models.
 ##
 ## Every cell retains the exact effort-crept FRQ archived by Kflow Job 5319.
-## Tag-group controls, display metadata, and regional-scaling inputs are
-## refreshed from the reviewed stepwise branch; tag data come from the latest
-## tag-prep main branch. The script
-## never reapplies effort creep. Normal-likelihood cells change only observed
-## LF bins for cutoff cells, parest flag 313, and fishery-49 overrides for
-## F21/F22/F23. The DM sensitivities additionally change only documented LF
-## DM-noRE controls and fishery grouping/activation flags. All index LF is
-## retained; option 11 cannot reproduce the normal models' fixed flag-49
-## duplicate-use correction.
+## The tag-control INI is the current upstream build-ini file wholesale, with
+## the single intentional deviation that all tag_flags(:,2) values are zero.
+## Display metadata and regional-scaling inputs come from the reviewed
+## stepwise branch; tag data come from the latest tag-prep main branch. The
+## script never reapplies effort creep. Normal-likelihood cells change only
+## observed LF bins for CUT90 cells, parest flag 313, and fishery-49 overrides
+## for F21/F22/F23. DM cells use only the reviewed G5PROC grouping and estimate
+## the relative sample-size exponent. All index LF is retained; option 11
+## cannot reproduce the normal models' fixed flag-49 duplicate-use correction.
 
 root <- normalizePath(getwd(), winslash = "/", mustWork = TRUE)
 stepwise_refresh_ref <- "experiment/tag-grouping-reg-scaling-2026"
 stepwise_refresh_commit <- "26c74dc6f303faa951b1ab331d7de14ea20b7489"
+build_ini_source <- "PacificCommunity/ofp-sam-2026-BET-YFT-build-ini"
+build_ini_commit <- "548de05aff9bdc96a9ee7a817bbfd8068020ba26"
+build_ini_source_path <- "BET/ini.mix-period/bet.2026.mix-0.2.ini"
 tag_prep_commit <- "79733c429b320e84ed5047aa6c932c8f19dab187"
 tag_prep_source <- "PacificCommunity/ofp-sam-2026-BET-YFT-tag-prep"
 age_length_source_repo <-
@@ -60,11 +64,11 @@ reference_required <- c(
   "mfcl.cfg",
   "tag_rep_map.R"
 )
-expected_reference_sha256 <- "a8e0598d06a1f795bf5cd0ced5c19e4462fa16921fde7412b295e460cacc8dbc"
+expected_reference_sha256 <- "66532e40a12135811e23ef92434e7d011a3db3a8846e56928ec4080106b97fa3"
 expected_frq_sha256 <-
   "d77f97c348409f845f1f0fc801af808d15b6cb119349d1f083308cfc9d4fba8c"
 expected_ini_sha256 <-
-  "3c9503e0762547762bab20b26997c3a4e627b0965b1d88418d71a1a17f40bb11"
+  "932f57a96140400ae327cc47291316840c63c492542724a967c48ed002157117"
 expected_tag_sha256 <-
   "3f1b836a844ec2ca8e70fc5814d94c5a1ebc37ff4a5571c1dc1f6b83e477dfe8"
 
@@ -124,9 +128,9 @@ if (!identical(tag_sha256, expected_tag_sha256)) {
 required_selectivity_columns <- c("selectivity_treatment", "selectivity_reference")
 if (!is.data.frame(models) ||
     !all(required_selectivity_columns %in% names(models)) ||
-    nrow(models) != 97L ||
+    nrow(models) != 36L ||
     anyDuplicated(models$step_id) || any(!models$enabled)) {
-  fail("job-config.R must define exactly 97 unique enabled sensitivity cells")
+  fail("job-config.R must define exactly 36 unique enabled sensitivity cells")
 }
 if (!all(models$run_mode == "doitall") ||
     !all(models$regional_scaling_weight == 50L)) {
@@ -143,24 +147,40 @@ if (!all(models$lf_likelihood %in% c("normal", "dm_nore"))) {
   fail("LF likelihood must be normal or dm_nore")
 }
 dm_rows <- models$lf_likelihood == "dm_nore"
+selectivity_rows <- models$selectivity_treatment != "reference"
+core_rows <- !selectivity_rows
+finite_cutoff_rows <- is.finite(models$cutoff_cm)
+if (any(models$cutoff_cm[finite_cutoff_rows] != 90) ||
+    any(!models$lf_downweight_factor[normal_rows] %in% c(1L, 10L)) ||
+    any(models$tail_compression_percent[normal_rows] != 1L) ||
+    any(!is.na(models$lf_downweight_factor[dm_rows])) ||
+    any(!is.na(models$lf_size_divisor[dm_rows])) ||
+    any(models$tail_compression_percent[dm_rows] != 0L)) {
+  fail("The final design permits only CUT90, normal DW1/DW10, and DM-specific tail controls")
+}
+if (any(models$dm_grouping[dm_rows] != "process5") ||
+    any(!as.logical(models$dm_estimate_relative_sample_size[dm_rows])) ||
+    any(grepl("CUT70|DW5|G1-|G2-|G4-|G7QUAL|C0-", models$step_id))) {
+  fail("Every DM model must use G5PROC with the relative sample-size exponent estimated")
+}
+
 expected_age_levels <- c("BASE075", "REG075", "REG100", "SUB075", "SUB100")
 age_level_counts <- table(factor(models$age_length_variant, levels = expected_age_levels))
-if (!identical(as.integer(age_level_counts), c(29L, rep(17L, 4L))) ||
+if (!identical(as.integer(age_level_counts), c(12L, rep(6L, 4L))) ||
     anyDuplicated(models[, c("base_sensitivity", "age_length_variant")])) {
   fail(paste(
-    "Expected the 17 x 5 factorial plus six focused BASE075 grouping",
-    "and six paired BASE075 selectivity models"
+    "Expected 30 core models (five age-length variants x six LF configurations)",
+    "plus six paired BASE075 selectivity models"
   ))
 }
 base_rows <- models$age_length_variant == "BASE075"
-factorial_base_rows <- base_rows & grepl(
-  "^S(00[1-9]|01[0-7])-",
-  models$step_id
-)
-if (!identical(as.character(models$step_id[factorial_base_rows]), sprintf("S%03d-%s", 1:17, sub(
-  "^S[0-9]{3}-", "", models$base_sensitivity[factorial_base_rows]
-)))) {
-  fail("BASE075 identities must remain S001:S017")
+factorial_base_rows <- base_rows & core_rows
+if (sum(factorial_base_rows) != 6L ||
+    !identical(
+      sub("-.*$", "", as.character(models$step_id[factorial_base_rows])),
+      sprintf("S%03d", 1:6)
+    )) {
+  fail("The six BASE075 core identities must remain S001:S006")
 }
 inherit_columns <- c(
   "run_mode", "region_count", "regional_scaling_weight",
@@ -179,6 +199,25 @@ for (level in expected_age_levels[-1L]) {
     fail("Age-length level ", level, " does not inherit every base configuration exactly")
   }
 }
+
+expected_normal_keys <- c("NOCUT-DW1", "NOCUT-DW10", "CUT90-DW1", "CUT90-DW10")
+expected_dm_keys <- c("NOCUT", "CUT90")
+for (level in expected_age_levels) {
+  level_core <- core_rows & models$age_length_variant == level
+  level_normal <- level_core & normal_rows
+  level_dm <- level_core & dm_rows
+  normal_keys <- paste0(
+    ifelse(is.finite(models$cutoff_cm[level_normal]), "CUT90", "NOCUT"),
+    "-DW", as.integer(models$lf_downweight_factor[level_normal])
+  )
+  dm_keys <- ifelse(is.finite(models$cutoff_cm[level_dm]), "CUT90", "NOCUT")
+  if (sum(level_core) != 6L || sum(level_normal) != 4L || sum(level_dm) != 2L ||
+      !setequal(normal_keys, expected_normal_keys) || anyDuplicated(normal_keys) ||
+      !setequal(dm_keys, expected_dm_keys) || anyDuplicated(dm_keys)) {
+    fail("Age-length level ", level, " must contain the exact six-config core design")
+  }
+}
+
 source_rows <- !duplicated(models$age_length_variant)
 source_models <- models[source_rows, , drop = FALSE]
 source_models <- source_models[match(expected_age_levels, source_models$age_length_variant), , drop = FALSE]
@@ -193,70 +232,23 @@ for (i in seq_len(nrow(source_models))) {
     fail("Age-length source SHA-256 mismatch: ", source_path)
   }
 }
-expected_dm_ids <- c(
-  "S010-DM-G4-CEST-NOCUT",
-  "S011-DM-G1-C0-NOCUT",
-  "S012-DM-G1-CEST-NOCUT",
-  "S013-DM-G2-C0-NOCUT",
-  "S014-DM-G2-CEST-NOCUT",
-  "S015-DM-G4-C0-NOCUT",
-  "S016-DM-G4-CEST-CUT70",
-  "S017-DM-G4-CEST-CUT90",
-  "S086-DM-G5PROC-CEST-NOCUT",
-  "S087-DM-G5PROC-CEST-CUT70",
-  "S088-DM-G5PROC-CEST-CUT90",
-  "S089-DM-G7QUAL-CEST-NOCUT",
-  "S090-DM-G7QUAL-CEST-CUT70",
-  "S091-DM-G7QUAL-CEST-CUT90",
-  "S095-DM-G5PROC-CEST-CUT90-SA28-N5",
-  "S096-DM-G5PROC-CEST-CUT90-SA28-N8",
-  "S097-DM-G5PROC-CEST-CUT90-IDX-Z2"
-)
-expected_dm_grouping <- c(
-  "gear4", "gear1", "gear1", "gear2", "gear2", "gear4", "gear4", "gear4",
-  rep("process5", 3L), rep("quality7", 3L), rep("process5", 3L)
-)
-expected_dm_c_estimated <- c(
-  TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, TRUE, TRUE,
-  rep(TRUE, 9L)
-)
-expected_dm_cutoff <- c(
-  rep(NA_real_, 6L), 70, 90,
-  NA_real_, 70, 90, NA_real_, 70, 90, rep(90, 3L)
-)
-base_dm_rows <- dm_rows & base_rows
-if (sum(dm_rows) != 49L ||
-    sum(base_dm_rows) != 17L ||
-    !identical(as.character(models$step_id[base_dm_rows]), expected_dm_ids) ||
-    !identical(as.character(models$dm_grouping[base_dm_rows]), expected_dm_grouping) ||
-    !identical(
-      as.logical(models$dm_estimate_relative_sample_size[base_dm_rows]),
-      expected_dm_c_estimated
-    ) ||
-    !identical(as.numeric(models$cutoff_cm[base_dm_rows]), expected_dm_cutoff) ||
-    any(!is.na(models$lf_downweight_factor[dm_rows])) ||
-    any(!is.na(models$lf_size_divisor[dm_rows])) ||
-    any(models$tail_compression_percent[dm_rows] != 0L)) {
-  fail("DM sensitivities must match the reviewed grouping, C0/CEST, and cutoff design")
-}
 
 expected_selectivity_ids <- c(
-  "S092-TC1-CUT90-DW5-SA28-N5",
-  "S093-TC1-CUT90-DW5-SA28-N8",
-  "S094-TC1-CUT90-DW5-IDX-Z2",
-  "S095-DM-G5PROC-CEST-CUT90-SA28-N5",
-  "S096-DM-G5PROC-CEST-CUT90-SA28-N8",
-  "S097-DM-G5PROC-CEST-CUT90-IDX-Z2"
+  "S031-TC1-CUT90-DW1-SA28-N5",
+  "S032-TC1-CUT90-DW1-SA28-N8",
+  "S033-TC1-CUT90-DW1-IDX-Z2",
+  "S034-DM-G5PROC-CEST-CUT90-SA28-N5",
+  "S035-DM-G5PROC-CEST-CUT90-SA28-N8",
+  "S036-DM-G5PROC-CEST-CUT90-IDX-Z2"
 )
 expected_selectivity_treatments <- rep(
   c("sa28_n5", "sa28_n8", "idx_z2"),
   2L
 )
 expected_selectivity_references <- c(
-  rep("S008-TC1-CUT90-DW5", 3L),
-  rep("S088-DM-G5PROC-CEST-CUT90", 3L)
+  rep("S003-TC1-CUT90-DW1", 3L),
+  rep("S006-DM-G5PROC-CEST-CUT90", 3L)
 )
-selectivity_rows <- models$selectivity_treatment != "reference"
 if (sum(selectivity_rows) != 6L ||
     !identical(as.character(models$step_id[selectivity_rows]), expected_selectivity_ids) ||
     !identical(
@@ -269,11 +261,15 @@ if (sum(selectivity_rows) != 6L ||
     ) ||
     any(models$age_length_variant[selectivity_rows] != "BASE075") ||
     any(models$cutoff_cm[selectivity_rows] != 90) ||
+    sum(selectivity_rows & normal_rows) != 3L ||
+    sum(selectivity_rows & dm_rows) != 3L ||
+    any(models$lf_downweight_factor[selectivity_rows & normal_rows] != 1L) ||
+    any(models$lf_size_divisor[selectivity_rows & normal_rows] != 20L) ||
     any(models$dm_grouping[selectivity_rows & dm_rows] != "process5") ||
     any(!models$dm_estimate_relative_sample_size[selectivity_rows & dm_rows])) {
   fail(paste(
     "Selectivity sensitivities must be the isolated CUT90 SA28-N5, SA28-N8,",
-    "and IDX-Z2 pairs based on S008 and S088"
+    "and IDX-Z2 pairs based on S003 and S006"
   ))
 }
 paired_control_columns <- c(
@@ -402,8 +398,12 @@ dir.create(sensitivity_root, recursive = TRUE, showWarnings = FALSE)
 existing_entries <- list.files(sensitivity_root, full.names = TRUE, no.. = TRUE)
 existing_dirs <- basename(existing_entries[file.info(existing_entries)$isdir %in% TRUE])
 extra_dirs <- setdiff(existing_dirs, models$step_id)
-if (length(extra_dirs)) {
-  fail("Refusing to remove unexpected sensitivity folders: ", paste(extra_dirs, collapse = ", "))
+unexpected_dirs <- extra_dirs[!grepl("^S[0-9]{3}-", extra_dirs)]
+if (length(unexpected_dirs)) {
+  fail(
+    "Refusing to remove unexpected sensitivity folders: ",
+    paste(unexpected_dirs, collapse = ", ")
+  )
 }
 
 copy_exact <- function(from, to) {
@@ -760,12 +760,15 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
     "Byte-identical to the retained Job 5319 anchor in the refreshed reference ",
     "bundle; reference-set SHA-256 ", expected_reference_sha256, "."
   )
-  refresh_note <- paste0(
+  stepwise_refresh_note <- paste0(
     "Refreshed from PacificCommunity/ofp-sam-bet-2026-stepwise@",
     stepwise_refresh_commit, " (", stepwise_refresh_ref, ")."
   )
+  build_ini_note <- paste0(
+    "Upstream INI from ", build_ini_source, "@", build_ini_commit,
+    " path ", build_ini_source_path, "."
+  )
   is_dm <- identical(as.character(row$lf_likelihood), "dm_nore")
-  is_s010 <- identical(as.character(row$step_id), "S010-DM-G4-CEST-NOCUT")
   selectivity_treatment <- as.character(row$selectivity_treatment)
   has_selectivity_sensitivity <- !identical(selectivity_treatment, "reference")
   selectivity_note <- selectivity_treatment_note(selectivity_treatment)
@@ -809,20 +812,12 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
       "option 11 and therefore is not reproduced in this DM sensitivity."
     )
   }
-  if (is_s010) {
-    doitall_note <- paste(
-      "Retained Job 5319 doitall sequence with LF likelihood option 11;",
-      "the LF preprocessing gate and N < 50 filter retained; percentage and",
-      "DM-specific LF tail compression retains at least five class intervals; DM maximum",
-      "effective sample size 1000; all extraction and index LF retained in four",
-      "reviewed fishery groups; group-specific scalar and relative sample-size",
-      "exponents estimated. Inherited flag-49 lines remain in the control file",
-      "but are inert under DM-noRE, so the normal models' fixed extra /2 is not",
-      "reproduced. The separate index group makes this a deliberate DM",
-      "self-weighting/overdispersion sensitivity, not an exact duplicate-use correction."
+  if (is_dm) {
+    group_count <- switch(
+      as.character(row$dm_grouping),
+      process5 = 5L,
+      fail("Manifest generation supports only the reviewed process5 DM grouping")
     )
-  } else if (is_dm) {
-    group_count <- switch(as.character(row$dm_grouping), gear1 = 1L, gear2 = 2L, gear4 = 4L)
     c_note <- if (isTRUE(row$dm_estimate_relative_sample_size[[1L]])) {
       "the relative sample-size exponent is fixed at zero in PHASE1 and estimated from PHASE2"
     } else {
@@ -885,10 +880,14 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
       "tag_rep_map.R"
     )
   )
+  manifest_sources[[2L]] <- paste0(
+    "https://github.com/", build_ini_source, "/blob/", build_ini_commit, "/",
+    build_ini_source_path
+  )
   manifest_source_commits <- c(
-    "", stepwise_refresh_commit, tag_prep_commit, "",
+    "", build_ini_commit, tag_prep_commit, "",
     stepwise_refresh_commit, stepwise_refresh_commit, "", "",
-    stepwise_refresh_commit, stepwise_refresh_commit
+    stepwise_refresh_commit, ""
   )
   age_length_note <- anchor_note
   if (!identical(as.character(row$age_length_variant), "BASE075")) {
@@ -918,9 +917,12 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
     note = c(
       frq_note,
       paste(
-        refresh_note,
+        build_ini_note,
         paste0("Tag-control ini SHA-256 ", expected_ini_sha256, ";"),
-        "all 98 tag_flags(:,2) values remain 0."
+        paste(
+          "the only intentional deviation from that upstream file is that all 98",
+          "tag_flags(:,2) values are 0."
+        )
       ),
       paste(
         paste0("Latest tag data from ", tag_prep_source, "@", tag_prep_commit, " (main);"),
@@ -928,24 +930,29 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
       ),
       age_length_note,
       paste(
-        refresh_note,
+        stepwise_refresh_note,
         "MFCL-ready active matrix, exactly full-source rows 53:72 (20x5); fixed weight 50."
       ),
       paste(
-        refresh_note,
+        stepwise_refresh_note,
         "Complete 292x5 sensitivity source retained for alternative period windows; not read by MFCL."
       ),
       doitall_note,
       anchor_note,
       paste(
-        refresh_note,
+        stepwise_refresh_note,
         if (selectivity_treatment %in% c("sa28_n5", "sa28_n8")) {
           "Updated fishery names plus generated independent F1-F28 selectivity display groups; current regional index groups retained."
         } else {
           "Updated fishery names used by MFCLShiny."
         }
       ),
-      paste(refresh_note, "Updated reporting-group map matching bet.ini and bet.tag.")
+      paste(
+        "Generated from the derived bet.ini and refreshed fishery_map.R;",
+        paste0("INI upstream ", build_ini_source, "@", build_ini_commit, ";"),
+        paste0("fishery metadata ", stepwise_refresh_note),
+        "reporting groups match bet.ini and bet.tag."
+      )
     ),
     stringsAsFactors = FALSE
   )
@@ -1044,66 +1051,6 @@ add_selectivity_readme <- function(lines, row) {
 
 write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
   is_dm <- identical(as.character(row$lf_likelihood), "dm_nore")
-  is_s010 <- identical(as.character(row$step_id), "S010-DM-G4-CEST-NOCUT")
-  if (is_s010) {
-    lines <- c(
-      paste0("# ", as.character(row$job_title)),
-      "",
-      "This model is the LF Dirichlet-multinomial-noRE pilot in the BET 2026 sensitivity set.",
-      "",
-      "## Design",
-      "",
-      "| Control | Setting |",
-      "| --- | --- |",
-      "| LF likelihood | MFCL option 11, Dirichlet-multinomial without random effects |",
-      "| LF groups | Longline; purse seine; other extraction; index |",
-      "| Group scalar exponent | Starts at MFCL default zero; estimated from PHASE1 with fish flag 69 |",
-      "| Relative sample-size exponent | Starts at MFCL default zero; estimated from PHASE2 with fish flag 89 |",
-      "| DM maximum effective sample size | 1000 |",
-      "| LF tail compression | Retains at least five class intervals (`parest flag 320 = 5`) |",
-      "| MFCL report timing | Intermediate DM plot reports off; final PHASE11 report on |",
-      "| LF cutoff | None |",
-      "| LF weighting | All extraction and index LF retained; separate index DM group; self-scaling |",
-      "| Regional-scaling penalty weight | 50 |",
-      "",
-      "The four DM groups are generated from `fishery_map.R`, not from display order alone.",
-      "All extraction and index LF observations and the retained Job 5319 effort-creep treatment are unchanged.",
-      "The existing minimum input sample-size filter of 50 remains active through the LF preprocessing gate.",
-      "There are no WF observations; no DM weight-frequency parameter is activated.",
-      "",
-      "## Interpretation",
-      "",
-      paste(
-        "The normal-likelihood models use flag 49 to apply an extra /2 to LF",
-        "streams used as both extraction and index data. MFCL option 11 ignores",
-        "flag 49 and has no fixed 0.5 LF-contribution control, so that correction",
-        "cannot be reproduced here."
-      ),
-      paste(
-        "S010 deliberately retains both LF representations and estimates the",
-        "index fisheries as a separate DM group. It is a self-weighting and",
-        "overdispersion sensitivity, not an exact duplicate-use correction;",
-        "aggregation differences between the two representations may remain."
-      ),
-      "MFCL estimates one scalar exponent and one relative sample-size exponent per group.",
-      "The `dmsizemult` output must be used to inspect fitted effective sample sizes; raw objective values are not directly ranked against the normal-likelihood models.",
-      "Convergence, Hessian PDH, LF residuals, index fits, and key quantities must be considered together.",
-      "",
-      "## Provenance",
-      "",
-      paste0("The reference input-set SHA-256 is `", expected_reference_sha256, "`."),
-      paste0("The retained Job 5319 effort-crept `bet.frq` SHA-256 is `", expected_frq_sha256, "`; effort creep is not reapplied."),
-      paste0("The refreshed tag-control `.ini` comes from stepwise commit `", stepwise_refresh_commit, "`."),
-      paste0("The tag data come from tag-prep commit `", tag_prep_commit, "`."),
-      "No MFCL source or executable is changed.",
-      "",
-      "Status: generated and ready for validation; Kflow has not been submitted."
-    )
-    lines <- add_selectivity_readme(lines, row)
-    lines <- add_age_length_readme(lines, row)
-    writeLines(lines, file.path(step_dir, "README.md"), useBytes = TRUE)
-    return(invisible(step_dir))
-  }
   if (is_dm) {
     grouping <- as.character(row$dm_grouping)
     grouping_text <- switch(
@@ -1225,7 +1172,11 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       paste0("The reference input-set SHA-256 is `", expected_reference_sha256, "`."),
       paste0("The retained Job 5319 effort-crept `bet.frq` SHA-256 is `", expected_frq_sha256, "`; effort creep is not reapplied."),
       audit_line,
-      paste0("The refreshed tag-control `.ini` comes from stepwise commit `", stepwise_refresh_commit, "`."),
+      paste0(
+        "The tag-control `.ini` comes from `", build_ini_source, "@",
+        build_ini_commit, "` path `", build_ini_source_path,
+        "`, with only `tag_flags(:,2)` changed from 1 to 0."
+      ),
       paste0("The tag data come from tag-prep commit `", tag_prep_commit, "`."),
       "No MFCL source or executable is changed.",
       "",
@@ -1291,10 +1242,14 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       "The retained Job 5319 effort-crept `bet.frq` has SHA-256 `", expected_frq_sha256,
       "`; effort creep is not reapplied."
     ),
-    paste(
-      "`bet.ini`, `fishery_map.R`, and `tag_rep_map.R` are refreshed",
-      paste0("from stepwise commit `", stepwise_refresh_commit, "`;"),
-      "the 98 `tag_flags(:,2)` values remain 0."
+    paste0(
+      "`bet.ini` comes wholesale from `", build_ini_source, "@", build_ini_commit,
+      "` path `", build_ini_source_path,
+      "`; the only intentional deviation is changing all 98 `tag_flags(:,2)` values from 1 to 0."
+    ),
+    paste0(
+      "`fishery_map.R` comes from stepwise commit `", stepwise_refresh_commit,
+      "`; `tag_rep_map.R` is regenerated from that metadata and the derived `bet.ini`."
     ),
     paste0(
       "`bet.tag` is the latest tag-prep main file at commit `",
@@ -1432,24 +1387,12 @@ unlink(backup_root, recursive = TRUE, force = TRUE)
 cat(sprintf("Generated %d sensitivity folders from the refreshed reference bundle.\n", nrow(models)))
 cat(sprintf("Refreshed reference input-set SHA-256: %s\n", reference_sha256))
 cat(sprintf("Job 5319 archived bet.frq SHA-256: %s\n", frq_sha256))
-cat(sprintf("Stepwise tag-grouping source commit: %s\n", stepwise_refresh_commit))
+cat(sprintf(
+  "Build-ini tag-control source: %s@%s (%s)\n",
+  build_ini_source, build_ini_commit, build_ini_source_path
+))
+cat(sprintf("Stepwise supporting-input source commit: %s\n", stepwise_refresh_commit))
 cat(sprintf("Tag-prep main source commit: %s\n", tag_prep_commit))
 cat("Regional scaling: active 20x5 plus retained full 292x5 source\n")
 cat("Effort creep reapplied: no\n")
 cat("Kflow submitted: no\n")
-
-# Remove reporting Group 17 prior order dependence after model assembly.
-# The helper preflights all 97 generated models before replacing any files.
-source(file.path("R", "tag_reporting_group17_prior.R"), local = FALSE)
-tag_reporting_group17_audit <- harmonize_tag_reporting_group17_tree(
-  sensitivity_root = "sensitivity",
-  model_ids = models$step_id,
-  expected_model_count = 97L
-)
-message(
-  "Harmonized reporting Group 17 in ",
-  nrow(tag_reporting_group17_audit),
-  " models (",
-  unique(tag_reporting_group17_audit$positive_cell_count),
-  " positive cells/model; target 52.015; penalty 336.854)."
-)
