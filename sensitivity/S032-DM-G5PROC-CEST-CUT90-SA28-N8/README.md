@@ -10,8 +10,8 @@ This model is one LF Dirichlet-multinomial-noRE sensitivity in the BET 2026 set.
 | LF grouping | G5PROC: longline F1:F11; large-scale purse seine F12/F19:F20/F25:F28; domestic purse seine F17:F18; other extraction F13:F16/F21:F24; index F29:F33 |
 | Group scalar exponent d | Starts at MFCL default zero; estimated from PHASE1 with fish flag 69 |
 | Relative sample-size exponent c | CEST: c is fixed at zero in PHASE1 and estimated from PHASE2 |
-| DM maximum effective sample size | 30 |
-| DM fitting continuation | Nmax 50 through PHASE9; 40 in PHASE10; final target 30 in PHASE11 |
+| DM maximum effective sample size | 20 |
+| DM fitting continuation | Nmax 50 through PHASE9; 35 in PHASE10; final target 20 in PHASE11 |
 | LF preprocessing | Enabled; inherited N < 50 filter retained |
 | LF tail compression | Percentage compression disabled; DM compression retains at least five class intervals (`parest flag 320 = 5`) |
 | LF cutoff | Established F21/F22/F23 upper-bin cutoff above 90 cm |
@@ -40,7 +40,7 @@ No MFCL source or executable is changed.
 
 ## Selectivity sensitivity
 
-Selectivity nodes: `N8`. The single-area-derived F1-F28 structure is common to all 41 models; F12 and F13 use eight nodes.
+Selectivity nodes: `N8`. The single-area-derived F1-F28 structure is common to all 41 models.
 Paired N5 reference: `S006-DM-G5PROC-CEST-CUT90`.
 The corrected N8 treatment is identical to N5 except that F12 PS.JP.1 and F13 PL.JP.1 use eight rather than five spline nodes.
 This changes only F12 PS.JP.1 and F13 PL.JP.1 from five to eight nodes relative to the complete corrected N5 baseline.
@@ -50,6 +50,6 @@ Corrected selectivity source: `PacificCommunity/ofp-sam-bet-yft-2026-single-area
 
 ## 41-model design context
 
-This model belongs to the public 41-model design: 30 core age-length/LF combinations, two targeted N8 controls, five core TAGF2ON controls, and normal plus DM OPR tag-control pairs. Every model uses the complete single-area-derived selectivity baseline, including F29-F33 first-two-age zeros; N8 changes only F12 PS.JP.1 and F13 PL.JP.1. Age-length levels are BASE075, REG075, REG100, SUB075, and SUB100. DM models use DM-noRE, G5PROC, estimated relative sample-size exponent C, and Nmax 30. TAGF2ON changes only all 98 tag_flags(:,2) values. OPR is activated in phase 3, movement in phase 4, and regional scaling in phase 5; terminal penalty is disabled. Fish flag 26=2 evaluates the flag-57 cubic spline on scaled mean length-at-age to produce final selectivity-at-age; flag-61 nodes use that coordinate, while flags 75/3/16 remain age constraints. This setting is separate from the LF likelihood. This model uses age-length level BASE075.
+This model belongs to the public 41-model design: 30 core age-length/LF combinations, two targeted N8 controls, five core TAGF2ON controls, and normal plus DM OPR tag-control pairs. Every model uses the complete single-area-derived selectivity baseline, including F29-F33 first-two-age zeros; N8 changes only F12 PS.JP.1 and F13 PL.JP.1. Age-length levels are BASE075, REG075, REG100, SUB075, and SUB100. DM models use DM-noRE, G5PROC, estimated relative sample-size exponent C, and Nmax 20. TAGF2ON changes only all 98 tag_flags(:,2) values. OPR is activated in phase 3, movement in phase 4, and regional scaling in phase 5; terminal penalty is disabled. Fish flag 26=2 evaluates the flag-57 cubic spline on scaled mean length-at-age to produce final selectivity-at-age; flag-61 nodes use that coordinate, while flags 75/3/16 remain age constraints. This setting is separate from the LF likelihood. This model uses age-length level BASE075.
 
 Status: generated and ready for validation; Kflow has not been submitted.

@@ -782,7 +782,7 @@ apply_selectivity_fishery_map <- function(path, treatment) {
   invisible(path)
 }
 
-dm_nmax_target <- 30L
+dm_nmax_target <- 20L
 dm_nmax_stage <- max(50L, dm_nmax_target)
 dm_nmax_mid <- as.integer(round((dm_nmax_stage + dm_nmax_target) / 2))
 
@@ -1025,7 +1025,7 @@ design_context_note <- function(row) {
     "single-area-derived selectivity baseline, including F29-F33 first-two-age",
     "zeros; N8 changes only F12 PS.JP.1 and F13 PL.JP.1. Age-length levels are",
     "BASE075, REG075, REG100, SUB075, and SUB100. DM models use DM-noRE,",
-    "G5PROC, estimated relative sample-size exponent C, and Nmax 30.",
+    "G5PROC, estimated relative sample-size exponent C, and Nmax 20.",
     "TAGF2ON changes only all 98 tag_flags(:,2) values. OPR is activated in",
     "phase 3, movement in phase 4, and regional scaling in phase 5; terminal",
     "penalty is disabled. Fish flag 26=2 evaluates the flag-57 cubic spline on",
