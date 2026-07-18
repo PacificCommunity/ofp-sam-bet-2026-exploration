@@ -17,16 +17,17 @@ models <- config_env$stepwise_models
 if (!is.data.frame(models)) fail("job-config.R did not create the stepwise_models data frame")
 
 core_prefixes <- sprintf("S%03d", 1:30)
-selectivity_prefixes <- c("S032", "S033", "S035", "S036")
+selectivity_prefixes <- c("S032", "S035")
 tag_prefixes <- sprintf("S%03d", 37:41)
-expected_prefixes <- c(core_prefixes, selectivity_prefixes, tag_prefixes)
+opr_prefixes <- c("S042", "S043")
+expected_prefixes <- c(core_prefixes, selectivity_prefixes, tag_prefixes, opr_prefixes)
 actual_prefixes <- sub("-.*$", "", as.character(models$step_id))
 if (nrow(models) != 39L || !identical(actual_prefixes, expected_prefixes)) {
-  fail("Expected 39 models with prefixes S001:S030, S032:S033, and S035:S041")
+  fail("Expected 39 models with prefixes S001:S030, S032, S035, and S037:S043")
 }
 if (anyDuplicated(models$step_id)) fail("Model IDs are not unique")
-if (any(actual_prefixes %in% c("S031", "S034"))) {
-  fail("Retired duplicate N5 identities S031/S034 remain in the design")
+if (any(actual_prefixes %in% c("S031", "S033", "S034", "S036"))) {
+  fail("Retired duplicate N5/IDX identities S031/S033/S034/S036 remain in the design")
 }
 
 tag_controls <- c(
@@ -34,10 +35,12 @@ tag_controls <- c(
   "S038-TC1-CUT90-DW1-TAGF2ON" = "S003-TC1-CUT90-DW1",
   "S039-DM-G5PROC-CEST-NOCUT-TAGF2ON" = "S005-DM-G5PROC-CEST-NOCUT",
   "S040-DM-G5PROC-CEST-CUT90-TAGF2ON" = "S006-DM-G5PROC-CEST-CUT90",
-  "S041-TC1-NOCUT-DW10-TAGF2ON" = "S002-TC1-NOCUT-DW10"
+  "S041-TC1-NOCUT-DW10-TAGF2ON" = "S002-TC1-NOCUT-DW10",
+  "S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON" =
+    "S042-OPR-Y72-E2-S01-R50-I50"
 )
-if (!identical(as.character(tail(models$step_id, 5L)), names(tag_controls))) {
-  fail("TAGF2ON identities or order do not match the confirmed five-model design")
+if (!all(names(tag_controls) %in% models$step_id)) {
+  fail("TAGF2ON identities do not match the confirmed six-model design")
 }
 
 tag_index <- match(names(tag_controls), models$step_id)
@@ -46,7 +49,7 @@ if (anyNA(tag_index) || anyNA(control_index) ||
     any(models$age_length_variant[tag_index] != "BASE075") ||
     any(models$tag_flag2[tag_index] != 1L) ||
     any(models$tag_flag2[-tag_index] != 0L) ||
-    any(models$selectivity_treatment[c(1:30, tag_index)] != "sa28_n5")) {
+    any(models$selectivity_treatment[models$selectivity_treatment != "sa28_n8"] != "sa28_n5")) {
   fail("Core/TAGF2ON baseline, BASE075, or tag-flag design is incorrect")
 }
 
@@ -55,7 +58,10 @@ semantic_columns <- c(
   "tail_compression_percent", "cutoff_cm", "cutoff_code",
   "lf_downweight_factor", "lf_size_divisor", "lf_likelihood",
   "dm_grouping", "dm_estimate_relative_sample_size",
-  "age_length_variant", "age_length_source", "selectivity_treatment"
+  "age_length_variant", "age_length_source", "selectivity_treatment",
+  "opr_enabled", "opr_year_effect", "opr_terminal_year_constraint",
+  "opr_season_effect", "opr_region_effect", "opr_region_season_effect",
+  "opr_terminal_penalty_flag", "opr_source"
 )
 for (i in seq_along(tag_index)) {
   for (column in semantic_columns) {
@@ -68,14 +74,13 @@ for (i in seq_along(tag_index)) {
 }
 
 expected_selectivity <- c(
-  "S032" = "sa28_n8", "S033" = "sa28_n5_idx_z2",
-  "S035" = "sa28_n8", "S036" = "sa28_n5_idx_z2"
+  "S032" = "sa28_n8", "S035" = "sa28_n8"
 )
 selectivity_index <- match(names(expected_selectivity), actual_prefixes)
 if (anyNA(selectivity_index) ||
     !identical(as.character(models$selectivity_treatment[selectivity_index]),
                unname(expected_selectivity))) {
-  fail("The four retained selectivity sensitivities are not N8/IDX-Z2 normal/DM pairs")
+  fail("The two retained selectivity sensitivities are not the N8 normal/DM pair")
 }
 
 age_counts <- table(factor(
@@ -92,6 +97,30 @@ if (any(models$dm_grouping[dm] != "process5") ||
     any(!models$lf_downweight_factor[normal] %in% c(1L, 10L)) ||
     any(grepl("CUT70|DW5|G4|C0", models$step_id))) {
   fail("Forbidden CUT70/DW5/G4/C0 or an invalid G5PROC/CEST configuration remains")
+}
+
+opr_ids <- c(
+  "S042-OPR-Y72-E2-S01-R50-I50",
+  "S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON"
+)
+opr_index <- match(opr_ids, models$step_id)
+if (anyNA(opr_index) || sum(models$opr_enabled) != 2L ||
+    any(models$age_length_variant[opr_index] != "BASE075") ||
+    any(models$lf_likelihood[opr_index] != "normal") ||
+    any(models$tail_compression_percent[opr_index] != 1L) ||
+    any(is.finite(models$cutoff_cm[opr_index])) ||
+    any(models$lf_downweight_factor[opr_index] != 1L) ||
+    any(models$lf_size_divisor[opr_index] != 20L) ||
+    any(models$selectivity_treatment[opr_index] != "sa28_n5") ||
+    any(models$opr_year_effect[opr_index] != 72L) ||
+    any(models$opr_terminal_year_constraint[opr_index] != 2L) ||
+    any(models$opr_season_effect[opr_index] != 1L) ||
+    any(models$opr_region_effect[opr_index] != 50L) ||
+    any(models$opr_region_season_effect[opr_index] != 50L) ||
+    any(models$opr_terminal_penalty_flag[opr_index] != 0L) ||
+    !identical(models$tag_flag2[opr_index], c(0L, 1L)) ||
+    any(grepl("Y71|TP[0-9]", models$step_id))) {
+  fail("OPR pair must be fixed Y72-E2-S01-R50-I50 with penalty disabled and tag flags 0/1")
 }
 
 generated_ids <- sort(list.dirs(sensitivity_root, recursive = FALSE, full.names = FALSE))
@@ -180,6 +209,61 @@ for (id in names(tag_controls)) {
   }
 }
 
+opr_control_id <- opr_ids[[1L]]
+opr_tag_id <- opr_ids[[2L]]
+opr_base_id <- "S001-TC1-NOCUT-DW1"
+for (name in setdiff(model_inputs, "doitall.sh")) {
+  if (!same_file(model_file(opr_control_id, name), model_file(opr_base_id, name))) {
+    fail(opr_control_id, " differs from S001 outside the reviewed OPR doitall change: ", name)
+  }
+}
+opr_env <- new.env(parent = globalenv())
+sys.source(file.path(repo_root, "R", "prepare_common.R"), envir = opr_env)
+sys.source(file.path(repo_root, "R", "prepare_doitall.R"), envir = opr_env)
+if (!is.function(opr_env$apply_opr)) fail("Missing reviewed apply_opr() helper")
+expected_opr_doitall <- opr_env$apply_opr(
+  readLines(model_file(opr_base_id, "doitall.sh"), warn = FALSE),
+  year_effect = 72L,
+  season_effect = 1L,
+  region_effect = 50L,
+  region_season_effect = 50L,
+  terminal_year_constraint = 2L,
+  terminal_penalty_flag = 0L,
+  compatibility_year_effect = 72L
+)
+actual_opr_doitall <- readLines(model_file(opr_control_id, "doitall.sh"), warn = FALSE)
+if (!identical(actual_opr_doitall, expected_opr_doitall) ||
+    any(grepl("^[[:space:]]*1[[:space:]]+397[[:space:]]+100([[:space:]]|$)",
+              actual_opr_doitall))) {
+  fail(opr_control_id, " is not the exact reviewed Y72-E2-S01-R50-I50 penalty-off OPR transform")
+}
+opr_settings_paths <- file.path(sensitivity_root, opr_ids, "opr_settings.csv")
+if (any(!file.exists(opr_settings_paths)) ||
+    !same_file(opr_settings_paths[[1L]], opr_settings_paths[[2L]])) {
+  fail("OPR pair must have identical machine-readable OPR settings")
+}
+opr_settings <- utils::read.csv(opr_settings_paths[[1L]], stringsAsFactors = FALSE)
+if (nrow(opr_settings) != 1L || opr_settings$year_effect != 72L ||
+    opr_settings$terminal_year_constraint != 2L ||
+    opr_settings$season_effect != 1L || opr_settings$region_effect != 50L ||
+    opr_settings$region_season_effect != 50L ||
+    opr_settings$compatibility_year_effect != 72L ||
+    opr_settings$terminal_penalty_flag != 0L) {
+  fail("OPR settings CSV does not encode fixed Y72-E2-S01-R50-I50 with penalty disabled")
+}
+for (id in opr_ids) {
+  documentation <- paste(unlist(lapply(
+    c(file.path(sensitivity_root, id, "README.md"),
+      file.path(sensitivity_root, id, "input_manifest.csv")),
+    readLines, warn = FALSE
+  )), collapse = "\n")
+  if (!grepl("apply_opr", documentation, fixed = TRUE) ||
+      !grepl("Y72-E2-S01-R50-I50", documentation, fixed = TRUE) ||
+      !grepl("397=0", documentation, fixed = TRUE)) {
+    fail(id, " lacks exact OPR provenance or fixed-control documentation")
+  }
+}
+
 canonical <- function(line) {
   line <- sub("#.*$", "", line)
   gsub("[[:space:]]+", " ", trimws(line))
@@ -227,7 +311,12 @@ require_triple(n5_flags, -999L, 61L, 5L, n5_reference_id)
 expected_groups <- c(1:24, 30:33, rep(25L, 5L))
 for (fishery in 1:33) require_triple(n5_flags, -fishery, 24L,
                                      expected_groups[[fishery]], n5_reference_id)
-expected_zeros <- c(setNames(rep(2L, 12L), 1:12), `13` = 1L, `15` = 5L)
+expected_zeros <- c(
+  setNames(rep(2L, 12L), 1:12),
+  `13` = 1L,
+  `15` = 5L,
+  setNames(rep(2L, 5L), 29:33)
+)
 zero_flags <- n5_flags[n5_flags$flag == 75L, c("actor", "value")]
 zero_flags <- zero_flags[order(zero_flags$actor), , drop = FALSE]
 expected_zero_df <- data.frame(
@@ -258,7 +347,7 @@ if (any(n5_flags$flag == 61L & n5_flags$actor != -999L)) {
 
 core_ids <- models$step_id[actual_prefixes %in% core_prefixes]
 tag_ids <- names(tag_controls)
-for (id in c(core_ids, tag_ids)) {
+for (id in unique(c(core_ids, tag_ids, opr_ids))) {
   if (!identical(selectivity_block(id), n5_block)) {
     fail(id, " does not inherit the exact complete corrected N5 block")
   }
@@ -269,6 +358,11 @@ for (id in c(core_ids, tag_ids)) {
       fail(id, " does not split F29-F33 to groups 25:29 in phase 5")
     }
   }
+}
+
+for (id in models$step_id) {
+  flags <- flag_triples(selectivity_block(id), id)
+  for (fishery in 29:33) require_triple(flags, -fishery, 75L, 2L, id)
 }
 
 map_reference <- model_file(n5_reference_id, "fishery_map.R")
@@ -311,32 +405,6 @@ for (pair in list(c("S032", "S003"), c("S035", "S006"))) {
   }
 }
 
-strip_idx_z2 <- function(block) block[
-  !grepl("^# IDX-Z2:", block) &
-    !grepl("^[[:space:]]*-(29|30|31|32|33)[[:space:]]+75[[:space:]]+2([[:space:]]|$)", block)
-]
-for (pair in list(c("S033", "S003"), c("S036", "S006"))) {
-  treatment_id <- models$step_id[actual_prefixes == pair[[1L]]]
-  control_id <- models$step_id[actual_prefixes == pair[[2L]]]
-  block <- selectivity_block(treatment_id)
-  flags <- flag_triples(block, treatment_id)
-  for (fishery in 29:33) require_triple(flags, -fishery, 75L, 2L, treatment_id)
-  if (length(block) - length(strip_idx_z2(block)) != 6L ||
-      !identical(strip_idx_z2(block), selectivity_block(control_id))) {
-    fail(treatment_id, " must differ from N5 only by F29-F33 flag75=2")
-  }
-  treatment_doitall <- readLines(model_file(treatment_id, "doitall.sh"), warn = FALSE)
-  control_doitall <- readLines(model_file(control_id, "doitall.sh"), warn = FALSE)
-  if (!identical(strip_idx_z2(treatment_doitall), control_doitall)) {
-    fail(treatment_id, " has a non-F29/F33 difference elsewhere in doitall.sh")
-  }
-  for (name in setdiff(model_inputs, "doitall.sh")) {
-    if (!same_file(model_file(treatment_id, name), model_file(control_id, name))) {
-      fail(treatment_id, " differs from its N5 control outside doitall.sh: ", name)
-    }
-  }
-}
-
 input_signature <- function(id) paste(vapply(
   model_inputs,
   function(name) paste0(name, "=", sha256_file(model_file(id, name))),
@@ -353,8 +421,10 @@ if (anyDuplicated(signatures)) {
 
 readme <- paste(readLines(file.path(repo_root, "README.md"), warn = FALSE), collapse = "\n")
 required_readme_terms <- c(
-  "39", "F12", "PS.JP.1", "F13", "PL.JP.1", "S031", "S034",
-  "corrected", "five", "eight", "IDX-Z2"
+  "39", "F12", "PS.JP.1", "F13", "PL.JP.1", "S031", "S033",
+  "S034", "S036", "corrected", "five", "eight", "F29-F33",
+  "S042-OPR-Y72-E2-S01-R50-I50", "S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON",
+  "Terminal penalty is disabled"
 )
 if (any(!vapply(required_readme_terms, grepl, logical(1), x = readme,
                 fixed = TRUE))) {
@@ -364,6 +434,7 @@ if (any(!vapply(required_readme_terms, grepl, logical(1), x = readme,
 cat("Validation passed: 39 non-duplicate sensitivity models.\n")
 cat("Core S001-S030 and TAGF2ON S037-S041 inherit the exact corrected N5 baseline.\n")
 cat("N8 axis: only F12 PS.JP.1 and F13 PL.JP.1 change flag 61 from 5 to 8.\n")
-cat("IDX-Z2 axis: corrected N5 plus flag 75=2 for F29-F33.\n")
-cat("Retired duplicates: S031 and S034. Retained: S032, S033, S035, S036.\n")
-cat("TAGF2ON models differ from their controls only in all 98 tag_flags(:,2) values.\n")
+cat("Index baseline: every model has flag 75=2 for F29-F33 Index R1-R5.\n")
+cat("Retired duplicates: S031, S033, S034, and S036. Retained N8: S032 and S035.\n")
+cat("OPR pair: exact reviewed Y72-E2-S01-R50-I50 transform with parest 397=0.\n")
+cat("All six TAGF2ON models differ from their controls only in all 98 tag_flags(:,2) values.\n")

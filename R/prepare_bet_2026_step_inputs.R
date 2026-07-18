@@ -1,7 +1,8 @@
 ## Rebuild the 30-model BET 2026 LF-age-length design (five age-length
-## variants crossed with six LF configurations), four non-duplicate BASE075
-## selectivity models, and five BASE075 tag-flag sensitivities. The complete
-## corrected single-area-derived SA28-N5 treatment is the common baseline.
+## variants crossed with six LF configurations), two non-duplicate BASE075
+## N8 models, five core TAGF2ON models, and one Y72-E2 OPR tag-control pair.
+## The complete corrected single-area-derived SA28-N5 treatment, including
+## F29-F33 early-age zeros, is the common baseline.
 ##
 ## Every cell retains the exact effort-crept FRQ archived by Kflow Job 5319.
 ## The tag-control INI is the current upstream build-ini file wholesale, with
@@ -32,7 +33,8 @@ single_area_selectivity_commit <-
 required_project_files <- c(
   "job-config.R",
   file.path("R", "prepare_common.R"),
-  file.path("R", "prepare_mfcl_inputs.R")
+  file.path("R", "prepare_mfcl_inputs.R"),
+  file.path("R", "prepare_doitall.R")
 )
 missing_project_files <- required_project_files[
   !file.exists(file.path(root, required_project_files))
@@ -74,6 +76,16 @@ expected_tag_sha256 <-
   "3f1b836a844ec2ca8e70fc5814d94c5a1ebc37ff4a5571c1dc1f6b83e477dfe8"
 
 fail <- function(...) stop(paste0(...), call. = FALSE)
+
+opr_helper_env <- new.env(parent = globalenv())
+sys.source(file.path(root, "R", "prepare_doitall.R"), envir = opr_helper_env)
+if (!is.function(opr_helper_env$apply_opr)) {
+  fail("R/prepare_doitall.R must provide the reviewed BET apply_opr() helper")
+}
+opr_source_note <- paste(
+  "Reviewed BET OPR apply_opr() semantics from the existing local",
+  "ofp-sam-bet-2026-opr-sensitivities worktree, maintained in R/prepare_doitall.R."
+)
 
 sha256_file <- function(path) {
   output <- suppressWarnings(system2(
@@ -131,7 +143,9 @@ tag_flag_sensitivity_controls <- c(
   "S038-TC1-CUT90-DW1-TAGF2ON" = "S003-TC1-CUT90-DW1",
   "S039-DM-G5PROC-CEST-NOCUT-TAGF2ON" = "S005-DM-G5PROC-CEST-NOCUT",
   "S040-DM-G5PROC-CEST-CUT90-TAGF2ON" = "S006-DM-G5PROC-CEST-CUT90",
-  "S041-TC1-NOCUT-DW10-TAGF2ON" = "S002-TC1-NOCUT-DW10"
+  "S041-TC1-NOCUT-DW10-TAGF2ON" = "S002-TC1-NOCUT-DW10",
+  "S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON" =
+    "S042-OPR-Y72-E2-S01-R50-I50"
 )
 tag_flag_sensitivity_ids <- names(tag_flag_sensitivity_controls)
 
@@ -192,7 +206,10 @@ restore_upstream_tag_flag_column2 <- function(path, expected_rows = 98L) {
 
 required_selectivity_columns <- c(
   "selectivity_treatment", "selectivity_reference",
-  "tag_flag2", "tag_flag2_reference"
+  "tag_flag2", "tag_flag2_reference", "opr_enabled",
+  "opr_year_effect", "opr_terminal_year_constraint",
+  "opr_season_effect", "opr_region_effect", "opr_region_season_effect",
+  "opr_terminal_penalty_flag", "opr_source"
 )
 if (!is.data.frame(models) ||
     !all(required_selectivity_columns %in% names(models)) ||
@@ -216,9 +233,9 @@ if (!all(models$lf_likelihood %in% c("normal", "dm_nore"))) {
 }
 dm_rows <- models$lf_likelihood == "dm_nore"
 tag_flag_rows <- models$step_id %in% tag_flag_sensitivity_ids
-selectivity_rows <- models$selectivity_treatment %in%
-  c("sa28_n8", "sa28_n5_idx_z2")
-core_rows <- !selectivity_rows & !tag_flag_rows
+opr_rows <- as.logical(models$opr_enabled)
+selectivity_rows <- models$selectivity_treatment == "sa28_n8"
+core_rows <- !selectivity_rows & !tag_flag_rows & !opr_rows
 finite_cutoff_rows <- is.finite(models$cutoff_cm)
 if (any(models$cutoff_cm[finite_cutoff_rows] != 90) ||
     any(!models$lf_downweight_factor[normal_rows] %in% c(1L, 10L)) ||
@@ -233,8 +250,8 @@ if (any(models$dm_grouping[dm_rows] != "process5") ||
     any(grepl("CUT70|DW5|G1-|G2-|G4-|G7QUAL|C0-", models$step_id))) {
   fail("Every DM model must use G5PROC with the relative sample-size exponent estimated")
 }
-if (any(models$selectivity_treatment[core_rows | tag_flag_rows] != "sa28_n5")) {
-  fail("Every core and TAGF2ON model must use the corrected SA28-N5 baseline")
+if (any(models$selectivity_treatment[!selectivity_rows] != "sa28_n5")) {
+  fail("Every non-N8 model must use the corrected SA28-N5 baseline")
 }
 
 expected_age_levels <- c("BASE075", "REG075", "REG100", "SUB075", "SUB100")
@@ -243,7 +260,7 @@ if (!identical(as.integer(age_level_counts), c(15L, rep(6L, 4L))) ||
     anyDuplicated(models[core_rows, c("base_sensitivity", "age_length_variant")])) {
   fail(paste(
     "Expected 30 core models (five age-length variants x six LF configurations)",
-    "plus four non-duplicate BASE075 selectivity models and five BASE075 tag-flag sensitivities"
+    "plus two BASE075 N8 models, five core TAGF2ON models, and the two-model OPR tag pair"
   ))
 }
 base_rows <- models$age_length_variant == "BASE075"
@@ -308,19 +325,14 @@ for (i in seq_len(nrow(source_models))) {
 
 expected_selectivity_ids <- c(
   "S032-TC1-CUT90-DW1-SA28-N8",
-  "S033-TC1-CUT90-DW1-IDX-Z2",
-  "S035-DM-G5PROC-CEST-CUT90-SA28-N8",
-  "S036-DM-G5PROC-CEST-CUT90-IDX-Z2"
+  "S035-DM-G5PROC-CEST-CUT90-SA28-N8"
 )
-expected_selectivity_treatments <- rep(
-  c("sa28_n8", "sa28_n5_idx_z2"),
-  2L
-)
+expected_selectivity_treatments <- rep("sa28_n8", 2L)
 expected_selectivity_references <- c(
-  rep("S003-TC1-CUT90-DW1", 2L),
-  rep("S006-DM-G5PROC-CEST-CUT90", 2L)
+  "S003-TC1-CUT90-DW1",
+  "S006-DM-G5PROC-CEST-CUT90"
 )
-if (sum(selectivity_rows) != 4L ||
+if (sum(selectivity_rows) != 2L ||
     !identical(as.character(models$step_id[selectivity_rows]), expected_selectivity_ids) ||
     !identical(
       as.character(models$selectivity_treatment[selectivity_rows]),
@@ -332,15 +344,15 @@ if (sum(selectivity_rows) != 4L ||
     ) ||
     any(models$age_length_variant[selectivity_rows] != "BASE075") ||
     any(models$cutoff_cm[selectivity_rows] != 90) ||
-    sum(selectivity_rows & normal_rows) != 2L ||
-    sum(selectivity_rows & dm_rows) != 2L ||
+    sum(selectivity_rows & normal_rows) != 1L ||
+    sum(selectivity_rows & dm_rows) != 1L ||
     any(models$lf_downweight_factor[selectivity_rows & normal_rows] != 1L) ||
     any(models$lf_size_divisor[selectivity_rows & normal_rows] != 20L) ||
     any(models$dm_grouping[selectivity_rows & dm_rows] != "process5") ||
     any(!models$dm_estimate_relative_sample_size[selectivity_rows & dm_rows])) {
   fail(paste(
-    "Selectivity sensitivities must be the non-duplicate CUT90 SA28-N8 and",
-    "corrected-SA28-N5-plus-IDX-Z2 pairs based on S003 and S006"
+    "Selectivity sensitivities must be the two non-duplicate CUT90 SA28-N8",
+    "models based on corrected-N5 controls S003 and S006"
   ))
 }
 paired_control_columns <- c(
@@ -365,8 +377,41 @@ for (i in which(selectivity_rows)) {
 
 tag_flag_control_columns <- unique(c(
   paired_control_columns,
-  "selectivity_treatment"
+  "selectivity_treatment", "opr_enabled", "opr_year_effect",
+  "opr_terminal_year_constraint", "opr_season_effect", "opr_region_effect",
+  "opr_region_season_effect", "opr_terminal_penalty_flag", "opr_source"
 ))
+
+expected_opr_ids <- c(
+  "S042-OPR-Y72-E2-S01-R50-I50",
+  "S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON"
+)
+opr_indices <- match(expected_opr_ids, models$step_id)
+opr_base_index <- match("S001-TC1-NOCUT-DW1", models$step_id)
+if (anyNA(opr_indices) || is.na(opr_base_index) || sum(opr_rows) != 2L ||
+    !identical(as.character(models$step_id[opr_rows]), expected_opr_ids) ||
+    any(models$age_length_variant[opr_indices] != "BASE075") ||
+    any(models$selectivity_treatment[opr_indices] != "sa28_n5") ||
+    any(models$lf_likelihood[opr_indices] != "normal") ||
+    any(models$tail_compression_percent[opr_indices] != 1L) ||
+    any(is.finite(models$cutoff_cm[opr_indices])) ||
+    any(models$lf_downweight_factor[opr_indices] != 1L) ||
+    any(models$lf_size_divisor[opr_indices] != 20L) ||
+    any(models$opr_year_effect[opr_indices] != 72L) ||
+    any(models$opr_terminal_year_constraint[opr_indices] != 2L) ||
+    any(models$opr_season_effect[opr_indices] != 1L) ||
+    any(models$opr_region_effect[opr_indices] != 50L) ||
+    any(models$opr_region_season_effect[opr_indices] != 50L) ||
+    any(models$opr_terminal_penalty_flag[opr_indices] != 0L) ||
+    !identical(models$tag_flag2[opr_indices], c(0L, 1L))) {
+  fail("OPR pair must be BASE075 S001 controls with Y72 E2 S01 R50 I50 and penalty disabled")
+}
+for (column in c(paired_control_columns, "selectivity_treatment")) {
+  if (!identical(models[[column]][[opr_indices[[1L]]]],
+                 models[[column]][[opr_base_index]])) {
+    fail("S042 OPR control differs from S001 in non-OPR setting ", column)
+  }
+}
 tag_flag_indices <- match(tag_flag_sensitivity_ids, models$step_id)
 tag_flag_reference_indices <- match(
   unname(tag_flag_sensitivity_controls), models$step_id
@@ -377,7 +422,7 @@ if (anyNA(tag_flag_indices) || anyNA(tag_flag_reference_indices) ||
     any(models$tag_flag2_reference[tag_flag_indices] !=
           unname(tag_flag_sensitivity_controls)) ||
     any(models$selectivity_treatment[tag_flag_indices] != "sa28_n5")) {
-  fail("The five TAGF2ON identities, controls, BASE075 inputs, or SA28-N5 baseline are wrong")
+  fail("The six TAGF2ON identities, controls, BASE075 inputs, or SA28-N5 baseline are wrong")
 }
 for (i in seq_along(tag_flag_indices)) {
   if (any(!vapply(
@@ -567,19 +612,12 @@ selectivity_treatment_note <- function(treatment) {
     sa28_n5 = paste(
       "The corrected N5 baseline assigns independent selectivity groups to F1-F28,",
       "applies the audited young-age, F9 monotonicity, and upper-age constraints,",
-      "uses five nodes, and splits regional-index groups F29-F33 in phase 5."
+      "fixes the first two ages of F29-F33 to zero, uses five nodes, and splits",
+      "regional-index groups F29-F33 in phase 5."
     ),
     sa28_n8 = paste(
       "The corrected N8 treatment is identical to N5 except that F12 PS.JP.1",
       "and F13 PL.JP.1 use eight rather than five spline nodes."
-    ),
-    sa28_n5_idx_z2 = paste(
-      "IDX-Z2 starts from the complete corrected N5 baseline and additionally",
-      "fixes the first two ages of regional indices F29-F33 to zero."
-    ),
-    idx_z2 = paste(
-      "IDX-Z2 retains the current extraction settings and five independent",
-      "regional indices, adding first-two-age-zero constraints only to F29-F33."
     ),
     fail("Unknown selectivity treatment: ", treatment)
   )
@@ -627,6 +665,12 @@ single_area_selectivity_block <- function(nodes) {
     sprintf("  -%d 75 2", 1:12),
     "  -13 75 1",
     "  -15 75 5",
+    "# Corrected regional-index early-age constraints.",
+    "  -29 75 2  # Index R1",
+    "  -30 75 2  # Index R2",
+    "  -31 75 2  # Index R3",
+    "  -32 75 2  # Index R4",
+    "  -33 75 2  # Index R5",
     "# Single-area extraction age-spline and upper-age constraints.",
     "  -12 16 2  -12 3 25",
     "  -13 16 2  -13 3 30",
@@ -653,34 +697,12 @@ apply_selectivity_treatment <- function(lines, treatment) {
   if (length(block_start) != 1L || length(block_end) != 1L || block_start >= block_end) {
     fail("Archived doitall.sh must contain one complete PHASE1 selectivity block")
   }
-  if (treatment %in% c("sa28_n5", "sa28_n8", "sa28_n5_idx_z2")) {
+  if (treatment %in% c("sa28_n5", "sa28_n8")) {
     nodes <- if (identical(treatment, "sa28_n8")) 8L else 5L
-    lines <- c(
+    return(c(
       lines[seq_len(block_start - 1L)],
       single_area_selectivity_block(nodes),
       lines[block_end:length(lines)]
-    )
-    if (!identical(treatment, "sa28_n5_idx_z2")) return(lines)
-    block_start <- grep("^# Selectivity settings[[:space:]]*$", lines)
-    block_end <- grep("^# Turn on weighted spline", lines)
-  }
-  if (treatment %in% c("idx_z2", "sa28_n5_idx_z2")) {
-    selectivity_lines <- lines[seq.int(block_start, block_end - 1L)]
-    if (any(vapply(29:33, function(fishery) {
-      any(grepl(
-        sprintf("^[[:space:]]*-%d[[:space:]]+75[[:space:]]+", fishery),
-        selectivity_lines
-      ))
-    }, logical(1)))) {
-      fail("Archived doitall.sh unexpectedly contains index flag-75 constraints")
-    }
-    return(append(
-      lines,
-      c(
-        "# IDX-Z2: first two ages fixed to zero for regional indices only.",
-        sprintf("  -%d 75 2  # Index R%d", 29:33, 1:5)
-      ),
-      after = block_end - 1L
     ))
   }
   fail("Unknown selectivity treatment: ", treatment)
@@ -688,7 +710,7 @@ apply_selectivity_treatment <- function(lines, treatment) {
 
 apply_selectivity_fishery_map <- function(path, treatment) {
   treatment <- as.character(treatment[[1L]])
-  if (!treatment %in% c("sa28_n5", "sa28_n8", "sa28_n5_idx_z2")) {
+  if (!treatment %in% c("sa28_n5", "sa28_n8")) {
     return(invisible(path))
   }
   lines <- readLines(path, warn = FALSE)
@@ -877,6 +899,7 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
     " path ", build_ini_source_path, "."
   )
   is_dm <- identical(as.character(row$lf_likelihood), "dm_nore")
+  is_opr <- isTRUE(row$opr_enabled[[1L]])
   step_id <- as.character(row$step_id)
   is_tag_flag_sensitivity <- step_id %in% tag_flag_sensitivity_ids
   tag_flag_reference <- unname(tag_flag_sensitivity_controls[step_id])
@@ -982,6 +1005,17 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
       }
     )
   }
+  if (is_opr) {
+    doitall_note <- paste(
+      doitall_note,
+      opr_source_note,
+      paste(
+        "Fixed OPR controls: parest 155=72, 221=72, 202=2, 217=1,",
+        "216=50, 218=50, and 397=0. Terminal penalty is disabled and is",
+        "not a sensitivity axis."
+      )
+    )
+  }
 
   manifest_sources <- file.path(
     reference_source,
@@ -1060,7 +1094,7 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
       anchor_note,
       paste(
         stepwise_refresh_note,
-        if (selectivity_treatment %in% c("sa28_n5", "sa28_n8", "sa28_n5_idx_z2")) {
+        if (selectivity_treatment %in% c("sa28_n5", "sa28_n8")) {
           paste(
             "Updated fishery names plus corrected independent F1-F28 display groups;",
             "regional indices share group 25 in phases 1-4 and split to groups 25:29 in phase 5."
@@ -1089,6 +1123,22 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
         note = paste(
           treatment,
           "The audit reconciles removed counts, affected records, all-zero LF sentinels, and minimum-sample crossings."
+        ),
+        stringsAsFactors = FALSE
+      )
+    )
+  }
+  if (is_opr) {
+    manifest <- rbind(
+      manifest,
+      data.frame(
+        role = "opr_settings",
+        file = "opr_settings.csv",
+        source = "R/prepare_doitall.R::apply_opr",
+        source_commit = NA_character_,
+        note = paste(
+          opr_source_note,
+          "Y72-E2-S01-R50-I50; compatibility 221=72; parest 397=0."
         ),
         stringsAsFactors = FALSE
       )
@@ -1139,10 +1189,6 @@ add_selectivity_readme <- function(lines, row) {
     sa28_n8 = paste(
       "This changes only F12 PS.JP.1 and F13 PL.JP.1 from five to eight nodes",
       "relative to the complete corrected N5 baseline."
-    ),
-    sa28_n5_idx_z2 = paste(
-      "This adds first-two-age zero constraints for F29-F33 to the complete",
-      "corrected N5 baseline without changing extraction selectivity."
     )
   )
   is_promoted_baseline <- identical(treatment, "sa28_n5")
@@ -1164,7 +1210,7 @@ add_selectivity_readme <- function(lines, row) {
     if (identical(treatment, "sa28_n8")) {
       "All non-F12/F13 selectivity settings are required to be identical to corrected N5."
     } else NULL,
-    if (treatment %in% c("sa28_n5", "sa28_n8", "sa28_n5_idx_z2")) {
+    if (treatment %in% c("sa28_n5", "sa28_n8")) {
       paste0(
         "Corrected selectivity source: `", single_area_selectivity_source, "@",
         single_area_selectivity_commit, "`."
@@ -1174,6 +1220,39 @@ add_selectivity_readme <- function(lines, row) {
     }
   )
   append(lines, section, after = status_line[[1L]] - 2L)
+}
+
+append_opr_readme <- function(step_dir, row) {
+  if (!isTRUE(row$opr_enabled[[1L]])) return(invisible(step_dir))
+  path <- file.path(step_dir, "README.md")
+  lines <- readLines(path, warn = FALSE)
+  status_line <- grep("^Status:", lines)
+  if (length(status_line) != 1L) fail("Generated OPR README must contain one status line")
+  section <- c(
+    "",
+    "## Recruitment OPR control",
+    "",
+    "This model uses the reviewed BET `apply_opr()` switch semantics.",
+    "",
+    "| MFCL control | Fixed value |",
+    "| --- | ---: |",
+    "| Annual OPR coefficients, parest 155 | 72 |",
+    "| Compatibility state, parest 221 | 72 |",
+    "| End window, parest 202 | 2 |",
+    "| Season coefficients, parest 217 | 1 |",
+    "| Region coefficients, parest 216 | 50 |",
+    "| Region-season coefficients, parest 218 | 50 |",
+    "| Terminal penalty, parest 397 | 0 (disabled) |",
+    "",
+    paste(
+      "The OPR structure is fixed at Y72-E2-S01-R50-I50. Terminal penalty",
+      "is disabled in both models and is not a sensitivity axis."
+    ),
+    opr_source_note
+  )
+  lines <- append(lines, section, after = status_line[[1L]] - 2L)
+  writeLines(lines, path, useBytes = TRUE)
+  invisible(path)
 }
 
 write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
@@ -1510,6 +1589,41 @@ for (i in seq_len(nrow(models))) {
       isTRUE(row$dm_estimate_relative_sample_size[[1L]]),
     selectivity_treatment = as.character(row$selectivity_treatment)
   )
+  if (isTRUE(row$opr_enabled[[1L]])) {
+    doitall_path <- file.path(model_dir, "doitall.sh")
+    lines <- readLines(doitall_path, warn = FALSE)
+    lines <- opr_helper_env$apply_opr(
+      lines,
+      year_effect = 72L,
+      season_effect = 1L,
+      region_effect = 50L,
+      region_season_effect = 50L,
+      terminal_year_constraint = 2L,
+      terminal_penalty_flag = 0L,
+      compatibility_year_effect = 72L
+    )
+    if (any(grepl("^[[:space:]]*1[[:space:]]+397[[:space:]]+100([[:space:]]|$)", lines))) {
+      fail(step_id, " unexpectedly enables the terminal penalty")
+    }
+    writeLines(lines, doitall_path, useBytes = TRUE)
+    Sys.chmod(doitall_path, mode = "0755")
+    utils::write.csv(
+      data.frame(
+        year_effect = 72L,
+        terminal_year_constraint = 2L,
+        season_effect = 1L,
+        region_effect = 50L,
+        region_season_effect = 50L,
+        compatibility_year_effect = 72L,
+        terminal_penalty_flag = 0L,
+        source = "R/prepare_doitall.R::apply_opr",
+        stringsAsFactors = FALSE
+      ),
+      file.path(step_dir, "opr_settings.csv"),
+      row.names = FALSE,
+      na = ""
+    )
+  }
   treatment <- cutoff_sentence(cutoff_cm)
   write_model_manifest(
     step_dir,
@@ -1518,6 +1632,7 @@ for (i in seq_len(nrow(models))) {
     has_cutoff = is.finite(cutoff_cm)
   )
   write_model_readme(step_dir, row, treatment, cutoff_audit)
+  append_opr_readme(step_dir, row)
 }
 
 if (!file.rename(sensitivity_root, backup_root)) {

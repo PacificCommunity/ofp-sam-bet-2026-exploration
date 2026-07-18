@@ -110,46 +110,12 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   2 94 1 2 128 100  # initial Z = 1.0*M, i.e. initial F = 0
 # Likelihood component settings
   1 111 4     # set likelihood function for tags to negative binomial
-  1 141 11    # LF Dirichlet-multinomial likelihood without random effects
-  1 320 5     # DM LF tail compression; retain at least five class intervals
-  1 342 1000  # DM-noRE maximum LF effective sample size
+  1 141 3     # set likelihood function for LF data to normal
   1 139 3     # set likelihood function for WF data to normal
   -999 49 20  # divide LF sample sizes by 20
-  -1 68 1  # DM LF group: Longline extraction
-  -2 68 1  # DM LF group: Longline extraction
-  -3 68 1  # DM LF group: Longline extraction
-  -4 68 1  # DM LF group: Longline extraction
-  -5 68 1  # DM LF group: Longline extraction
-  -6 68 1  # DM LF group: Longline extraction
-  -7 68 1  # DM LF group: Longline extraction
-  -8 68 1  # DM LF group: Longline extraction
-  -9 68 1  # DM LF group: Longline extraction
-  -10 68 1  # DM LF group: Longline extraction
-  -11 68 1  # DM LF group: Longline extraction
-  -12 68 2  # DM LF group: Large-scale purse seine
-  -13 68 4  # DM LF group: Other extraction
-  -14 68 4  # DM LF group: Other extraction
-  -15 68 4  # DM LF group: Other extraction
-  -16 68 4  # DM LF group: Other extraction
-  -17 68 3  # DM LF group: Domestic purse seine
-  -18 68 3  # DM LF group: Domestic purse seine
-  -19 68 2  # DM LF group: Large-scale purse seine
-  -20 68 2  # DM LF group: Large-scale purse seine
-  -21 68 4  # DM LF group: Other extraction
-  -22 68 4  # DM LF group: Other extraction
-  -23 68 4  # DM LF group: Other extraction
-  -24 68 4  # DM LF group: Other extraction
-  -25 68 2  # DM LF group: Large-scale purse seine
-  -26 68 2  # DM LF group: Large-scale purse seine
-  -27 68 2  # DM LF group: Large-scale purse seine
-  -28 68 2  # DM LF group: Large-scale purse seine
-  -29 68 5  # DM LF group: Index
-  -30 68 5  # DM LF group: Index
-  -31 68 5  # DM LF group: Index
-  -32 68 5  # DM LF group: Index
-  -33 68 5  # DM LF group: Index
-  -999 69 1  # estimate group-specific DM LF scalar exponent
-  -999 89 0  # stage relative sample-size exponent as fixed at zero
+  -21 49 20  # sensitivity-only F21 LF effective-sample-size divisor
+  -22 49 20  # sensitivity-only F22 LF effective-sample-size divisor
+  -23 49 20  # sensitivity-only F23 LF effective-sample-size divisor
   -999 50 20  # divide WF sample sizes by 20
 # Additional LF/WF sample-size reductions retained from the inherited setup.
 # Index fisheries 29-33 are included; extraction labels need the 03 fishery map.
@@ -263,6 +229,12 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -12 75 2
   -13 75 1
   -15 75 5
+# Corrected regional-index early-age constraints.
+  -29 75 2  # Index R1
+  -30 75 2  # Index R2
+  -31 75 2  # Index R3
+  -32 75 2  # Index R4
+  -33 75 2  # Index R5
 # Single-area extraction age-spline and upper-age constraints.
   -12 16 2  -12 3 25
   -13 16 2  -13 3 30
@@ -278,21 +250,15 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -21 16 2  -21 3 10
   -22 16 2  -22 3 7
   -23 16 2  -23 3 6
-# IDX-Z2: first two ages fixed to zero for regional indices only.
-  -29 75 2  # Index R1
-  -30 75 2  # Index R2
-  -31 75 2  # Index R3
-  -32 75 2  # Index R4
-  -33 75 2  # Index R5
 # Turn on weighted spline for calculating maturity at age
   2 188 2
 # Set Lorenzen M
   2 109 3  # select Lorenzen curve
   1 121 0  # do not estimate Lorenzen scaling parameter yet
 # Filter out comps with input samples less than 50
-  1 311 1 # retain LF preprocessing gate so the inherited N < 50 filter remains active
+  1 311 1   # set tail compression for LF data
   1 301 1   # set tail compression for WF data
-  1 313 0   # proportions in compressed tails for LF data
+  1 313 1   # proportions in compressed tails for LF data
   1 303 0   # proportions in compressed tails for WF data
   1 312 50  # set minimum obs sample size for LF data
   1 302 50  # set minimum obs sample size for WF data
@@ -305,11 +271,10 @@ PHASE1
 # ---------
 
 $program_path bet.frq 01.par 02.par -file - <<PHASE2
-  -999 89 1  # estimate group-specific DM LF relative sample-size exponent
   1 1 100  # set max. number of function evaluations per phase to 100
   1 50 0   # set convergence criterion to 1
   2 113 0  # scaling init pop - turned off
-  1 190 0 # defer DM plot reporting until the final phase; MFCL 2.4 crashes on the early report
+  1 190 1  # write plot-xxx.par.rep
 PHASE2
 
 # ---------
@@ -317,10 +282,37 @@ PHASE2
 # ---------
 
 $program_path bet.frq 02.par 03.par -file - <<PHASE3
-  2 70 1   # activate time series of reg recruitment parameters
-  2 71 1   # estimate temporal changes in recruitment distribution
-  2 178 1  # constrain regional recruitments
-  1 1 200
+# OPR settings from the reviewed PDH model: 72-01-50-50.
+  1 149 0   # turn off recruitment-deviation penalty for OPR
+  1 398 0   # turn off arithmetic-mean terminal fixed-recruitment option for OPR
+  1 400 0   # clear fixed terminal recruitment-deviate block for OPR
+  2 177 0   # turn off old total-pop scaling for OPR
+  2 32 0    # turn off overall population scaling parameter for OPR
+  2 113 0   # keep scaling init pop off during OPR transfer
+  1 155 72  # orthogonal polynomial recruitment - year effect
+  1 221 72  # compatibility state retained from the reviewed PDH par
+  1 217 1   # orthogonal polynomial recruitment - season effect
+  1 216 50  # orthogonal polynomial recruitment - region effect
+  1 218 50  # orthogonal polynomial recruitment - region-season interaction effect
+  1 202 2   # OPR end window: last 2 real years use lower-degree/constant-end basis
+  1 203 0   # no separate year-effect end-window override
+  1 210 0   # OPR region end window: 0 inherits parest_flag(202)
+  1 211 0   # no separate region-effect end-window override
+  1 212 0   # OPR season end window: 0 inherits parest_flag(202)
+  1 213 0   # no separate season-effect end-window override
+  1 214 0   # OPR region-season end window: 0 inherits parest_flag(202)
+  1 215 0   # no separate interaction end-window override
+  1 397 0   # terminal-recruitment penalty starts only after the base OPR fit
+  2 30 1    # keep age_flag(30) on so current MFCL activates OPR coefficients
+  2 70 0    # turn off mean+deviate regional recruitment time series
+  2 71 0    # turn off regional recruitment distribution deviations
+  2 178 0   # turn off regional recruitment sum-product constraint
+  -100000 1 0  # turn off time-invariant recruitment distribution, region 1
+  -100000 2 0  # turn off time-invariant recruitment distribution, region 2
+  -100000 3 0  # turn off time-invariant recruitment distribution, region 3
+  -100000 4 0  # turn off time-invariant recruitment distribution, region 4
+  -100000 5 0  # turn off time-invariant recruitment distribution, region 5
+  1 1 500  # function evaluations from the OPR screening doitall example
 PHASE3
 
 # ---------
@@ -338,11 +330,11 @@ PHASE4
 # ---------
 
 $program_path bet.frq 04.par 05.par -file - <<PHASE5
-  -100000 1 1  # estimate
-  -100000 2 1  # time-invariant
-  -100000 3 1  # distribution
-  -100000 4 1  # of
-  -100000 5 1  # recruitment
+  -100000 1 0 # estimate
+  -100000 2 0 # time-invariant
+  -100000 3 0 # distribution
+  -100000 4 0 # of
+  -100000 5 0 # recruitment
 # Regional-scaling MVN prior.
 # PHASE 1-4 retain CPUE_scaling; PHASE 5 switches to Prior_reg_biomass.
 # Ungroup index CPUE likelihood and remove grouped-sigma override.
@@ -446,5 +438,4 @@ $program_path bet.frq 10.par 11.par -file - <<PHASE11
   1 1 5000
   1 50 $phase10_11_convergence  # convergence criteria; default quick -3, set BET_PHASE10_11_CONVERGENCE=-5 for strict
   1 246 1   # indepvar.rpt
-  1 190 1  # write the DM plot report only after all fitting phases are active
 PHASE11

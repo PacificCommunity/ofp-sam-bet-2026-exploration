@@ -265,6 +265,12 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -12 75 2
   -13 75 1
   -15 75 5
+# Corrected regional-index early-age constraints.
+  -29 75 2  # Index R1
+  -30 75 2  # Index R2
+  -31 75 2  # Index R3
+  -32 75 2  # Index R4
+  -33 75 2  # Index R5
 # Single-area extraction age-spline and upper-age constraints.
   -12 16 2  -12 3 25
   -13 16 2  -13 3 30

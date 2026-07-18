@@ -526,20 +526,16 @@ for (age_variant in .design_ages) {
 }
 
 .design_selectivity_specs <- data.frame(
-  number = c(32L, 33L, 35L, 36L),
+  number = c(32L, 35L),
   slug = c(
     "TC1-CUT90-DW1-SA28-N8",
-    "TC1-CUT90-DW1-IDX-Z2",
-    "DM-G5PROC-CEST-CUT90-SA28-N8",
-    "DM-G5PROC-CEST-CUT90-IDX-Z2"
+    "DM-G5PROC-CEST-CUT90-SA28-N8"
   ),
-  treatment = rep(c("sa28_n8", "sa28_n5_idx_z2"), 2L),
-  dm = rep(c(FALSE, TRUE), each = 2L),
+  treatment = rep("sa28_n8", 2L),
+  dm = c(FALSE, TRUE),
   label = c(
     "BASE075 normal TC1 CUT90 DW1 SA28-N8",
-    "BASE075 normal TC1 CUT90 DW1 corrected SA28-N5 plus IDX-Z2",
-    "BASE075 DM G5PROC CEST CUT90 SA28-N8",
-    "BASE075 DM G5PROC CEST CUT90 corrected SA28-N5 plus IDX-Z2"
+    "BASE075 DM G5PROC CEST CUT90 SA28-N8"
   ),
   stringsAsFactors = FALSE
 )
@@ -602,15 +598,62 @@ for (configuration in seq_len(nrow(.design_tag_flag2_specs))) {
   )
 }
 
+.design_opr_control_id <- .design_rows[[1L]]$step_id[[1L]]
+.design_opr_control <- .design_set_identity(
+  row = .design_rows[[1L]],
+  number = 42L,
+  slug = "OPR-Y72-E2-S01-R50-I50",
+  age_variant = "BASE075",
+  label = "BASE075 corrected N5 normal TC1 NOCUT DW1 OPR Y72 E2 S01 R50 I50",
+  base_sensitivity = .design_opr_control_id,
+  selectivity_treatment = "sa28_n5",
+  selectivity_reference = .design_opr_control_id
+)
+.design_rows[[length(.design_rows) + 1L]] <- .design_opr_control
+.design_opr_tag_id <- "S042-OPR-Y72-E2-S01-R50-I50"
+.design_rows[[length(.design_rows) + 1L]] <- .design_set_identity(
+  row = .design_opr_control,
+  number = 43L,
+  slug = "OPR-Y72-E2-S01-R50-I50-TAGF2ON",
+  age_variant = "BASE075",
+  label = "BASE075 corrected N5 normal TC1 NOCUT DW1 OPR Y72 E2 S01 R50 I50 TAGF2ON",
+  base_sensitivity = .design_opr_tag_id,
+  selectivity_treatment = "sa28_n5",
+  selectivity_reference = .design_opr_tag_id
+)
+
 stepwise_models <- do.call(rbind, .design_rows)
 rownames(stepwise_models) <- NULL
 stepwise_models$tag_flag2 <- 0L
-stepwise_models$tag_flag2[grepl("^S0(37|38|39|40|41)-", stepwise_models$step_id)] <- 1L
+stepwise_models$tag_flag2[grepl("^S0(37|38|39|40|41|43)-", stepwise_models$step_id)] <- 1L
 stepwise_models$tag_flag2_reference <- stepwise_models$step_id
-stepwise_models$tag_flag2_reference[stepwise_models$tag_flag2 == 1L] <-
-  .design_tag_flag2_controls
+stepwise_models$tag_flag2_reference[
+  grepl("^S0(37|38|39|40|41)-", stepwise_models$step_id)
+] <- .design_tag_flag2_controls
+stepwise_models$tag_flag2_reference[
+  stepwise_models$step_id == "S043-OPR-Y72-E2-S01-R50-I50-TAGF2ON"
+] <- .design_opr_tag_id
 
-.design_expected_prefix <- sprintf("S%03d", c(1:30, 32:33, 35:41))
+stepwise_models$opr_enabled <- grepl("^S0(42|43)-OPR-", stepwise_models$step_id)
+stepwise_models$opr_year_effect <- ifelse(stepwise_models$opr_enabled, 72L, NA_integer_)
+stepwise_models$opr_terminal_year_constraint <- ifelse(
+  stepwise_models$opr_enabled, 2L, NA_integer_
+)
+stepwise_models$opr_season_effect <- ifelse(stepwise_models$opr_enabled, 1L, NA_integer_)
+stepwise_models$opr_region_effect <- ifelse(stepwise_models$opr_enabled, 50L, NA_integer_)
+stepwise_models$opr_region_season_effect <- ifelse(
+  stepwise_models$opr_enabled, 50L, NA_integer_
+)
+stepwise_models$opr_terminal_penalty_flag <- ifelse(
+  stepwise_models$opr_enabled, 0L, NA_integer_
+)
+stepwise_models$opr_source <- ifelse(
+  stepwise_models$opr_enabled,
+  "BET OPR apply_opr() in R/prepare_doitall.R",
+  ""
+)
+
+.design_expected_prefix <- sprintf("S%03d", c(1:30, 32, 35, 37:43))
 .design_actual_prefix <- sub("-.*$", "", stepwise_models$step_id)
 if (nrow(stepwise_models) != 39L ||
     anyDuplicated(stepwise_models$step_id) ||
@@ -626,15 +669,27 @@ if (!identical(
 )) {
   stop("Canonical design has incorrect age-length variant counts", call. = FALSE)
 }
-if (!identical(stepwise_models$tag_flag2, c(rep(0L, 34L), rep(1L, 5L))) ||
+if (!identical(
+      stepwise_models$tag_flag2,
+      c(rep(0L, 32L), rep(1L, 5L), 0L, 1L)
+    ) ||
     !identical(
       stepwise_models$tag_flag2_reference[stepwise_models$tag_flag2 == 1L],
-      .design_tag_flag2_controls
+      c(.design_tag_flag2_controls, .design_opr_tag_id)
     )) {
   stop(
     "TAGF2ON models must be isolated copies of their corrected controls",
     call. = FALSE
   )
+}
+if (sum(stepwise_models$opr_enabled) != 2L ||
+    any(stepwise_models$opr_year_effect[stepwise_models$opr_enabled] != 72L) ||
+    any(stepwise_models$opr_terminal_year_constraint[stepwise_models$opr_enabled] != 2L) ||
+    any(stepwise_models$opr_season_effect[stepwise_models$opr_enabled] != 1L) ||
+    any(stepwise_models$opr_region_effect[stepwise_models$opr_enabled] != 50L) ||
+    any(stepwise_models$opr_region_season_effect[stepwise_models$opr_enabled] != 50L) ||
+    any(stepwise_models$opr_terminal_penalty_flag[stepwise_models$opr_enabled] != 0L)) {
+  stop("OPR pair must use Y72 E2 S01 R50 I50 with terminal penalty disabled", call. = FALSE)
 }
 if (any(grepl(
   "DW5|CUT70|(?:^|-)C0(?:-|$)|(?:^|-)G(?:1|2|4|7)(?:-|$)",
@@ -668,6 +723,9 @@ rm(
   .design_dm_reference,
   .design_tag_flag2_specs,
   .design_tag_flag2_controls,
+  .design_opr_control_id,
+  .design_opr_control,
+  .design_opr_tag_id,
   .design_expected_prefix,
   .design_actual_prefix,
   .design_obsolete,
