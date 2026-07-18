@@ -782,6 +782,10 @@ apply_selectivity_fishery_map <- function(path, treatment) {
   invisible(path)
 }
 
+dm_nmax_target <- 30L
+dm_nmax_stage <- max(50L, dm_nmax_target)
+dm_nmax_mid <- as.integer(round((dm_nmax_stage + dm_nmax_target) / 2))
+
 write_sensitivity_doitall <- function(
     to,
     tail_percent,
@@ -851,7 +855,11 @@ write_sensitivity_doitall <- function(
       lines,
       c(
         "  1 320 5     # DM LF tail compression; retain at least five class intervals",
-        "  1 342 30  # DM-noRE maximum LF effective sample size"
+        sprintf(
+          "  1 342 %d  # DM numerical continuation start; final Nmax %d in PHASE11",
+          dm_nmax_stage,
+          dm_nmax_target
+        )
       ),
       after = lf_likelihood_hit
     )
@@ -909,6 +917,73 @@ write_sensitivity_doitall <- function(
       "# defer DM plot reporting until the final phase; MFCL 2.4 crashes on the early report"
     )
 
+    phase7_open <- grep("<<PHASE7[[:space:]]*$", lines)
+    phase7_end <- grep("^PHASE7[[:space:]]*$", lines)
+    if (length(phase7_open) != 1L || length(phase7_end) != 1L || phase7_open >= phase7_end ||
+        !grepl("bet.frq 06.par 07.par", lines[[phase7_open]], fixed = TRUE)) {
+      fail("Archived doitall.sh must contain the expected PHASE7 transition")
+    }
+    lines[[phase7_open]] <- sub(
+      "bet.frq 06.par 07.par",
+      "bet.frq 06a.par 07.par",
+      lines[[phase7_open]],
+      fixed = TRUE
+    )
+    lines <- append(
+      lines,
+      c(
+        "# DM numerical continuation: estimate overall length-at-age SD first.",
+        "$program_path bet.frq 06.par 06a.par -file - <<PHASE7A",
+        "  1 15 1   # estimate overall SD of length-at-age",
+        "  1 16 0   # retain length-dependent SD fixed for this transition",
+        "  1 1 250  # function evaluations",
+        "  1 50 -1  # convergence criterion",
+        "PHASE7A",
+        ""
+      ),
+      after = phase7_open - 1L
+    )
+
+    phase9_open <- grep("<<PHASE9[[:space:]]*$", lines)
+    phase9_end <- grep("^PHASE9[[:space:]]*$", lines)
+    if (length(phase9_open) != 1L || length(phase9_end) != 1L || phase9_open >= phase9_end ||
+        !grepl("bet.frq 08.par 09.par", lines[[phase9_open]], fixed = TRUE)) {
+      fail("Archived doitall.sh must contain the expected PHASE9 transition")
+    }
+    lines[[phase9_open]] <- sub(
+      "bet.frq 08.par 09.par",
+      "bet.frq 08a.par 09.par",
+      lines[[phase9_open]],
+      fixed = TRUE
+    )
+    lines <- append(
+      lines,
+      c(
+        "# DM numerical continuation: relax the SRR penalty before widening the tag F bound.",
+        "$program_path bet.frq 08.par 08a.par -file - <<PHASE9A",
+        "  2 145 -1   # SRR penalty weight 10^-1",
+        "  1 1 500    # function evaluations",
+        "  1 50 -2    # convergence criterion",
+        "  2 116 100  # retain tag Newton-Raphson F bound at 1.0",
+        "PHASE9A",
+        ""
+      ),
+      after = phase9_open - 1L
+    )
+
+    phase10_open <- grep("<<PHASE10[[:space:]]*$", lines)
+    if (length(phase10_open) != 1L) {
+      fail("Archived doitall.sh must contain exactly one PHASE10 opening command")
+    }
+    lines <- append(
+      lines,
+      sprintf(
+        "  1 342 %d  # continue DM Nmax toward the final target",
+        dm_nmax_mid
+      ),
+      after = phase10_open
+    )
+
     phase11_open <- grep("<<PHASE11[[:space:]]*$", lines)
     phase11_end <- grep("^PHASE11[[:space:]]*$", lines)
     if (length(phase11_open) != 1L || length(phase11_end) != 1L || phase11_open >= phase11_end) {
@@ -920,6 +995,15 @@ write_sensitivity_doitall <- function(
     ))) {
       fail("Archived doitall.sh unexpectedly enables plot reporting inside PHASE11")
     }
+    lines <- append(
+      lines,
+      sprintf(
+        "  1 342 %d  # final DM-noRE maximum LF effective sample size",
+        dm_nmax_target
+      ),
+      after = phase11_open
+    )
+    phase11_end <- grep("^PHASE11[[:space:]]*$", lines)
     lines <- append(
       lines,
       "  1 190 1  # write the DM plot report only after all fitting phases are active",
@@ -1040,7 +1124,14 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
       "Retained Job 5319 doitall sequence with LF likelihood option 11;",
       "the LF preprocessing gate and N < 50 filter retained; percentage and",
       "DM-specific LF tail compression retains at least five class intervals; DM maximum effective sample",
-      "size 1000;", group_count, "reviewed LF group(s); group-specific scalar",
+      sprintf("size %d;", dm_nmax_target),
+      sprintf(
+        "numerical continuation uses Nmax %d through PHASE9, %d in PHASE10, and final target %d in PHASE11;",
+        dm_nmax_stage,
+        dm_nmax_mid,
+        dm_nmax_target
+      ),
+      group_count, "reviewed LF group(s); group-specific scalar",
       "exponents estimated from PHASE1;", paste0(c_note, ";"), paste0(cutoff_note, "."),
       "Inherited flag-49 lines are inert under DM-noRE, so the normal models'",
       "fixed extra /2 is not reproduced. These are deliberate DM",
@@ -1433,7 +1524,12 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       paste0("| LF grouping | ", grouping_text, " |"),
       "| Group scalar exponent d | Starts at MFCL default zero; estimated from PHASE1 with fish flag 69 |",
       paste0("| Relative sample-size exponent c | ", c_text, " |"),
-      "| DM maximum effective sample size | 50 |",
+      paste0("| DM maximum effective sample size | ", dm_nmax_target, " |"),
+      paste0(
+        "| DM fitting continuation | Nmax ", dm_nmax_stage,
+        " through PHASE9; ", dm_nmax_mid,
+        " in PHASE10; final target ", dm_nmax_target, " in PHASE11 |"
+      ),
       "| LF preprocessing | Enabled; inherited N < 50 filter retained |",
       "| LF tail compression | Percentage compression disabled; DM compression retains at least five class intervals (`parest flag 320 = 5`) |",
       paste0("| LF cutoff | ", cutoff_text, " |"),

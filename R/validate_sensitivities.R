@@ -437,6 +437,21 @@ dm_group_map[c(12L, 19L, 20L, 25:28)] <- 2L
 dm_group_map[17:18] <- 3L
 dm_group_map[c(13:16, 21:24)] <- 4L
 dm_group_map[29:33] <- 5L
+for (id in models$step_id[dm]) {
+  lines <- readLines(model_file(id, "doitall.sh"), warn = FALSE)
+  phase1 <- phase_bounds(lines, 1L, id)
+  phase10 <- phase_bounds(lines, 10L, id)
+  phase11 <- phase_bounds(lines, 11L, id)
+  require_in_phase(lines, "1 342 50", phase1, id)
+  require_in_phase(lines, "1 342 40", phase10, id)
+  require_in_phase(lines, "1 342 30", phase11, id)
+  if (sum(grepl("<<PHASE7A[[:space:]]*$", lines)) != 1L ||
+      sum(grepl("^PHASE7A[[:space:]]*$", lines)) != 1L ||
+      sum(grepl("<<PHASE9A[[:space:]]*$", lines)) != 1L ||
+      sum(grepl("^PHASE9A[[:space:]]*$", lines)) != 1L) {
+    fail(id, " does not contain the reviewed DM numerical-continuation stages")
+  }
+}
 for (id in opr_ids[3:4]) {
   lines <- readLines(model_file(id, "doitall.sh"), warn = FALSE)
   phase1 <- phase_bounds(lines, 1L, id)
@@ -452,7 +467,7 @@ for (id in opr_ids[3:4]) {
   }
   require_in_phase(lines, "1 141 11", phase1, id)
   require_in_phase(lines, "1 320 5", phase1, id)
-  require_in_phase(lines, "1 342 30", phase1, id)
+  require_in_phase(lines, "1 342 50", phase1, id)
   require_in_phase(lines, "-999 69 1", phase1, id)
   require_in_phase(lines, "-999 89 0", phase1, id)
   require_in_phase(lines, "-999 89 1", phase2, id)

@@ -112,7 +112,7 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   1 111 4     # set likelihood function for tags to negative binomial
   1 141 11    # LF Dirichlet-multinomial likelihood without random effects
   1 320 5     # DM LF tail compression; retain at least five class intervals
-  1 342 30  # DM-noRE maximum LF effective sample size
+  1 342 50  # DM numerical continuation start; final Nmax 30 in PHASE11
   1 139 3     # set likelihood function for WF data to normal
   -999 49 20  # divide LF sample sizes by 20
   -1 68 1  # DM LF group: Longline extraction
@@ -383,7 +383,15 @@ PHASE6
 #  PHASE 7
 # ---------
 
-$program_path bet.frq 06.par 07.par -file - <<PHASE7
+# DM numerical continuation: estimate overall length-at-age SD first.
+$program_path bet.frq 06.par 06a.par -file - <<PHASE7A
+  1 15 1   # estimate overall SD of length-at-age
+  1 16 0   # retain length-dependent SD fixed for this transition
+  1 1 250  # function evaluations
+  1 50 -1  # convergence criterion
+PHASE7A
+
+$program_path bet.frq 06a.par 07.par -file - <<PHASE7
   1 15 1   # estimate overall SD of length-at-age
   1 16 1   # estimate length dependent SD
   1 173 0  # activate independent mean lengths for first 0 age classes
@@ -423,7 +431,15 @@ PHASE8
 #  PHASE 9
 # ---------
 
-$program_path bet.frq 08.par 09.par -file - <<PHASE9
+# DM numerical continuation: relax the SRR penalty before widening the tag F bound.
+$program_path bet.frq 08.par 08a.par -file - <<PHASE9A
+  2 145 -1   # SRR penalty weight 10^-1
+  1 1 500    # function evaluations
+  1 50 -2    # convergence criterion
+  2 116 100  # retain tag Newton-Raphson F bound at 1.0
+PHASE9A
+
+$program_path bet.frq 08a.par 09.par -file - <<PHASE9
   2 145 -1   # use SRR parameters - low penalty for deviation
   1 1 500    # function evaluations
   1 50 -2    # convergence criteria
@@ -435,6 +451,7 @@ PHASE9
 # ----------
 
 $program_path bet.frq 09.par 10.par -file - <<PHASE10
+  1 342 40  # continue DM Nmax toward the final target
   1 1 10000  # function evaluations
   1 50 $phase10_11_convergence  # convergence criteria; default quick -3, set BET_PHASE10_11_CONVERGENCE=-5 for strict
   1 121 0    # estimate scaling parameter for Lorenzen (age_pars(5,1)); off
@@ -445,6 +462,7 @@ PHASE10
 # ----------
 
 $program_path bet.frq 10.par 11.par -file - <<PHASE11
+  1 342 30  # final DM-noRE maximum LF effective sample size
   1 1 5000
   1 50 $phase10_11_convergence  # convergence criteria; default quick -3, set BET_PHASE10_11_CONVERGENCE=-5 for strict
   1 246 1   # indepvar.rpt
