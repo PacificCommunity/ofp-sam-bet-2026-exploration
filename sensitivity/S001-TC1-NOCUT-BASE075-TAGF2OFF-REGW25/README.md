@@ -25,4 +25,6 @@ Source model: **S001-TC1-NOCUT-BASE075-TAGF2OFF** from
 **PacificCommunity/ofp-sam-bet-2026-exploration@81a456fa5c36ef1be5bd9da38308ef07ebc55ff4** (**experiment/normal-francis-initial-20260719**).
 See **input_manifest.csv** for file-level provenance.
 
+The committed **bet.frq** already contains effort creep applied once; **doitall.sh** does not reapply effort creep.
+
 Status: generated; Kflow has not been submitted.

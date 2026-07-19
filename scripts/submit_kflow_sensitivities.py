@@ -1505,6 +1505,7 @@ def checks_environment(token: str, runtime: dict[str, Any]) -> dict[str, str]:
             "HESSIAN_NSPLIT": "5",
             "HESSIAN_PARTS": "",
             "HESSIAN_PART": "",
+            "PROFILE_PRESET": "robust_fast",
             "PROFILE_PARALLEL_MODE": "chains",
             "PROFILE_EXECUTION_MODE": "continuation",
             "PROFILE_NAME": "likelihood",
@@ -1969,6 +1970,7 @@ def dry_run_audit(
                     "environment": {
                         "KFLOW_API_TOKEN": "<required; redacted>",
                         "HESSIAN_NSPLIT": "5",
+                        "PROFILE_PRESET": "robust_fast",
                         "PROFILE_PARALLEL_MODE": "chains",
                         "PROFILE_EXECUTION_MODE": "continuation",
                         "PROFILE_NAME": "likelihood",

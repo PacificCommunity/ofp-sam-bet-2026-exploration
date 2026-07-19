@@ -28,4 +28,6 @@ selectivity-tail changes, and extra stabilization phases are excluded. The
 phase-2/final report switch only prevents an early DM report crash; it does not
 add an optimization phase. Parest flag 77 is set to 5.
 
+The committed **bet.frq** already contains effort creep applied once; **doitall.sh** does not reapply effort creep.
+
 Status: generated; Kflow has not been submitted.
