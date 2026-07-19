@@ -92,12 +92,15 @@ for (i in seq_len(nrow(models))) {
   }
   for (fishery in duplicate_fisheries) {
     inherited <- sprintf(
-      "-%d[[:space:]]+49[[:space:]]+40|-%d[[:space:]]+50[[:space:]]+40",
+      paste0(
+        "^[[:space:]]*-%d[[:space:]]+49[[:space:]]+40[[:space:]]+",
+        "-%d[[:space:]]+50[[:space:]]+40([[:space:]]|$)"
+      ),
       fishery,
       fishery
     )
-    if (any(grepl(inherited, lines))) {
-      fail(row$step_id, ": duplicate-use divisor 40 remains for F", fishery)
+    if (sum(grepl(inherited, lines)) != 1L) {
+      fail(row$step_id, ": duplicate-use divisor 40 is missing for F", fishery)
     }
   }
   for (fishery in 21:23) {
@@ -111,4 +114,4 @@ for (i in seq_len(nrow(models))) {
   }
 }
 
-cat("Validated 26 paired initial robust-normal models with no second duplicate-use /2.\n")
+cat("Validated 26 paired initial robust-normal models with duplicate-use divisor-40 overrides.\n")

@@ -11,14 +11,27 @@ reweighting can subsequently be estimated.
 WCPFC-SC22-2026/SA-IP06 Section 2.7 states that input sample sizes were reduced
 by 50% for longline samples represented in both extraction and index
 fisheries. The retained processed 2026 `bet.frq` therefore already contains
-that source-level correction. The inherited model-stage divisor-40 overrides
-for F1, F2, F4, F6, F7, F8, F10, and F29-F33 are removed to avoid applying the
-same reduction twice.
+that source-level correction. MFCL's option-3 robust-normal likelihood then
+uses `min(N, 1000) / divisor`. Consequently, reducing a raw sample before the
+1000 cap has little or no effect when the reduced sample remains above 1000.
+The inherited divisor-40 overrides are therefore retained for F1, F2, F4, F6,
+F7, F8, F10, and F29-F33. Relative to the common divisor 20, divisor 40 gives
+each extraction/index representation half the model-stage weight; it replaces
+20 rather than being applied after division by 20.
+
+An audit of the retained FRQ found 1,490 eligible records in these fisheries
+after the flag-312 threshold of 50. Of these, 53.3% remained at or above the
+1000 cap after source processing, and they represented 74.1% of the effective-N
+mass under divisor 20. Across these records, divisor 20 produced 72.7% more
+effective N than an equal split applied after the cap, whereas divisor 40 was
+13.7% lower. Divisor 40 is therefore retained as the closer, conservative
+fishery-level approximation.
 
 The common initial controls are:
 
 - MFCL option-3 robust-normal LF likelihood.
-- Global LF and WF divisors `-999 49 20` and `-999 50 20`.
+- Global LF and WF divisors `-999 49 20` and `-999 50 20`, with divisor 40
+  overrides for duplicated extraction/index fisheries.
 - F21/F22/F23 flag-49 divisor 20 in every model.
 - No fixed DW sensitivity axis; Francis reweighting follows the initial fit.
 - CUT90 changes only observed LF bins above 90 cm for F21/F22/F23.
@@ -73,5 +86,5 @@ Rscript R/prepare_bet_2026_step_inputs.R
 ```
 
 Generated models are under `sensitivity/`. The Job 5319 reference bundle
-remains byte-preserved for provenance; the duplicate-use divisor block is
-removed only while generating each model `doitall.sh`.
+remains byte-preserved for provenance; its duplicate-use divisor block is
+retained in every generated model `doitall.sh`.

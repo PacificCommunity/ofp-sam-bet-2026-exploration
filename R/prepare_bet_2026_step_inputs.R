@@ -8,9 +8,11 @@
 ## Every cell retains the exact effort-crept FRQ archived by Kflow Job 5319.
 ## That FRQ already includes the SC22 50% input-sample-size reduction where
 ## longline samples were represented in both extraction and index fisheries.
-## The inherited model-stage divisor-40 block is removed to avoid a second /2.
-## Global divisor 20 remains only as the common initial robust-normal weight
-## before subsequent Francis reweighting. CPUE sigma is unchanged (no HAC4).
+## MFCL robust normal caps raw sample size at 1000 before applying the divisor,
+## which masks that reduction for records remaining above the cap. The inherited
+## divisor-40 block is retained so duplicated extraction/index representations
+## receive half the common divisor-20 model-stage weight. CPUE sigma is unchanged
+## (no HAC4), and Francis reweighting follows the initial fit.
 ## The tag-control INI is the current upstream build-ini file wholesale, with
 ## the single intentional deviation that all tag_flags(:,2) values are zero.
 ## Display metadata and regional-scaling inputs come from the reviewed
@@ -808,7 +810,7 @@ apply_selectivity_fishery_map <- function(path, treatment) {
   invisible(path)
 }
 
-remove_inherited_duplicate_use_divisors <- function(lines) {
+validate_inherited_duplicate_use_divisors <- function(lines) {
   block_start <- grep(
     "^# Additional LF/WF sample-size reductions retained from the inherited setup[.]$",
     lines
@@ -830,7 +832,7 @@ remove_inherited_duplicate_use_divisors <- function(lines) {
       fail("Inherited duplicate-use divisor block is incomplete for F", fishery)
     }
   }
-  lines[-seq.int(block_start, block_end - 1L)]
+  lines
 }
 
 dm_nmax_target <- 20L
@@ -847,7 +849,7 @@ write_sensitivity_doitall <- function(
     selectivity_treatment) {
   source_path <- file.path(reference_input_dir, "doitall.sh")
   lines <- readLines(source_path, warn = FALSE)
-  lines <- remove_inherited_duplicate_use_divisors(lines)
+  lines <- validate_inherited_duplicate_use_divisors(lines)
   tc_hit <- grep("^[[:space:]]*1[[:space:]]+313[[:space:]]+", lines)
   if (length(tc_hit) != 1L) fail("Archived doitall.sh must contain one 1/313 flag")
   lines[[tc_hit]] <- replace_flag_value(
@@ -1079,10 +1081,12 @@ design_context_note <- function(row) {
     "BASE075, BASE100, REG075, REG100, SUB075, and SUB100. BASE100 is byte-identical",
     "to BASE075 except that all 181 effective-sample-size multipliers are 1 rather",
     "than 0.75. All models use MFCL option-3",
-    "robust-normal LF likelihood with common initial divisor 20; Francis",
-    "reweighting is intentionally performed only after this initial fit.",
-    "The processed FRQ already includes the SC22 duplicate-use ISS correction,",
-    "so no second model-stage /2 is applied. CPUE sigma is retained from Job 5319.",
+    "robust-normal LF likelihood with common initial divisor 20 and divisor-40",
+    "overrides for duplicated extraction/index fisheries; Francis reweighting is",
+    "intentionally performed only after this initial fit. The processed FRQ already",
+    "includes the SC22 duplicate-use ISS correction, but MFCL's 1000 raw-sample cap",
+    "can mask that reduction. The divisor-40 overrides retain half the model-stage",
+    "weight relative to divisor 20. CPUE sigma is retained from Job 5319.",
     "TAGF2ON changes only all 98 tag_flags(:,2) values.",
     "Fish flag 26=2 evaluates the flag-57 cubic spline on",
     "scaled mean length-at-age to produce final selectivity-at-age; flag-61",
@@ -1205,9 +1209,9 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
       ),
       paste(
         "The inherited F1/F2/F4/F6/F7/F8/F10/F29-F33 divisor-40 block is",
-        "removed because the processed SC22 FRQ already applies the 50%",
-        "duplicate-use ISS reduction. Global LF/WF divisor 20 is retained as",
-        "the common initial weight before Francis reweighting."
+        "retained because MFCL caps raw sample size at 1000 before division,",
+        "which can mask the processed SC22 50% duplicate-use ISS reduction.",
+        "Global LF/WF divisor 20 remains the default before Francis reweighting."
       )
     )
   }
@@ -1737,15 +1741,15 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
     if (identical(as.character(row$selectivity_treatment), "reference")) {
       paste(
         "The `doitall.sh` changes are flag 313, F21/F22/F23 flag-49 divisor 20,",
-        "and removal of the inherited F1/F2/F4/F6/F7/F8/F10/F29-F33",
-        "divisor-40 block. The FRQ already contains the SC22 duplicate-use",
-        "reduction; global divisor 20 remains the initial Francis-fit weight."
+        "with the inherited F1/F2/F4/F6/F7/F8/F10/F29-F33 divisor-40",
+        "block retained. The FRQ contains the SC22 duplicate-use reduction,",
+        "while divisor 40 compensates where MFCL's 1000 cap masks it."
       )
     } else {
       paste(
         "Beyond CUT90, flag 313, F21/F22/F23 divisor 20, and the documented",
-        "selectivity treatment, `doitall.sh` removes only the inherited",
-        "divisor-40 duplicate-use block. Global divisor 20 remains unchanged."
+        "selectivity treatment, `doitall.sh` retains the inherited divisor-40",
+        "duplicate-use block. Global divisor 20 remains the default."
       )
     },
     "No MFCL source or executable is changed.",

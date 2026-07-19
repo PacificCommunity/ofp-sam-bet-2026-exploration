@@ -117,6 +117,20 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -22 49 20  # sensitivity-only F22 LF effective-sample-size divisor
   -23 49 20  # sensitivity-only F23 LF effective-sample-size divisor
   -999 50 20  # divide WF sample sizes by 20
+# Additional LF/WF sample-size reductions retained from the inherited setup.
+# Index fisheries 29-33 are included; extraction labels need the 03 fishery map.
+   -1 49 40   -1 50 40
+   -2 49 40   -2 50 40
+   -4 49 40   -4 50 40
+   -6 49 40   -6 50 40
+   -7 49 40   -7 50 40
+   -8 49 40   -8 50 40
+  -10 49 40  -10 50 40
+  -29 49 40  -29 50 40
+  -30 49 40  -30 50 40
+  -31 49 40  -31 50 40
+  -32 49 40  -32 50 40
+  -33 49 40  -33 50 40
 # Tag dynamics settings
   1 33 99    # maximum tag reporting rate for all fisheries is 0.99
   2 96 30    # pool tags after 30 quarters at liberty
