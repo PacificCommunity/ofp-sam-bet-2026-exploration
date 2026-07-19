@@ -1,6 +1,7 @@
-## Rebuild the 13-model BET 2026 robust-normal LF design: five age-length
-## variants crossed with NOCUT/CUT90, one BASE075 N8 model, and two BASE075
-## TAGF2ON controls. DM, DW-axis, OPR, and HAC4 variants are excluded.
+## Rebuild the 26-model BET 2026 robust-normal LF design: six age-length
+## variants crossed with NOCUT/CUT90 and TAGF2OFF/TAGF2ON, plus the BASE075
+## CUT90 N8 structure with both tag settings. DM, DW-axis, OPR, and HAC4
+## variants are excluded.
 ## The complete corrected single-area-derived SA28-N5 treatment, including
 ## F29-F33 early-age zeros, is the common baseline.
 ##
@@ -1055,12 +1056,14 @@ write_sensitivity_doitall <- function(
 
 design_context_note <- function(row) {
   paste(
-    "This model belongs to the public 13-model robust-normal design: ten core",
-    "age-length/cutoff combinations, one targeted N8 control, and two TAGF2ON",
-    "controls. Every model uses the complete",
+    "This model belongs to the public 26-model robust-normal design: twelve core",
+    "age-length/cutoff structures and one targeted N8 structure, each paired as",
+    "TAGF2OFF and TAGF2ON. Every model uses the complete",
     "single-area-derived selectivity baseline, including F29-F33 first-two-age",
     "zeros; N8 changes only F12 PS.JP.1 and F13 PL.JP.1. Age-length levels are",
-    "BASE075, REG075, REG100, SUB075, and SUB100. All models use MFCL option-3",
+    "BASE075, BASE100, REG075, REG100, SUB075, and SUB100. BASE100 is byte-identical",
+    "to BASE075 except that all 181 effective-sample-size multipliers are 1 rather",
+    "than 0.75. All models use MFCL option-3",
     "robust-normal LF likelihood with common initial divisor 20; Francis",
     "reweighting is intentionally performed only after this initial fit.",
     "The processed FRQ already includes the SC22 duplicate-use ISS correction,",
@@ -1393,7 +1396,7 @@ add_design_context_readme <- function(lines, row) {
   if (length(status_line) != 1L) fail("Generated model README must contain one status line")
   section <- c(
     "",
-    "## 13-model design context",
+    "## 26-model design context",
     "",
     design_context_note(row)
   )
@@ -1788,10 +1791,17 @@ for (i in seq_len(nrow(models))) {
       file.path(model_dir, file)
     )
   }
-  copy_exact(
-    file.path(root, as.character(row$age_length_source_path)),
-    file.path(model_dir, "bet.age_length")
+  age_length_source_path <- file.path(
+    root,
+    as.character(row$age_length_source_path)
   )
+  if (!identical(
+        sha256_file(age_length_source_path),
+        as.character(row$age_length_sha256)
+      )) {
+    fail("Age-length source SHA-256 mismatch: ", age_length_source_path)
+  }
+  copy_exact(age_length_source_path, file.path(model_dir, "bet.age_length"))
   apply_selectivity_fishery_map(
     file.path(model_dir, "fishery_map.R"),
     as.character(row$selectivity_treatment)

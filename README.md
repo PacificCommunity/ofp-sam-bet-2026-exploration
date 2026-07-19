@@ -1,9 +1,10 @@
 # BET 2026 initial robust-normal LF sensitivities
 
-This branch contains 13 MFCL sensitivity models derived from
+This branch contains 26 MFCL sensitivity models derived from
 `experiment/dm-nmax20-20260719`. DM, fixed-DW, OPR, and HAC4 variants are
-excluded. These are initial robust-normal fits from which Francis
-fishery-specific reweighting can subsequently be estimated.
+excluded. Thirteen model structures are each paired with tag flag 2 off and
+on. These are initial robust-normal fits from which Francis fishery-specific
+reweighting can subsequently be estimated.
 
 ## Duplicate-use correction
 
@@ -46,16 +47,24 @@ not replaced by HAC values.
 
 | IDs | Models |
 | --- | --- |
-| S001-S002 | BASE075: NOCUT and CUT90 |
-| S003-S004 | REG075: NOCUT and CUT90 |
-| S005-S006 | REG100: NOCUT and CUT90 |
-| S007-S008 | SUB075: NOCUT and CUT90 |
-| S009-S010 | SUB100: NOCUT and CUT90 |
-| S011 | BASE075 CUT90 with F12/F13 N8 selectivity |
-| S012-S013 | BASE075 tag-flag-2 controls for NOCUT and CUT90 |
+| S001-S004 | BASE075: NOCUT and CUT90, each TAGF2OFF/ON |
+| S005-S008 | BASE100: NOCUT and CUT90, each TAGF2OFF/ON |
+| S009-S012 | REG075: NOCUT and CUT90, each TAGF2OFF/ON |
+| S013-S016 | REG100: NOCUT and CUT90, each TAGF2OFF/ON |
+| S017-S020 | SUB075: NOCUT and CUT90, each TAGF2OFF/ON |
+| S021-S024 | SUB100: NOCUT and CUT90, each TAGF2OFF/ON |
+| S025-S026 | BASE075 CUT90 with F12/F13 N8 selectivity, TAGF2OFF/ON |
 
-All models use the corrected SA28-N5 selectivity baseline except S011, which
-changes only F12 and F13 from five to eight nodes.
+BASE100 is the official `BET/bet.2026.age_length` at source commit
+`96a06d21ef3c666f39ce456d3a6818b6c17324c4`. It differs from BASE075 only on
+line 4: all 181 effective-sample-size multipliers are 1 instead of 0.75. The
+remaining 17,560 lines are identical. All models use the corrected SA28-N5
+selectivity baseline except S025-S026, which change only F12 and F13 from five
+to eight nodes.
+
+TAGF2OFF sets all 98 `tag_flags(:,2)` values to 0. TAGF2ON sets the same values
+to 1. Every structural comparison therefore has an explicit tag-off/tag-on
+pair.
 
 ## Rebuild
 

@@ -29,6 +29,10 @@ https://meetings.wcpfc.int/node/32346
   block only when generating each sensitivity `doitall.sh`.
 - Retain the original Job 5319 CPUE observations and sigma values; HAC4 is not
   applied.
+- Include both tag flag 2 settings for every model structure so the tag-control
+  choice is evaluated without changing any other model input.
+- Include BASE100 from the official age-length build. It changes only the 181
+  effective-sample-size multipliers from 0.75 to 1 relative to BASE075.
 
 This separates the source-level correction for duplicated sampling information
 from the common model-level starting weight used before Francis reweighting.

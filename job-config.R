@@ -775,89 +775,191 @@ rm(
 )
 
 # Public robust-normal export. The complete inherited catalogue is retained as
-# stepwise_models_all for provenance checks, but only the 13 rows below are
-# generated or submitted from this branch.
+# stepwise_models_all for provenance checks. The final design contains 13
+# structural models, each paired with tag flag 2 off and on.
 stepwise_models_all <- stepwise_models
-.normal_keep <- (
-  stepwise_models_all$lf_likelihood == "normal" &
-  stepwise_models_all$lf_downweight_factor == 1L &
-  !as.logical(stepwise_models_all$opr_enabled)
-)
-.normal_models <- stepwise_models_all[.normal_keep, , drop = FALSE]
-.normal_old_ids <- as.character(.normal_models$step_id)
-.normal_suffix <- sub("^S[0-9]{3}-", "", .normal_old_ids)
-.normal_suffix <- gsub("-DW1(?=-|$)", "", .normal_suffix, perl = TRUE)
-.normal_new_ids <- paste0(
-  sprintf("S%03d", seq_len(nrow(.normal_models))),
-  "-",
-  .normal_suffix
-)
-.normal_id_map <- stats::setNames(.normal_new_ids, .normal_old_ids)
-.normal_remap_ids <- function(x) {
-  out <- as.character(x)
-  matched <- out %in% names(.normal_id_map)
-  out[matched] <- unname(.normal_id_map[out[matched]])
-  out
-}
-for (.normal_column in intersect(
-  c("base_sensitivity", "selectivity_reference", "tag_flag2_reference"),
-  names(.normal_models)
-)) {
-  .normal_models[[.normal_column]] <-
-    .normal_remap_ids(.normal_models[[.normal_column]])
-}
-.normal_models$step_id <- .normal_new_ids
-.normal_models$substep <- sub("-.*$", "", .normal_new_ids)
-.normal_models$major_step <- "Robust-normal LF sensitivities"
-.normal_models$model_label <- gsub(
-  " DW1",
-  "",
-  .normal_models$model_label,
-  fixed = TRUE
-)
-.normal_models$model_label <- paste0(
-  .normal_models$model_label,
-  "; common initial divisor 20 before Francis reweighting; no second duplicate-use /2"
-)
-.normal_models$change_axis <- paste0(
-  "regional-scaling weight ", .normal_models$regional_scaling_weight,
-  "; ", .normal_models$model_label
-)
-.normal_models$job_title <- paste(
-  "BET 2026", .normal_models$step_id, .normal_models$model_label
-)
-.normal_models$job_key <- tolower(gsub(
-  "[^A-Za-z0-9]+",
-  "-",
-  .normal_models$step_id
-))
-stepwise_models <- .normal_models
-stepwise_run$flow_group <- "bet-2026-normal-francis-initial"
 
-.normal_expected_prefix <- sprintf("S%03d", 1:13)
-.normal_actual_prefix <- sub("-.*$", "", stepwise_models$step_id)
-if (nrow(stepwise_models) != 13L ||
+.normal_candidates <- stepwise_models_all[
+  stepwise_models_all$lf_likelihood == "normal" &
+    stepwise_models_all$lf_downweight_factor == 1L &
+    !as.logical(stepwise_models_all$opr_enabled) &
+    stepwise_models_all$tag_flag2 == 0L,
+  ,
+  drop = FALSE
+]
+
+.normal_pick <- function(age_variant, cutoff, treatment = "sa28_n5") {
+  cutoff_match <- if (identical(cutoff, "NOCUT")) {
+    !is.finite(.normal_candidates$cutoff_cm)
+  } else {
+    is.finite(.normal_candidates$cutoff_cm) &
+      .normal_candidates$cutoff_cm == 90
+  }
+  rows <- .normal_candidates[
+    .normal_candidates$age_length_variant == age_variant &
+      cutoff_match &
+      .normal_candidates$selectivity_treatment == treatment,
+    ,
+    drop = FALSE
+  ]
+  if (nrow(rows) != 1L) {
+    stop(
+      "Expected one normal template for ",
+      age_variant, " ", cutoff, " ", treatment,
+      call. = FALSE
+    )
+  }
+  rows
+}
+
+.final_age_order <- c(
+  "BASE075", "BASE100", "REG075", "REG100", "SUB075", "SUB100"
+)
+.base100_source_file <- "bet.2026.age_length"
+.base100_source_path <-
+  "reference-inputs/age-length-variants/bet.2026.age_length"
+.base100_sha256 <-
+  "9118e61f99b7aaba097f4aa9f3ea31ab27419cd27a25781340f6263b41b3ec2f"
+
+.normal_structures <- list()
+for (age_variant in .final_age_order) {
+  source_age <- if (identical(age_variant, "BASE100")) {
+    "BASE075"
+  } else {
+    age_variant
+  }
+  for (cutoff in c("NOCUT", "CUT90")) {
+    row <- .normal_pick(source_age, cutoff)
+    if (identical(age_variant, "BASE100")) {
+      row$age_length_variant <- "BASE100"
+      row$age_length_source_file <- .base100_source_file
+      row$age_length_source_path <- .base100_source_path
+      row$age_length_sha256 <- .base100_sha256
+    }
+    .normal_structures[[length(.normal_structures) + 1L]] <- row
+  }
+}
+.normal_structures[[length(.normal_structures) + 1L]] <-
+  .normal_pick("BASE075", "CUT90", "sa28_n8")
+
+.export_rows <- list()
+.n5_references <- character()
+.export_number <- 0L
+for (structure in .normal_structures) {
+  age_variant <- as.character(structure$age_length_variant)
+  cutoff <- if (is.finite(structure$cutoff_cm)) "CUT90" else "NOCUT"
+  treatment <- as.character(structure$selectivity_treatment)
+  age_suffix <- if (identical(age_variant, "BASE075")) {
+    ""
+  } else {
+    paste0("-", age_variant)
+  }
+  selectivity_suffix <- if (identical(treatment, "sa28_n8")) {
+    "-SA28-N8"
+  } else {
+    ""
+  }
+  structure_slug <- paste0(
+    "TC1-", cutoff, age_suffix, selectivity_suffix
+  )
+  off_id <- paste0(
+    sprintf("S%03d", .export_number + 1L),
+    "-", structure_slug, "-TAGF2OFF"
+  )
+
+  for (tag_flag2 in 0:1) {
+    .export_number <- .export_number + 1L
+    tag_label <- if (tag_flag2 == 0L) "OFF" else "ON"
+    step_id <- paste0(
+      sprintf("S%03d", .export_number),
+      "-", structure_slug, "-TAGF2", tag_label
+    )
+    row <- structure
+    row$step_id <- step_id
+    row$enabled <- TRUE
+    row$major_step <- "Initial robust-normal LF sensitivities"
+    row$substep <- sub("-.*$", "", step_id)
+    row$change_axis <- paste(
+      age_variant, cutoff, treatment, paste0("TAGF2", tag_label)
+    )
+    row$model_label <- paste0(
+      step_id,
+      "[native]-MFCL initial robust-normal LF; age-length ",
+      age_variant, "; ", cutoff, "; ", treatment,
+      "; tag flag 2 ", tag_label
+    )
+    row$tag_flag2 <- as.integer(tag_flag2)
+    row$tag_flag2_reference <- off_id
+    row$base_sensitivity <- off_id
+
+    n5_key <- paste(age_variant, cutoff, tag_flag2, sep = "|")
+    if (identical(treatment, "sa28_n5")) {
+      row$selectivity_reference <- step_id
+      .n5_references[[n5_key]] <- step_id
+    } else {
+      reference <- .n5_references[[n5_key]]
+      if (is.null(reference) || !nzchar(reference)) {
+        stop("Missing paired N5 selectivity reference for ", n5_key, call. = FALSE)
+      }
+      row$selectivity_reference <- reference
+    }
+    row$job_key <- tolower(gsub("[^A-Za-z0-9]+", "-", step_id))
+    .export_rows[[length(.export_rows) + 1L]] <- row
+  }
+}
+
+stepwise_models <- do.call(rbind, .export_rows)
+rownames(stepwise_models) <- NULL
+stepwise_run$flow_group <- "bet-2026-normal-francis-tag-pairs"
+
+.expected_prefix <- sprintf("S%03d", 1:26)
+.actual_prefix <- sub("-.*$", "", stepwise_models$step_id)
+.structure_keys <- sub(
+  "-TAGF2(OFF|ON)$",
+  "",
+  sub("^S[0-9]{3}-", "", stepwise_models$step_id)
+)
+.age_counts <- as.integer(table(factor(
+  stepwise_models$age_length_variant,
+  levels = .final_age_order
+)))
+if (nrow(stepwise_models) != 26L ||
+    !identical(.actual_prefix, .expected_prefix) ||
     anyDuplicated(stepwise_models$step_id) ||
-    !identical(.normal_actual_prefix, .normal_expected_prefix) ||
     any(stepwise_models$lf_likelihood != "normal") ||
     any(stepwise_models$lf_downweight_factor != 1L) ||
     any(stepwise_models$lf_size_divisor != 20L) ||
     any(as.logical(stepwise_models$opr_enabled)) ||
     any(grepl("DM|DW[0-9]+|OPR", stepwise_models$step_id)) ||
-    !identical(
-      as.integer(table(factor(
-        stepwise_models$age_length_variant,
-        levels = c("BASE075", "REG075", "REG100", "SUB075", "SUB100")
-      ))),
-      c(5L, 2L, 2L, 2L, 2L)
-    )) {
+    !identical(stepwise_models$tag_flag2, rep(0:1, 13L)) ||
+    !identical(.age_counts, c(6L, 4L, 4L, 4L, 4L, 4L)) ||
+    length(unique(.structure_keys)) != 13L ||
+    any(table(.structure_keys) != 2L) ||
+    sum(stepwise_models$age_length_variant == "BASE100") != 4L ||
+    any(stepwise_models$age_length_variant == "BASE100" &
+          stepwise_models$age_length_sha256 != .base100_sha256)) {
   stop(
-    "Normal export must contain contiguous S001:S013 with no DM, DW axis, or OPR",
+    paste(
+      "Normal export must contain S001:S026 as 13 TAGF2OFF/ON pairs",
+      "with BASE100 included and no DM, DW axis, or OPR"
+    ),
     call. = FALSE
   )
 }
+
 rm(
-  .normal_keep, .normal_models, .normal_old_ids, .normal_suffix,
-  .normal_new_ids, .normal_id_map, .normal_remap_ids,
-  .normal_expected_prefix, .normal_actual_prefix, .normal_column
+  .normal_candidates,
+  .normal_pick,
+  .final_age_order,
+  .base100_source_file,
+  .base100_source_path,
+  .base100_sha256,
+  .normal_structures,
+  .export_rows,
+  .n5_references,
+  .export_number,
+  .expected_prefix,
+  .actual_prefix,
+  .structure_keys,
+  .age_counts
 )
