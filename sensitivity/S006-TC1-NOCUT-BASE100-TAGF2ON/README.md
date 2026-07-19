@@ -21,7 +21,7 @@ The bins remain as categories in the MFCL option-3 LF likelihood, and MFCL inter
 
 The refreshed reference bundle has input-set SHA-256 `a864b81f4d07321e977454a0d4c8389c8008b00159f374601f40ad6a6f7379d7`.
 The retained Job 5319 effort-crept `bet.frq` has SHA-256 `d77f97c348409f845f1f0fc801af808d15b6cb119349d1f083308cfc9d4fba8c`; effort creep is not reapplied.
-`bet.ini` comes wholesale from `PacificCommunity/ofp-sam-2026-BET-YFT-build-ini@548de05aff9bdc96a9ee7a817bbfd8068020ba26` path `BET/ini.mix-period/bet.2026.mix-0.2.ini`; the only intentional deviation is changing all 98 `tag_flags(:,2)` values from 1 to 0.
+`bet.ini` starts from `PacificCommunity/ofp-sam-2026-BET-YFT-build-ini@548de05aff9bdc96a9ee7a817bbfd8068020ba26` path `BET/ini.mix-period/bet.2026.mix-0.2.ini`. S006-TC1-NOCUT-BASE100-TAGF2ON restores all 98 `tag_flags(:,2)` values to the upstream value 1; its exact flag-column-2=0 control is `S005-TC1-NOCUT-BASE100-TAGF2OFF`; column 1 and every other INI value remain unchanged.
 `fishery_map.R` comes from stepwise commit `26c74dc6f303faa951b1ab331d7de14ea20b7489`; `tag_rep_map.R` is regenerated from that metadata and the derived `bet.ini`.
 `bet.tag` is the latest tag-prep main file at commit `79733c429b320e84ed5047aa6c932c8f19dab187` and is byte-identical to PDH 13-DataWeighting.
 `bet.reg_scaling` is the MFCL-ready 20x5 active matrix and `bet.reg_scaling.full` retains the complete 292x5 sensitivity source. The active matrix is exactly full-source rows 53:72.
