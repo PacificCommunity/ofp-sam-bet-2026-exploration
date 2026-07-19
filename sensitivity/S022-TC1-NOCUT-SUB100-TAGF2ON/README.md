@@ -1,4 +1,4 @@
-# BET 2026 S025-TC1-NOCUT-DW1-SUB100 SUB100 normal TC1 NOCUT DW1
+# BET 2026 S022-TC1-NOCUT-SUB100-TAGF2ON
 
 This is one model in the curated BET 2026 TC1 LF sensitivity set.
 

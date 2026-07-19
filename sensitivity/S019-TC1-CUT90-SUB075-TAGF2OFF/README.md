@@ -1,4 +1,4 @@
-# BET 2026 S021-TC1-CUT90-DW1-SUB075 SUB075 normal TC1 CUT90 DW1
+# BET 2026 S019-TC1-CUT90-SUB075-TAGF2OFF
 
 This is one model in the curated BET 2026 TC1 LF sensitivity set.
 

@@ -1,4 +1,4 @@
-# BET 2026 S031-TC1-CUT90-DW1-SA28-N8 BASE075 normal TC1 CUT90 DW1 N8
+# BET 2026 S026-TC1-CUT90-SA28-N8-TAGF2ON
 
 This is one model in the curated BET 2026 TC1 LF sensitivity set.
 
@@ -35,7 +35,7 @@ F21 removed 56 counts from 3 records (1 all-zero LF sentinels); F22 removed 5760
 ## Selectivity sensitivity
 
 Selectivity nodes: `N8`. The single-area-derived F1-F28 structure is common to all 13 models.
-Paired N5 reference: `S004-TC1-CUT90-TAGF2ON`.
+Paired N5 reference: `S004-TC1-CUT90-BASE075-TAGF2ON`.
 The corrected N8 treatment is identical to N5 except that F12 PS.JP.1 and F13 PL.JP.1 use eight rather than five spline nodes.
 This changes only F12 PS.JP.1 and F13 PL.JP.1 from five to eight nodes relative to the complete corrected N5 baseline.
 The LF likelihood, CUT90 transform, composition weighting, BASE075 age-length input, tag controls, phase sequence, and regional-scaling settings are inherited from the paired reference.

@@ -1,4 +1,4 @@
-# BET 2026 S003-TC1-CUT90-DW1 BASE075 normal TC1 CUT90 DW1
+# BET 2026 S008-TC1-CUT90-BASE100-TAGF2ON
 
 This is one model in the curated BET 2026 TC1 LF sensitivity set.
 

@@ -850,7 +850,7 @@ for (structure in .normal_structures) {
   cutoff <- if (is.finite(structure$cutoff_cm)) "CUT90" else "NOCUT"
   treatment <- as.character(structure$selectivity_treatment)
   age_suffix <- if (identical(age_variant, "BASE075")) {
-    ""
+    if (identical(treatment, "sa28_n8")) "" else "-BASE075"
   } else {
     paste0("-", age_variant)
   }
@@ -888,6 +888,7 @@ for (structure in .normal_structures) {
       age_variant, "; ", cutoff, "; ", treatment,
       "; tag flag 2 ", tag_label
     )
+    row$job_title <- paste("BET 2026", step_id)
     row$tag_flag2 <- as.integer(tag_flag2)
     row$tag_flag2_reference <- off_id
     row$base_sensitivity <- off_id
