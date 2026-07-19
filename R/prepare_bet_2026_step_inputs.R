@@ -556,9 +556,24 @@ for (grouping in names(expected_dm_group_counts)) {
 # The checks above audit the complete inherited source catalogue. Only the
 # 13-row robust-normal export is generated from this point onward.
 models <- config_env$stepwise_models
-tag_flag_sensitivity_controls <- c(
-  "S012-TC1-NOCUT-TAGF2ON" = "S001-TC1-NOCUT",
-  "S013-TC1-CUT90-TAGF2ON" = "S002-TC1-CUT90"
+tag_flag_structure <- sub(
+  "-TAGF2(OFF|ON)$", "",
+  sub("^S[0-9]{3}-", "", models$step_id)
+)
+tag_flag_on <- as.integer(models$tag_flag2) == 1L
+tag_flag_off <- as.integer(models$tag_flag2) == 0L
+if (anyNA(tag_flag_on) || anyNA(tag_flag_off) ||
+    anyDuplicated(tag_flag_structure[tag_flag_on]) ||
+    anyDuplicated(tag_flag_structure[tag_flag_off]) ||
+    !setequal(tag_flag_structure[tag_flag_on], tag_flag_structure[tag_flag_off])) {
+  fail("Could not uniquely pair every TAGF2ON model with its TAGF2OFF control")
+}
+tag_flag_controls_by_structure <- stats::setNames(
+  models$step_id[tag_flag_off], tag_flag_structure[tag_flag_off]
+)
+tag_flag_sensitivity_controls <- stats::setNames(
+  unname(tag_flag_controls_by_structure[tag_flag_structure[tag_flag_on]]),
+  models$step_id[tag_flag_on]
 )
 tag_flag_sensitivity_ids <- names(tag_flag_sensitivity_controls)
 
