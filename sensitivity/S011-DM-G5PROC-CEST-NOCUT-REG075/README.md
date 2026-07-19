@@ -11,7 +11,7 @@ This model is one LF Dirichlet-multinomial-noRE sensitivity in the BET 2026 set.
 | Group scalar exponent d | Starts at MFCL default zero; estimated from PHASE1 with fish flag 69 |
 | Relative sample-size exponent c | CEST: c is fixed at zero in PHASE1 and estimated from PHASE2 |
 | DM maximum effective sample size | 10 |
-| DM fitting | Nmax 20 from PHASE1 onward; later phases inherit it unchanged |
+| DM fitting | Nmax 10 from PHASE1 onward; later phases inherit it unchanged |
 | LF preprocessing | Enabled; inherited N < 50 filter retained |
 | LF tail compression | Percentage compression disabled; DM compression retains at least five class intervals (`parest flag 320 = 5`) |
 | LF cutoff | None |

@@ -1577,7 +1577,7 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       "| Group scalar exponent d | Starts at MFCL default zero; estimated from PHASE1 with fish flag 69 |",
       paste0("| Relative sample-size exponent c | ", c_text, " |"),
       paste0("| DM maximum effective sample size | ", dm_nmax_target, " |"),
-      "| DM fitting | Nmax 20 from PHASE1 onward; later phases inherit it unchanged |",
+      "| DM fitting | Nmax 10 from PHASE1 onward; later phases inherit it unchanged |",
       "| LF preprocessing | Enabled; inherited N < 50 filter retained |",
       "| LF tail compression | Percentage compression disabled; DM compression retains at least five class intervals (`parest flag 320 = 5`) |",
       paste0("| LF cutoff | ", cutoff_text, " |"),
