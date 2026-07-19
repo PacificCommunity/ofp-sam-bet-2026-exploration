@@ -1,3 +1,15 @@
+## This focused branch is rebuilt by the regional-scaling sensitivity builder.
+status <- system2(
+  "bash",
+  file.path("scripts", "build_regional_scaling_weight_sensitivities.sh")
+)
+if (!identical(as.integer(status), 0L)) {
+  stop("Regional-scaling sensitivity rebuild failed", call. = FALSE)
+}
+quit(save = "no", status = 0L)
+
+## The parent-branch generator is retained below as provenance but is not
+## evaluated because this focused design exits above.
 ## Rebuild the 26-model BET 2026 robust-normal LF design: six age-length
 ## variants crossed with NOCUT/CUT90 and TAGF2OFF/TAGF2ON, plus the BASE075
 ## CUT90 N8 structure with both tag settings. DM, DW-axis, OPR, and HAC4
