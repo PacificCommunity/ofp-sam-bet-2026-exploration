@@ -1,6 +1,6 @@
 # BET 2026 S010-TC1-CUT90-BASE075-TAGF2ON-REGW25
 
-This model is part of the BASE075 regional-scaling-weight sensitivity design.
+This model is part of the 18-model BASE075 regional-scaling-weight sensitivity design.
 
 ## Design
 
