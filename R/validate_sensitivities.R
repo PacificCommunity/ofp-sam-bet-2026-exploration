@@ -198,7 +198,7 @@ doitall_semantic_sha256 <- function(ids) {
   sha256_file(manifest)
 }
 expected_doitall_semantic_sha256 <-
-  "f3677a95dbae02e91ab6ea9910f4a8032eae85548220ac269f2f0e7d0959d18a"
+  "93e22e2d99a11794309595e344653b2f353b840cd79b40fc777067f9f17f39b3"
 actual_doitall_semantic_sha256 <- doitall_semantic_sha256(models$step_id)
 if (!identical(actual_doitall_semantic_sha256, expected_doitall_semantic_sha256)) {
     fail("Generated doitall command semantics differ from the locked HAC4 branch design")
@@ -477,9 +477,7 @@ for (id in models$step_id[dm]) {
   phase1 <- phase_bounds(lines, 1L, id)
   phase10 <- phase_bounds(lines, 10L, id)
   phase11 <- phase_bounds(lines, 11L, id)
-  require_in_phase(lines, "1 342 50", phase1, id)
-  require_in_phase(lines, "1 342 35", phase10, id)
-  require_in_phase(lines, "1 342 20", phase11, id)
+  require_in_phase(lines, "1 342 20", phase1, id)
   if (sum(grepl("<<PHASE7A[[:space:]]*$", lines)) != 1L ||
       sum(grepl("^PHASE7A[[:space:]]*$", lines)) != 1L ||
       sum(grepl("<<PHASE9A[[:space:]]*$", lines)) != 1L ||
@@ -502,7 +500,7 @@ for (id in opr_ids[3:4]) {
   }
   require_in_phase(lines, "1 141 11", phase1, id)
   require_in_phase(lines, "1 320 5", phase1, id)
-  require_in_phase(lines, "1 342 50", phase1, id)
+  require_in_phase(lines, "1 342 20", phase1, id)
   require_in_phase(lines, "-999 69 1", phase1, id)
   require_in_phase(lines, "-999 89 0", phase1, id)
   require_in_phase(lines, "-999 89 1", phase2, id)
@@ -604,10 +602,10 @@ monotonic <- n5_flags[n5_flags$flag == 16L & n5_flags$value == 1L, , drop = FALS
 if (nrow(monotonic) != 1L || monotonic$actor[[1L]] != -9L) {
   fail("Corrected N5 monotonicity must apply only to F9")
 }
-upper <- c(`12` = 25L, `13` = 30L, `15` = 25L, `16` = 25L,
+upper <- c(`12` = 25L, `13` = 30L, `14` = 37L, `15` = 37L, `16` = 25L,
            `17` = 25L, `18` = 25L, `19` = 25L, `21` = 10L,
-           `22` = 7L, `23` = 6L, `24` = 25L, `25` = 25L,
-           `26` = 25L, `27` = 30L)
+           `20` = 37L, `22` = 7L, `23` = 6L, `24` = 25L,
+           `25` = 25L, `26` = 25L, `27` = 30L, `28` = 37L)
 upper_rows <- n5_flags[n5_flags$flag == 3L & n5_flags$actor != -999L,
                        c("actor", "value")]
 upper_rows <- upper_rows[order(upper_rows$actor), , drop = FALSE]
@@ -615,6 +613,9 @@ expected_upper <- data.frame(actor = -as.integer(names(upper)), value = as.integ
 expected_upper <- expected_upper[order(expected_upper$actor), , drop = FALSE]
 row.names(upper_rows) <- row.names(expected_upper) <- NULL
 if (!identical(upper_rows, expected_upper)) fail("Corrected N5 upper-age settings drifted")
+for (fishery in c(14L, 15L, 20L, 28L)) {
+  require_triple(n5_flags, -fishery, 16L, 0L, n5_reference_id)
+}
 if (any(n5_flags$flag == 61L & n5_flags$actor != -999L)) {
   fail("Corrected N5 must not have fishery-specific node overrides")
 }

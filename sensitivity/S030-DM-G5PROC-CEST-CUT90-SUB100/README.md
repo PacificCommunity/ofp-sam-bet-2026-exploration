@@ -11,7 +11,7 @@ This model is one LF Dirichlet-multinomial-noRE sensitivity in the BET 2026 set.
 | Group scalar exponent d | Starts at MFCL default zero; estimated from PHASE1 with fish flag 69 |
 | Relative sample-size exponent c | CEST: c is fixed at zero in PHASE1 and estimated from PHASE2 |
 | DM maximum effective sample size | 20 |
-| DM fitting continuation | Nmax 50 through PHASE9; 35 in PHASE10; final target 20 in PHASE11 |
+| DM fitting | Nmax 20 from PHASE1 onward; later phases inherit it unchanged |
 | LF preprocessing | Enabled; inherited N < 50 filter retained |
 | LF tail compression | Percentage compression disabled; DM compression retains at least five class intervals (`parest flag 320 = 5`) |
 | LF cutoff | Established F21/F22/F23 upper-bin cutoff above 90 cm |
@@ -42,7 +42,7 @@ No MFCL source or executable is changed.
 ## Corrected selectivity baseline
 
 Selectivity nodes: `N5`. The single-area-derived F1-F28 structure is common to all 41 models.
-The corrected N5 baseline assigns independent selectivity groups to F1-F28, applies the audited young-age, F9 monotonicity, and upper-age constraints, fixes the first two ages of F29-F33 to zero, uses five nodes, and splits regional-index groups F29-F33 in phase 5. Fish flag 24 group labels are contiguous in every phase without changing group membership. Fish flag 26=2 evaluates the flag-57 cubic spline on scaled mean length-at-age to produce final selectivity-at-age; flag 61 supplies nodes on that coordinate.
+The corrected N5 baseline assigns independent selectivity groups to F1-F28, applies the audited young-age, F9 monotonicity, and upper-age constraints, leaves F14, F15, F20, and F28 without an old-age tail penalty, fixes the first two ages of F29-F33 to zero, uses five nodes, and splits regional-index groups F29-F33 in phase 5. Fish flag 24 group labels are contiguous in every phase without changing group membership. Fish flag 26=2 evaluates the flag-57 cubic spline on scaled mean length-at-age to produce final selectivity-at-age; flag 61 supplies nodes on that coordinate.
 This is the promoted core baseline: independent extraction groups, audited support constraints, five nodes, and phase-5 regional-index splitting.
 The LF likelihood, CUT90 transform, composition weighting, BASE075 age-length input, tag controls, phase sequence, and regional-scaling settings are inherited from the paired reference.
 Corrected selectivity source: `PacificCommunity/ofp-sam-bet-yft-2026-single-area@5363029b509cacf902aef2866efdc04634c89045`.

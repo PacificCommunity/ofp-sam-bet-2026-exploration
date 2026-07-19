@@ -635,6 +635,7 @@ selectivity_treatment_note <- function(treatment) {
     sa28_n5 = paste(
       "The corrected N5 baseline assigns independent selectivity groups to F1-F28,",
       "applies the audited young-age, F9 monotonicity, and upper-age constraints,",
+      "leaves F14, F15, F20, and F28 without an old-age tail penalty,",
       "fixes the first two ages of F29-F33 to zero, uses five nodes, and splits",
       "regional-index groups F29-F33 in phase 5. Fish flag 24 group labels are",
       "contiguous in every phase without changing group membership. Fish flag 26=2 evaluates the",
@@ -700,13 +701,16 @@ single_area_selectivity_block <- function(nodes) {
     "# Single-area extraction age-spline and upper-age constraints.",
     "  -12 16 2  -12 3 25",
     "  -13 16 2  -13 3 30",
-    "  -15 16 2  -15 3 25",
+    "  -14 16 0  -14 3 37",
+    "  -15 16 0  -15 3 37",
     "  -17 16 2  -17 3 25",
     "  -18 16 2  -18 3 25",
     "  -19 16 2  -19 3 25",
+    "  -20 16 0  -20 3 37",
     "  -25 16 2  -25 3 25",
     "  -26 16 2  -26 3 25",
     "  -27 16 2  -27 3 30",
+    "  -28 16 0  -28 3 37",
     "  -16 16 2  -16 3 25",
     "  -24 16 2  -24 3 25",
     "  -21 16 2  -21 3 10",
@@ -859,8 +863,6 @@ apply_cpue_hac4_sigma <- function(lines) {
 }
 
 dm_nmax_target <- 20L
-dm_nmax_stage <- max(50L, dm_nmax_target)
-dm_nmax_mid <- as.integer(round((dm_nmax_stage + dm_nmax_target) / 2))
 
 write_sensitivity_doitall <- function(
     to,
@@ -931,11 +933,7 @@ write_sensitivity_doitall <- function(
       lines,
       c(
         "  1 320 5     # DM LF tail compression; retain at least five class intervals",
-        sprintf(
-          "  1 342 %d  # DM numerical continuation start; final Nmax %d in PHASE11",
-          dm_nmax_stage,
-          dm_nmax_target
-        )
+        sprintf("  1 342 %d  # DM-noRE maximum LF effective sample size", dm_nmax_target)
       ),
       after = lf_likelihood_hit
     )
@@ -1047,19 +1045,6 @@ write_sensitivity_doitall <- function(
       after = phase9_open - 1L
     )
 
-    phase10_open <- grep("<<PHASE10[[:space:]]*$", lines)
-    if (length(phase10_open) != 1L) {
-      fail("Archived doitall.sh must contain exactly one PHASE10 opening command")
-    }
-    lines <- append(
-      lines,
-      sprintf(
-        "  1 342 %d  # continue DM Nmax toward the final target",
-        dm_nmax_mid
-      ),
-      after = phase10_open
-    )
-
     phase11_open <- grep("<<PHASE11[[:space:]]*$", lines)
     phase11_end <- grep("^PHASE11[[:space:]]*$", lines)
     if (length(phase11_open) != 1L || length(phase11_end) != 1L || phase11_open >= phase11_end) {
@@ -1071,15 +1056,6 @@ write_sensitivity_doitall <- function(
     ))) {
       fail("Archived doitall.sh unexpectedly enables plot reporting inside PHASE11")
     }
-    lines <- append(
-      lines,
-      sprintf(
-        "  1 342 %d  # final DM-noRE maximum LF effective sample size",
-        dm_nmax_target
-      ),
-      after = phase11_open
-    )
-    phase11_end <- grep("^PHASE11[[:space:]]*$", lines)
     lines <- append(
       lines,
       "  1 190 1  # write the DM plot report only after all fitting phases are active",
@@ -1205,12 +1181,7 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
       "the LF preprocessing gate and N < 50 filter retained; percentage and",
       "DM-specific LF tail compression retains at least five class intervals; DM maximum effective sample",
       sprintf("size %d;", dm_nmax_target),
-      sprintf(
-        "numerical continuation uses Nmax %d through PHASE9, %d in PHASE10, and final target %d in PHASE11;",
-        dm_nmax_stage,
-        dm_nmax_mid,
-        dm_nmax_target
-      ),
+      "Nmax is fixed from PHASE1 and inherited by every later phase;",
       group_count, "reviewed LF group(s); group-specific scalar",
       "exponents estimated from PHASE1;", paste0(c_note, ";"), paste0(cutoff_note, "."),
       "Inherited flag-49 lines are inert under DM-noRE, so the normal models'",
@@ -1606,11 +1577,7 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       "| Group scalar exponent d | Starts at MFCL default zero; estimated from PHASE1 with fish flag 69 |",
       paste0("| Relative sample-size exponent c | ", c_text, " |"),
       paste0("| DM maximum effective sample size | ", dm_nmax_target, " |"),
-      paste0(
-        "| DM fitting continuation | Nmax ", dm_nmax_stage,
-        " through PHASE9; ", dm_nmax_mid,
-        " in PHASE10; final target ", dm_nmax_target, " in PHASE11 |"
-      ),
+      "| DM fitting | Nmax 20 from PHASE1 onward; later phases inherit it unchanged |",
       "| LF preprocessing | Enabled; inherited N < 50 filter retained |",
       "| LF tail compression | Percentage compression disabled; DM compression retains at least five class intervals (`parest flag 320 = 5`) |",
       paste0("| LF cutoff | ", cutoff_text, " |"),

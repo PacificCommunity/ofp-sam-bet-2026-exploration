@@ -35,7 +35,7 @@ The complete corrected baseline has these audited rules:
 - F29-F33 regional indices share group 29 through phases 1-4 for stable initialization. In phase 5 they split into groups 29:33, so their final selectivities are estimated separately. This relabel preserves the original partition and parameter count while satisfying MFCL's contiguous-group requirement. All five retain the first-two-age zero baseline.
 - Early ages are fixed to zero for F1-F12 (first two), F13 (first one), F15 (first five), and every regional index F29-F33 (first two).
 - Monotonicity is applied only to F9.
-- Upper-age settings are F12=25, F13=30, F15-F19=25, F21=10, F22=7, F23=6, F24-F26=25, and F27=30. F20 and F28 have no override.
+- Upper-age tail penalties start at F12=25, F13=30, F16-F19=25, F21=10, F22=7, F23=6, F24-F26=25, and F27=30. F14, F15, F20, and F28 have no tail penalty.
 - Fish flag 26 is intentionally retained at `2` from the single-area-derived structure. MFCL evaluates the cubic selectivity spline on scaled mean length-at-age and uses the result as final selectivity-at-age in the catch and population equations. This is neither the ordinary normalized-age coordinate used by flag 26=`0` nor fully length-bin-specific selectivity under flag 26=`3`.
 - Fish flag 57=`3` selects the cubic spline. The default flag 61=`5` nodes, or the targeted F12/F13 flag 61=`8` nodes, lie on the scaled mean-length-at-age coordinate under flag 26=`2`.
 - Flags 75, 3, and 16 remain age constraints. The LF likelihood choice is separate from these selectivity controls, so this design is not described as pure age-axis selectivity.

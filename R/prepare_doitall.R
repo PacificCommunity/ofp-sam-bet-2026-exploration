@@ -85,6 +85,10 @@ apply_reviewed_selectivity_controls <- function(lines) {
   # Exact fishery-level controls in the reviewed PDH Step 12 parameter file.
   # Do not propagate these values to other members of shared selectivity groups:
   # this helper intentionally reproduces the fitted reference state.
+  lines <- set_doitall_fishery_flag(lines, 14L, 16L, 0L)
+  lines <- set_doitall_fishery_flag(lines, 14L, 3L, 37L)
+  lines <- set_doitall_fishery_flag(lines, 15L, 16L, 0L)
+  lines <- set_doitall_fishery_flag(lines, 15L, 3L, 37L)
   lines <- set_doitall_fishery_flag(lines, 20L, 16L, 0L)
   lines <- set_doitall_fishery_flag(lines, 20L, 3L, 37L)
   lines <- set_doitall_fishery_flag(lines, 28L, 16L, 0L)

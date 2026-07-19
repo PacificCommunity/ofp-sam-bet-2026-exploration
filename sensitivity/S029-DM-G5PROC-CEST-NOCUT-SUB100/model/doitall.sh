@@ -112,7 +112,7 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   1 111 4     # set likelihood function for tags to negative binomial
   1 141 11    # LF Dirichlet-multinomial likelihood without random effects
   1 320 5     # DM LF tail compression; retain at least five class intervals
-  1 342 50  # DM numerical continuation start; final Nmax 20 in PHASE11
+  1 342 20  # DM-noRE maximum LF effective sample size
   1 139 3     # set likelihood function for WF data to normal
   -999 49 20  # divide LF sample sizes by 20
   -1 68 1  # DM LF group: Longline extraction
@@ -272,13 +272,16 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
 # Single-area extraction age-spline and upper-age constraints.
   -12 16 2  -12 3 25
   -13 16 2  -13 3 30
-  -15 16 2  -15 3 25
+  -14 16 0  -14 3 37
+  -15 16 0  -15 3 37
   -17 16 2  -17 3 25
   -18 16 2  -18 3 25
   -19 16 2  -19 3 25
+  -20 16 0  -20 3 37
   -25 16 2  -25 3 25
   -26 16 2  -26 3 25
   -27 16 2  -27 3 30
+  -28 16 0  -28 3 37
   -16 16 2  -16 3 25
   -24 16 2  -24 3 25
   -21 16 2  -21 3 10
@@ -449,7 +452,6 @@ PHASE9
 # ----------
 
 $program_path bet.frq 09.par 10.par -file - <<PHASE10
-  1 342 35  # continue DM Nmax toward the final target
   1 1 10000  # function evaluations
   1 50 $phase10_11_convergence  # convergence criteria; default quick -3, set BET_PHASE10_11_CONVERGENCE=-5 for strict
   1 121 0    # estimate scaling parameter for Lorenzen (age_pars(5,1)); off
@@ -460,7 +462,6 @@ PHASE10
 # ----------
 
 $program_path bet.frq 10.par 11.par -file - <<PHASE11
-  1 342 20  # final DM-noRE maximum LF effective sample size
   1 1 5000
   1 50 $phase10_11_convergence  # convergence criteria; default quick -3, set BET_PHASE10_11_CONVERGENCE=-5 for strict
   1 246 1   # indepvar.rpt
