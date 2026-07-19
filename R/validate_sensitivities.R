@@ -477,7 +477,7 @@ for (id in models$step_id[dm]) {
   phase1 <- phase_bounds(lines, 1L, id)
   phase10 <- phase_bounds(lines, 10L, id)
   phase11 <- phase_bounds(lines, 11L, id)
-  require_in_phase(lines, "1 342 20", phase1, id)
+  require_in_phase(lines, "1 342 10", phase1, id)
   if (sum(grepl("<<PHASE7A[[:space:]]*$", lines)) != 1L ||
       sum(grepl("^PHASE7A[[:space:]]*$", lines)) != 1L ||
       sum(grepl("<<PHASE9A[[:space:]]*$", lines)) != 1L ||
@@ -500,7 +500,7 @@ for (id in opr_ids[3:4]) {
   }
   require_in_phase(lines, "1 141 11", phase1, id)
   require_in_phase(lines, "1 320 5", phase1, id)
-  require_in_phase(lines, "1 342 20", phase1, id)
+  require_in_phase(lines, "1 342 10", phase1, id)
   require_in_phase(lines, "-999 69 1", phase1, id)
   require_in_phase(lines, "-999 89 0", phase1, id)
   require_in_phase(lines, "-999 89 1", phase2, id)
@@ -837,7 +837,7 @@ forbidden_public_text <- paste0(
 )
 required_generated_terms <- c(
   "41-model", "single-area-derived", "F29-F33", "BASE075", "REG075",
-  "REG100", "SUB075", "SUB100", "G5PROC", "Nmax 20", "HAC4", "F12 PS.JP.1",
+  "REG100", "SUB075", "SUB100", "G5PROC", "Nmax 10", "HAC4", "F12 PS.JP.1",
   "F13 PL.JP.1", "TAGF2ON", "phase 3", "phase 4", "phase 5",
   "terminal penalty is disabled"
 )
@@ -860,7 +860,7 @@ cat("Index baseline: every model has flag 75=2 for F29-F33 Index R1-R5.\n")
 cat("Selectivity groups: flag-24 labels are contiguous, with 29 phase-1 and 33 phase-5 partitions.\n")
 cat("Identifiers are contiguous S001:S041; retained N8 models are S031 and S032.\n")
 cat("OPR pairs: normal S001 and DM S005 controls use the exact reviewed Y72-E2-S01-R50-I50 transform with parest 397=0.\n")
-cat("DM OPR controls retain G5PROC, C estimation, Nmax 20, and phase order OPR/movement/regional scaling = 3/4/5.\n")
+cat("DM OPR controls retain G5PROC, C estimation, Nmax 10, and phase order OPR/movement/regional scaling = 3/4/5.\n")
 cat("CPUE HAC4: all models retain identical positive F29-F33 variance multipliers and flags 40/30/35/32/30.\n")
 cat("All seven TAGF2ON models differ from their controls only in all 98 tag_flags(:,2) values.\n")
 cat("Public README/manifests contain full design context without local paths or personal-name wording.\n")

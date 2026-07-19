@@ -10,7 +10,7 @@ This model is one LF Dirichlet-multinomial-noRE sensitivity in the BET 2026 set.
 | LF grouping | G5PROC: longline F1:F11; large-scale purse seine F12/F19:F20/F25:F28; domestic purse seine F17:F18; other extraction F13:F16/F21:F24; index F29:F33 |
 | Group scalar exponent d | Starts at MFCL default zero; estimated from PHASE1 with fish flag 69 |
 | Relative sample-size exponent c | CEST: c is fixed at zero in PHASE1 and estimated from PHASE2 |
-| DM maximum effective sample size | 20 |
+| DM maximum effective sample size | 10 |
 | DM fitting | Nmax 20 from PHASE1 onward; later phases inherit it unchanged |
 | LF preprocessing | Enabled; inherited N < 50 filter retained |
 | LF tail compression | Percentage compression disabled; DM compression retains at least five class intervals (`parest flag 320 = 5`) |
@@ -49,6 +49,6 @@ Corrected selectivity source: `PacificCommunity/ofp-sam-bet-yft-2026-single-area
 
 ## 41-model design context
 
-This model belongs to the public 41-model design: 30 core age-length/LF combinations, two targeted N8 controls, five core TAGF2ON controls, and normal plus DM OPR tag-control pairs. Every model uses the complete single-area-derived selectivity baseline, including F29-F33 first-two-age zeros; N8 changes only F12 PS.JP.1 and F13 PL.JP.1. Age-length levels are BASE075, REG075, REG100, SUB075, and SUB100. DM models use DM-noRE, G5PROC, estimated relative sample-size exponent C, and Nmax 20. All models on this branch use the HAC4-adjusted CPUE sigma flags F29-F33 = 40, 30, 35, 32, and 30 while retaining the original FRQ effort_weight variance multipliers and parest flag 371=0 semantics. TAGF2ON changes only all 98 tag_flags(:,2) values. OPR is activated in phase 3, movement in phase 4, and regional scaling in phase 5; terminal penalty is disabled. Fish flag 26=2 evaluates the flag-57 cubic spline on scaled mean length-at-age to produce final selectivity-at-age; flag-61 nodes use that coordinate, while flags 75/3/16 remain age constraints. This setting is separate from the LF likelihood. This model uses age-length level BASE075.
+This model belongs to the public 41-model design: 30 core age-length/LF combinations, two targeted N8 controls, five core TAGF2ON controls, and normal plus DM OPR tag-control pairs. Every model uses the complete single-area-derived selectivity baseline, including F29-F33 first-two-age zeros; N8 changes only F12 PS.JP.1 and F13 PL.JP.1. Age-length levels are BASE075, REG075, REG100, SUB075, and SUB100. DM models use DM-noRE, G5PROC, estimated relative sample-size exponent C, and Nmax 10. All models on this branch use the HAC4-adjusted CPUE sigma flags F29-F33 = 40, 30, 35, 32, and 30 while retaining the original FRQ effort_weight variance multipliers and parest flag 371=0 semantics. TAGF2ON changes only all 98 tag_flags(:,2) values. OPR is activated in phase 3, movement in phase 4, and regional scaling in phase 5; terminal penalty is disabled. Fish flag 26=2 evaluates the flag-57 cubic spline on scaled mean length-at-age to produce final selectivity-at-age; flag-61 nodes use that coordinate, while flags 75/3/16 remain age constraints. This setting is separate from the LF likelihood. This model uses age-length level BASE075.
 
 Status: generated and ready for validation; Kflow has not been submitted.

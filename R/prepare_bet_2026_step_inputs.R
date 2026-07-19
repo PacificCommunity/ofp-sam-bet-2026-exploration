@@ -862,7 +862,7 @@ apply_cpue_hac4_sigma <- function(lines) {
   lines
 }
 
-dm_nmax_target <- 20L
+dm_nmax_target <- 10L
 
 write_sensitivity_doitall <- function(
     to,
@@ -1078,7 +1078,7 @@ design_context_note <- function(row) {
     "single-area-derived selectivity baseline, including F29-F33 first-two-age",
     "zeros; N8 changes only F12 PS.JP.1 and F13 PL.JP.1. Age-length levels are",
     "BASE075, REG075, REG100, SUB075, and SUB100. DM models use DM-noRE,",
-    "G5PROC, estimated relative sample-size exponent C, and Nmax 20.",
+    "G5PROC, estimated relative sample-size exponent C, and Nmax 10.",
     "All models on this branch use the HAC4-adjusted CPUE sigma flags",
     "F29-F33 = 40, 30, 35, 32, and 30 while retaining the original FRQ",
     "effort_weight variance multipliers and parest flag 371=0 semantics.",
