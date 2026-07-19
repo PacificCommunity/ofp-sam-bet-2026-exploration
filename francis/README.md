@@ -5,7 +5,7 @@ calculated from the fitted output of Kflow job 9764.
 
 - Calculator: `mfclkit::mfk_francis_ta18_from_lenfit()`
 - Patcher: `mfclkit::mfk_patch_doitall_francis()`
-- mfclkit commit: `866ab2eceb607bf29a871edf792bc45f2224c055`
+- mfclkit commit: `b51429c8de9d9b007338250c599bc76086c64f13`
 - Authoritative controls: fitted `final.par` paired with its `bet.frq`
 - MFCL LF likelihood flag: `141 = 3` (robust normal)
 - Tail controls: `311 = 1`, `312 = 50`, `313 = 1`
