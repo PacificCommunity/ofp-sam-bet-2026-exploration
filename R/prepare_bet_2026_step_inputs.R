@@ -782,6 +782,82 @@ apply_selectivity_fishery_map <- function(path, treatment) {
   invisible(path)
 }
 
+cpue_hac4 <- data.frame(
+  fishery = 29:33,
+  index = paste0("R", 1:5),
+  base_flag92 = c(35L, 24L, 21L, 24L, 23L),
+  de4 = c(
+    1.29476547433727,
+    1.58770333326732,
+    2.82036231277202,
+    1.79774557593873,
+    1.68640693000139
+  ),
+  flag92 = c(40L, 30L, 35L, 32L, 30L),
+  stringsAsFactors = FALSE
+)
+cpue_hac4$base_sigma <- cpue_hac4$base_flag92 / 100
+cpue_hac4$target_sigma <- cpue_hac4$base_sigma * sqrt(cpue_hac4$de4)
+if (!identical(as.integer(round(100 * cpue_hac4$target_sigma)), cpue_hac4$flag92)) {
+  fail("HAC4 CPUE sigma flags do not match base_sigma * sqrt(DE4)")
+}
+cpue_hac4_manifest_note <- paste(
+  "Branch-wide CPUE HAC4 sensitivity from S014 Kflow job 9777 weighted",
+  "log-residuals: Bartlett Newey-West lag 4; F29-F33 flag 92 values are",
+  "40, 30, 35, 32, and 30. Fish flag 66 remains 1, so MFCL applies the",
+  "FRQ effort_weight as a per-fishery-normalized temporal variance multiplier;",
+  "parest flag 371 remains at its initialized value zero."
+)
+
+apply_cpue_hac4_sigma <- function(lines) {
+  comment_start <- grep("^# fish flag 92 =", lines)
+  comment_end <- grep("^# precision pattern used by", lines)
+  if (length(comment_start) != 1L || length(comment_end) != 1L ||
+      comment_start > comment_end) {
+    fail("Archived doitall.sh has an unexpected CPUE variance comment block")
+  }
+  comment_block <- c(
+    "# fish flag 92 = round(sigma * 100); fish flag 94 allows unequal sigma.",
+    "# fish flag 66=1 reads FRQ effort_weight as temporal variance multiplier lambda_t.",
+    "# With parest flag 371=0, MFCL uses lambda_t * sigma^2 after normalizing",
+    "# lambda_t to mean one within each fishery.",
+    "# HAC4 target = base sigma * sqrt(Bartlett Newey-West DE at lag 4)."
+  )
+  lines <- c(
+    lines[seq_len(comment_start - 1L)],
+    comment_block,
+    lines[seq.int(comment_end + 1L, length(lines))]
+  )
+
+  for (i in seq_len(nrow(cpue_hac4))) {
+    row <- cpue_hac4[i, , drop = FALSE]
+    pattern <- sprintf(
+      "(^|[[:space:]])-%d[[:space:]]+92[[:space:]]+%d([[:space:]]|$)",
+      row$fishery,
+      row$base_flag92
+    )
+    hit <- grep(pattern, lines)
+    if (length(hit) != 1L) {
+      fail("Archived doitall.sh must contain exactly one base flag 92 for F", row$fishery)
+    }
+    replacement <- sprintf("\\1-%d 92 %d\\2", row$fishery, row$flag92)
+    lines[[hit]] <- sub(pattern, replacement, lines[[hit]])
+    lines[[hit]] <- sub("[[:space:]]*#.*$", "", lines[[hit]])
+    lines[[hit]] <- paste0(
+      sub("[[:space:]]+$", "", lines[[hit]]),
+      sprintf(
+        "  # Index %s HAC4 sigma: base %.2f, DE4 %.6f, target %.3f, applied %.2f",
+        row$index,
+        row$base_sigma,
+        row$de4,
+        row$target_sigma,
+        row$flag92 / 100
+      )
+    )
+  }
+  lines
+}
+
 dm_nmax_target <- 20L
 dm_nmax_stage <- max(50L, dm_nmax_target)
 dm_nmax_mid <- as.integer(round((dm_nmax_stage + dm_nmax_target) / 2))
@@ -1010,6 +1086,7 @@ write_sensitivity_doitall <- function(
       after = phase11_end - 1L
     )
   }
+  lines <- apply_cpue_hac4_sigma(lines)
   lines <- apply_selectivity_treatment(lines, selectivity_treatment)
   lines <- canonicalize_final_selectivity_group_labels(lines, selectivity_treatment)
   writeLines(lines, to, useBytes = TRUE)
@@ -1026,6 +1103,9 @@ design_context_note <- function(row) {
     "zeros; N8 changes only F12 PS.JP.1 and F13 PL.JP.1. Age-length levels are",
     "BASE075, REG075, REG100, SUB075, and SUB100. DM models use DM-noRE,",
     "G5PROC, estimated relative sample-size exponent C, and Nmax 20.",
+    "All models on this branch use the HAC4-adjusted CPUE sigma flags",
+    "F29-F33 = 40, 30, 35, 32, and 30 while retaining the original FRQ",
+    "effort_weight variance multipliers and parest flag 371=0 semantics.",
     "TAGF2ON changes only all 98 tag_flags(:,2) values. OPR is activated in",
     "phase 3, movement in phase 4, and regional scaling in phase 5; terminal",
     "penalty is disabled. Fish flag 26=2 evaluates the flag-57 cubic spline on",
@@ -1178,6 +1258,7 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
       )
     )
   }
+  doitall_note <- paste(doitall_note, cpue_hac4_manifest_note)
 
   manifest_sources <- file.path(
     reference_source,
@@ -1535,6 +1616,7 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
       paste0("| LF cutoff | ", cutoff_text, " |"),
       "| Index LF | F29:F33 retained unchanged |",
       "| Regional-scaling penalty weight | 50 |",
+      "| CPUE sigma sensitivity | HAC4 flags F29:F33 = 40, 30, 35, 32, 30; flag 66=1 retained |",
       "",
       if (nzchar(grouping_basis)) c(
         "## Grouping rationale",

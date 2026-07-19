@@ -54,16 +54,16 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -999 15 0
   -999 13 0
 # Survey fisheries defined
-# fish flag 92 = round(region sigma * 100), fish flag 94 = allow unequal sigma,
-# fish flag 66 = 1. The freq file supplies the temporal precision pattern.
-# Sigma values are re-estimated from Step 12 fitted CPUE log residuals using
-# sigma^2 = mean((P - O)^2 / lambda), where lambda is the normalized freq-file
-# precision pattern used by the MFCL catch-conditioned CPUE likelihood.
-  -29 94 1 -29 92 35 -29 66 1  # Index R1, sigma 0.354
-  -30 94 1 -30 92 24 -30 66 1  # Index R2, sigma 0.237
-  -31 94 1 -31 92 21 -31 66 1  # Index R3, sigma 0.212
-  -32 94 1 -32 92 24 -32 66 1  # Index R4, sigma 0.239
-  -33 94 1 -33 92 23 -33 66 1  # Index R5, sigma 0.225
+# fish flag 92 = round(sigma * 100); fish flag 94 allows unequal sigma.
+# fish flag 66=1 reads FRQ effort_weight as temporal variance multiplier lambda_t.
+# With parest flag 371=0, MFCL uses lambda_t * sigma^2 after normalizing
+# lambda_t to mean one within each fishery.
+# HAC4 target = base sigma * sqrt(Bartlett Newey-West DE at lag 4).
+  -29 94 1 -29 92 40 -29 66 1  # Index R1 HAC4 sigma: base 0.35, DE4 1.294765, target 0.398, applied 0.40
+  -30 94 1 -30 92 30 -30 66 1  # Index R2 HAC4 sigma: base 0.24, DE4 1.587703, target 0.302, applied 0.30
+  -31 94 1 -31 92 35 -31 66 1  # Index R3 HAC4 sigma: base 0.21, DE4 2.820362, target 0.353, applied 0.35
+  -32 94 1 -32 92 32 -32 66 1  # Index R4 HAC4 sigma: base 0.24, DE4 1.797746, target 0.322, applied 0.32
+  -33 94 1 -33 92 30 -33 66 1  # Index R5 HAC4 sigma: base 0.23, DE4 1.686407, target 0.299, applied 0.30
 # Grouping flags for survey CPUE
    -1 99 1
    -2 99 2

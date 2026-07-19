@@ -15,6 +15,7 @@ expected_runtime_image <- paste0(
   "ghcr.io/pacificcommunity/tuna-flow:v2.5@sha256:",
   "c87f1f6d9d4f62dc447844b58afe35f96af175bf933cb6cffbbbe39a59172360"
 )
+expected_cpue_hac4 <- setNames(c(40L, 30L, 35L, 32L, 30L), as.character(29:33))
 kflow_path <- file.path(repo_root, "kflow.yaml")
 if (!file.exists(kflow_path)) fail("Missing kflow.yaml")
 kflow_lines <- readLines(kflow_path, warn = FALSE)
@@ -197,12 +198,46 @@ doitall_semantic_sha256 <- function(ids) {
   sha256_file(manifest)
 }
 expected_doitall_semantic_sha256 <-
-  "86cf094a05d86fa8037d19aa6f1d2417addcf0b55eac1ed6ac5cbcf488d343da"
+  "f3677a95dbae02e91ab6ea9910f4a8032eae85548220ac269f2f0e7d0959d18a"
 actual_doitall_semantic_sha256 <- doitall_semantic_sha256(models$step_id)
 if (!identical(actual_doitall_semantic_sha256, expected_doitall_semantic_sha256)) {
-  fail("Generated doitall command semantics changed; only comments were permitted")
+    fail("Generated doitall command semantics differ from the locked HAC4 branch design")
 }
 same_file <- function(left, right) identical(sha256_file(left), sha256_file(right))
+
+read_index_cpue_rows <- function(path) {
+  lines <- readLines(path, warn = FALSE)
+  parsed <- lapply(lines, function(line) {
+    line <- trimws(sub("#.*$", "", line))
+    if (!nzchar(line)) return(NULL)
+    tokens <- strsplit(line, "[[:space:]]+")[[1L]]
+    if (length(tokens) < 7L) return(NULL)
+    values <- suppressWarnings(as.numeric(tokens[1:7]))
+    if (anyNA(values) || values[[1L]] < 1900 ||
+        !values[[4L]] %in% 29:33) return(NULL)
+    values
+  })
+  parsed <- Filter(Negate(is.null), parsed)
+  if (!length(parsed)) fail("No F29-F33 CPUE rows found in ", path)
+  rows <- as.data.frame(do.call(rbind, parsed))
+  names(rows) <- c("year", "month", "week", "fishery", "catch", "effort", "lambda")
+  rows
+}
+
+cpue_reference_id <- "S014-TC1-NOCUT-DW10-REG100"
+cpue_reference <- read_index_cpue_rows(model_file(cpue_reference_id, "bet.frq"))
+expected_cpue_counts <- setNames(c(292L, 292L, 292L, 290L, 292L), as.character(29:33))
+actual_cpue_counts <- table(factor(cpue_reference$fishery, levels = 29:33))
+if (!identical(as.integer(actual_cpue_counts), unname(expected_cpue_counts)) ||
+    any(!is.finite(cpue_reference$lambda)) || any(cpue_reference$lambda <= 0)) {
+  fail("Reference F29-F33 CPUE rows or effort_weight variance multipliers are invalid")
+}
+for (id in models$step_id) {
+  rows <- read_index_cpue_rows(model_file(id, "bet.frq"))
+  if (!identical(rows, cpue_reference)) {
+    fail(id, " does not retain the exact reference F29-F33 CPUE observations and variance multipliers")
+  }
+}
 
 expected_ini_sha256 <- "932f57a96140400ae327cc47291316840c63c492542724a967c48ed002157117"
 expected_generated_ini_sha256 <- "eaf9b6a5343d3face34580388ac7fdc2d6ae991bd1ad3ee12e2544e3b30a8de8"
@@ -443,8 +478,8 @@ for (id in models$step_id[dm]) {
   phase10 <- phase_bounds(lines, 10L, id)
   phase11 <- phase_bounds(lines, 11L, id)
   require_in_phase(lines, "1 342 50", phase1, id)
-  require_in_phase(lines, "1 342 40", phase10, id)
-  require_in_phase(lines, "1 342 30", phase11, id)
+  require_in_phase(lines, "1 342 35", phase10, id)
+  require_in_phase(lines, "1 342 20", phase11, id)
   if (sum(grepl("<<PHASE7A[[:space:]]*$", lines)) != 1L ||
       sum(grepl("^PHASE7A[[:space:]]*$", lines)) != 1L ||
       sum(grepl("<<PHASE9A[[:space:]]*$", lines)) != 1L ||
@@ -521,6 +556,22 @@ flag_triples <- function(lines, id) {
 require_triple <- function(flags, actor, flag, value, id) {
   hits <- flags$actor == actor & flags$flag == flag & flags$value == value
   if (sum(hits) != 1L) fail(id, " requires exactly one flag triple ", actor, "/", flag, "=", value)
+}
+
+for (id in models$step_id) {
+  flags <- flag_triples(readLines(model_file(id, "doitall.sh"), warn = FALSE), id)
+  if (any(flags$flag == 371L)) {
+    fail(id, " must leave parest flag 371 at its MFCL-initialized value zero")
+  }
+  for (fishery in names(expected_cpue_hac4)) {
+    actor <- -as.integer(fishery)
+    sigma <- flags[flags$actor == actor & flags$flag == 92L, , drop = FALSE]
+    lambda <- flags[flags$actor == actor & flags$flag == 66L, , drop = FALSE]
+    if (nrow(sigma) != 1L || sigma$value[[1L]] != expected_cpue_hac4[[fishery]] ||
+        nrow(lambda) != 1L || lambda$value[[1L]] != 1L) {
+      fail(id, " has an invalid HAC4 flag 92 or effort_weight flag 66 for F", fishery)
+    }
+  }
 }
 
 n5_reference_id <- "S003-TC1-CUT90-DW1"
@@ -785,7 +836,7 @@ forbidden_public_text <- paste0(
 )
 required_generated_terms <- c(
   "41-model", "single-area-derived", "F29-F33", "BASE075", "REG075",
-  "REG100", "SUB075", "SUB100", "G5PROC", "Nmax 30", "F12 PS.JP.1",
+  "REG100", "SUB075", "SUB100", "G5PROC", "Nmax 20", "HAC4", "F12 PS.JP.1",
   "F13 PL.JP.1", "TAGF2ON", "phase 3", "phase 4", "phase 5",
   "terminal penalty is disabled"
 )
@@ -808,7 +859,8 @@ cat("Index baseline: every model has flag 75=2 for F29-F33 Index R1-R5.\n")
 cat("Selectivity groups: flag-24 labels are contiguous, with 29 phase-1 and 33 phase-5 partitions.\n")
 cat("Identifiers are contiguous S001:S041; retained N8 models are S031 and S032.\n")
 cat("OPR pairs: normal S001 and DM S005 controls use the exact reviewed Y72-E2-S01-R50-I50 transform with parest 397=0.\n")
-cat("DM OPR controls retain G5PROC, C estimation, Nmax 30, and phase order OPR/movement/regional scaling = 3/4/5.\n")
+cat("DM OPR controls retain G5PROC, C estimation, Nmax 20, and phase order OPR/movement/regional scaling = 3/4/5.\n")
+cat("CPUE HAC4: all models retain identical positive F29-F33 variance multipliers and flags 40/30/35/32/30.\n")
 cat("All seven TAGF2ON models differ from their controls only in all 98 tag_flags(:,2) values.\n")
 cat("Public README/manifests contain full design context without local paths or personal-name wording.\n")
 cat("Runtime image: exact tested Tuna Flow v2.5 digest pin verified.\n")

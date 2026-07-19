@@ -81,6 +81,34 @@ There are no `DW5`, `CUT70`, fixed-`C0`, or non-`G5PROC` models in the final des
 
 `CEST` estimates the relative sample-size exponent rather than fixing that exponent. This is an observation-model sensitivity, not an independent correction for duplicated data use or a guarantee that the grouping is optimal.
 
+## CPUE HAC4 sigma sensitivity
+
+This branch changes only the F29-F33 CPUE sigma controls relative to
+`experiment/dm-nmax20-20260719`. The adjustment uses weighted log-residuals
+from the converged `S014-TC1-NOCUT-DW10-REG100` fit (Kflow job 9777), a
+Bartlett Newey-West design effect at lag 4, and
+`sigma_HAC4 = sigma_base * sqrt(DE4)`.
+
+Lag 4 is fixed a priori because the indices are quarterly, so it spans one
+annual cycle. The same anchor adjustment is used across all 41 models to keep
+HAC weighting as a single paired sensitivity axis rather than recalculating a
+different weight after each model change.
+
+| Fishery | Index | Base sigma | DE4 | HAC4 target | Applied flag 92 |
+| --- | --- | ---: | ---: | ---: | ---: |
+| F29 | R1 | 0.35 | 1.294765 | 0.398 | 40 |
+| F30 | R2 | 0.24 | 1.587703 | 0.302 | 30 |
+| F31 | R3 | 0.21 | 2.820362 | 0.353 | 35 |
+| F32 | R4 | 0.24 | 1.797746 | 0.322 | 32 |
+| F33 | R5 | 0.23 | 1.686407 | 0.299 | 30 |
+
+Fish flag 66 remains 1. MFCL therefore retains each FRQ `effort_weight` as a
+temporal variance multiplier, normalizes it to mean one within fishery, and
+uses `lambda_t * sigma^2` because parest flag 371 remains zero. No CPUE
+observations, FRQ weights, model phases, selectivity settings, LF settings,
+tag settings, or regional-scaling controls are changed. See
+[`notes/cpue-hac4-weighting.md`](notes/cpue-hac4-weighting.md) for the audit.
+
 ## INI provenance
 
 The reference INI is taken from [`BET/ini.mix-period/bet.2026.mix-0.2.ini`](https://github.com/PacificCommunity/ofp-sam-2026-BET-YFT-build-ini/blob/548de05aff9bdc96a9ee7a817bbfd8068020ba26/BET/ini.mix-period/bet.2026.mix-0.2.ini) at commit `548de05aff9bdc96a9ee7a817bbfd8068020ba26` of `PacificCommunity/ofp-sam-2026-BET-YFT-build-ini`.
