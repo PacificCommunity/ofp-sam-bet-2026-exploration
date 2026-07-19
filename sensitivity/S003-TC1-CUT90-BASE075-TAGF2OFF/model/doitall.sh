@@ -116,6 +116,42 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -21 49 20  # sensitivity-only F21 LF effective-sample-size divisor
   -22 49 20  # sensitivity-only F22 LF effective-sample-size divisor
   -23 49 20  # sensitivity-only F23 LF effective-sample-size divisor
+# BEGIN MFCLKIT FRANCIS TA1.8 FLAG49 OVERRIDES
+# Native integer realization of original Francis TA1.8 targets.
+  -1 49 116  # Francis TA1.8 recommended LF divisor
+  -2 49 157  # Francis TA1.8 recommended LF divisor
+  -3 49 43  # Francis TA1.8 recommended LF divisor
+  -4 49 115  # Francis TA1.8 recommended LF divisor
+  -5 49 54  # Francis TA1.8 recommended LF divisor
+  -6 49 23  # Francis TA1.8 recommended LF divisor
+  -7 49 84  # Francis TA1.8 recommended LF divisor
+  -8 49 71  # Francis TA1.8 recommended LF divisor
+  -9 49 65  # Francis TA1.8 recommended LF divisor
+  -10 49 95  # Francis TA1.8 recommended LF divisor
+  -11 49 52  # Francis TA1.8 recommended LF divisor
+  -12 49 186  # Francis TA1.8 recommended LF divisor
+  -13 49 373  # Francis TA1.8 recommended LF divisor
+  -14 49 22  # Francis TA1.8 recommended LF divisor
+  -15 49 140  # Francis TA1.8 recommended LF divisor
+  -16 49 234  # Francis TA1.8 recommended LF divisor
+  -17 49 121  # Francis TA1.8 recommended LF divisor
+  -18 49 174  # Francis TA1.8 recommended LF divisor
+  -19 49 218  # Francis TA1.8 recommended LF divisor
+  -20 49 213  # Francis TA1.8 recommended LF divisor
+  -21 49 91  # Francis TA1.8 recommended LF divisor
+  -22 49 783  # Francis TA1.8 recommended LF divisor
+  -23 49 802  # Francis TA1.8 recommended LF divisor
+  -24 49 46  # Francis TA1.8 recommended LF divisor
+  -25 49 33  # Francis TA1.8 recommended LF divisor
+  -26 49 47  # Francis TA1.8 recommended LF divisor
+  -27 49 33  # Francis TA1.8 recommended LF divisor
+  -28 49 46  # Francis TA1.8 recommended LF divisor
+  -29 49 119  # Francis TA1.8 recommended LF divisor
+  -30 49 56  # Francis TA1.8 recommended LF divisor
+  -31 49 55  # Francis TA1.8 recommended LF divisor
+  -32 49 53  # Francis TA1.8 recommended LF divisor
+  -33 49 40  # Francis TA1.8 recommended LF divisor
+# END MFCLKIT FRANCIS TA1.8 FLAG49 OVERRIDES
   -999 50 20  # divide WF sample sizes by 20
 # Tag dynamics settings
   1 33 99    # maximum tag reporting rate for all fisheries is 0.99
