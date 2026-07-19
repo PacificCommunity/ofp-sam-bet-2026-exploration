@@ -773,3 +773,91 @@ rm(
   .design_dm_template,
   .design_set_identity
 )
+
+# Public robust-normal export. The complete inherited catalogue is retained as
+# stepwise_models_all for provenance checks, but only the 13 rows below are
+# generated or submitted from this branch.
+stepwise_models_all <- stepwise_models
+.normal_keep <- (
+  stepwise_models_all$lf_likelihood == "normal" &
+  stepwise_models_all$lf_downweight_factor == 1L &
+  !as.logical(stepwise_models_all$opr_enabled)
+)
+.normal_models <- stepwise_models_all[.normal_keep, , drop = FALSE]
+.normal_old_ids <- as.character(.normal_models$step_id)
+.normal_suffix <- sub("^S[0-9]{3}-", "", .normal_old_ids)
+.normal_suffix <- gsub("-DW1(?=-|$)", "", .normal_suffix, perl = TRUE)
+.normal_new_ids <- paste0(
+  sprintf("S%03d", seq_len(nrow(.normal_models))),
+  "-",
+  .normal_suffix
+)
+.normal_id_map <- stats::setNames(.normal_new_ids, .normal_old_ids)
+.normal_remap_ids <- function(x) {
+  out <- as.character(x)
+  matched <- out %in% names(.normal_id_map)
+  out[matched] <- unname(.normal_id_map[out[matched]])
+  out
+}
+for (.normal_column in intersect(
+  c("base_sensitivity", "selectivity_reference", "tag_flag2_reference"),
+  names(.normal_models)
+)) {
+  .normal_models[[.normal_column]] <-
+    .normal_remap_ids(.normal_models[[.normal_column]])
+}
+.normal_models$step_id <- .normal_new_ids
+.normal_models$substep <- sub("-.*$", "", .normal_new_ids)
+.normal_models$major_step <- "Robust-normal LF sensitivities"
+.normal_models$model_label <- gsub(
+  " DW1",
+  "",
+  .normal_models$model_label,
+  fixed = TRUE
+)
+.normal_models$model_label <- paste0(
+  .normal_models$model_label,
+  "; common initial divisor 20 before Francis reweighting; no second duplicate-use /2"
+)
+.normal_models$change_axis <- paste0(
+  "regional-scaling weight ", .normal_models$regional_scaling_weight,
+  "; ", .normal_models$model_label
+)
+.normal_models$job_title <- paste(
+  "BET 2026", .normal_models$step_id, .normal_models$model_label
+)
+.normal_models$job_key <- tolower(gsub(
+  "[^A-Za-z0-9]+",
+  "-",
+  .normal_models$step_id
+))
+stepwise_models <- .normal_models
+stepwise_run$flow_group <- "bet-2026-normal-francis-initial"
+
+.normal_expected_prefix <- sprintf("S%03d", 1:13)
+.normal_actual_prefix <- sub("-.*$", "", stepwise_models$step_id)
+if (nrow(stepwise_models) != 13L ||
+    anyDuplicated(stepwise_models$step_id) ||
+    !identical(.normal_actual_prefix, .normal_expected_prefix) ||
+    any(stepwise_models$lf_likelihood != "normal") ||
+    any(stepwise_models$lf_downweight_factor != 1L) ||
+    any(stepwise_models$lf_size_divisor != 20L) ||
+    any(as.logical(stepwise_models$opr_enabled)) ||
+    any(grepl("DM|DW[0-9]+|OPR", stepwise_models$step_id)) ||
+    !identical(
+      as.integer(table(factor(
+        stepwise_models$age_length_variant,
+        levels = c("BASE075", "REG075", "REG100", "SUB075", "SUB100")
+      ))),
+      c(5L, 2L, 2L, 2L, 2L)
+    )) {
+  stop(
+    "Normal export must contain contiguous S001:S013 with no DM, DW axis, or OPR",
+    call. = FALSE
+  )
+}
+rm(
+  .normal_keep, .normal_models, .normal_old_ids, .normal_suffix,
+  .normal_new_ids, .normal_id_map, .normal_remap_ids,
+  .normal_expected_prefix, .normal_actual_prefix, .normal_column
+)

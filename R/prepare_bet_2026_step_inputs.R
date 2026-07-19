@@ -1,20 +1,21 @@
-## Rebuild the 30-model BET 2026 LF-age-length design (five age-length
-## variants crossed with six LF configurations), two non-duplicate BASE075
-## N8 models, five core TAGF2ON models, and normal/DM Y72-E2 OPR tag-control
-## pairs.
+## Rebuild the 13-model BET 2026 robust-normal LF design: five age-length
+## variants crossed with NOCUT/CUT90, one BASE075 N8 model, and two BASE075
+## TAGF2ON controls. DM, DW-axis, OPR, and HAC4 variants are excluded.
 ## The complete corrected single-area-derived SA28-N5 treatment, including
 ## F29-F33 early-age zeros, is the common baseline.
 ##
 ## Every cell retains the exact effort-crept FRQ archived by Kflow Job 5319.
+## That FRQ already includes the SC22 50% input-sample-size reduction where
+## longline samples were represented in both extraction and index fisheries.
+## The inherited model-stage divisor-40 block is removed to avoid a second /2.
+## Global divisor 20 remains only as the common initial robust-normal weight
+## before subsequent Francis reweighting. CPUE sigma is unchanged (no HAC4).
 ## The tag-control INI is the current upstream build-ini file wholesale, with
 ## the single intentional deviation that all tag_flags(:,2) values are zero.
 ## Display metadata and regional-scaling inputs come from the reviewed
 ## stepwise branch; tag data come from the latest tag-prep main branch. The
-## script never reapplies effort creep. Normal-likelihood cells change only
-## observed LF bins for CUT90 cells, parest flag 313, and fishery-49 overrides
-## for F21/F22/F23. DM cells use only the reviewed G5PROC grouping and estimate
-## the relative sample-size exponent. All index LF is retained; option 11
-## cannot reproduce the normal models' fixed flag-49 duplicate-use correction.
+## script never reapplies effort creep. Cells change only observed LF bins for
+## CUT90, documented selectivity controls, or tag flag 2.
 
 root <- normalizePath(getwd(), winslash = "/", mustWork = TRUE)
 stepwise_refresh_ref <- "experiment/tag-grouping-reg-scaling-2026"
@@ -53,7 +54,7 @@ sys.source(file.path(root, "R", "prepare_mfcl_inputs.R"), envir = environment())
 
 config_env <- new.env(parent = globalenv())
 sys.source(file.path(root, "job-config.R"), envir = config_env)
-models <- config_env$stepwise_models
+models <- config_env$stepwise_models_all
 
 reference_input_dir <- file.path(root, "reference-inputs", "job-5319", "mfcl-inputs")
 reference_required <- c(
@@ -551,6 +552,15 @@ for (grouping in names(expected_dm_group_counts)) {
   }
 }
 
+# The checks above audit the complete inherited source catalogue. Only the
+# 13-row robust-normal export is generated from this point onward.
+models <- config_env$stepwise_models
+tag_flag_sensitivity_controls <- c(
+  "S012-TC1-NOCUT-TAGF2ON" = "S001-TC1-NOCUT",
+  "S013-TC1-CUT90-TAGF2ON" = "S002-TC1-CUT90"
+)
+tag_flag_sensitivity_ids <- names(tag_flag_sensitivity_controls)
+
 sensitivity_root <- file.path(root, "sensitivity")
 forbidden_dirs <- c(
   file.path(root, "steps"),
@@ -782,6 +792,31 @@ apply_selectivity_fishery_map <- function(path, treatment) {
   invisible(path)
 }
 
+remove_inherited_duplicate_use_divisors <- function(lines) {
+  block_start <- grep(
+    "^# Additional LF/WF sample-size reductions retained from the inherited setup[.]$",
+    lines
+  )
+  block_end <- grep("^# Tag dynamics settings[[:space:]]*$", lines)
+  if (length(block_start) != 1L || length(block_end) != 1L ||
+      block_start >= block_end) {
+    fail("Archived doitall.sh must contain one inherited LF/WF divisor block")
+  }
+  duplicate_fisheries <- c(1L, 2L, 4L, 6L, 7L, 8L, 10L, 29L:33L)
+  inherited <- lines[seq.int(block_start, block_end - 1L)]
+  for (fishery in duplicate_fisheries) {
+    pattern <- sprintf(
+      "-%d[[:space:]]+49[[:space:]]+40[[:space:]]+-%d[[:space:]]+50[[:space:]]+40",
+      fishery,
+      fishery
+    )
+    if (sum(grepl(pattern, inherited)) != 1L) {
+      fail("Inherited duplicate-use divisor block is incomplete for F", fishery)
+    }
+  }
+  lines[-seq.int(block_start, block_end - 1L)]
+}
+
 dm_nmax_target <- 20L
 dm_nmax_stage <- max(50L, dm_nmax_target)
 dm_nmax_mid <- as.integer(round((dm_nmax_stage + dm_nmax_target) / 2))
@@ -796,6 +831,7 @@ write_sensitivity_doitall <- function(
     selectivity_treatment) {
   source_path <- file.path(reference_input_dir, "doitall.sh")
   lines <- readLines(source_path, warn = FALSE)
+  lines <- remove_inherited_duplicate_use_divisors(lines)
   tc_hit <- grep("^[[:space:]]*1[[:space:]]+313[[:space:]]+", lines)
   if (length(tc_hit) != 1L) fail("Archived doitall.sh must contain one 1/313 flag")
   lines[[tc_hit]] <- replace_flag_value(
@@ -1019,16 +1055,18 @@ write_sensitivity_doitall <- function(
 
 design_context_note <- function(row) {
   paste(
-    "This model belongs to the public 41-model design: 30 core age-length/LF",
-    "combinations, two targeted N8 controls, five core TAGF2ON controls,",
-    "and normal plus DM OPR tag-control pairs. Every model uses the complete",
+    "This model belongs to the public 13-model robust-normal design: ten core",
+    "age-length/cutoff combinations, one targeted N8 control, and two TAGF2ON",
+    "controls. Every model uses the complete",
     "single-area-derived selectivity baseline, including F29-F33 first-two-age",
     "zeros; N8 changes only F12 PS.JP.1 and F13 PL.JP.1. Age-length levels are",
-    "BASE075, REG075, REG100, SUB075, and SUB100. DM models use DM-noRE,",
-    "G5PROC, estimated relative sample-size exponent C, and Nmax 20.",
-    "TAGF2ON changes only all 98 tag_flags(:,2) values. OPR is activated in",
-    "phase 3, movement in phase 4, and regional scaling in phase 5; terminal",
-    "penalty is disabled. Fish flag 26=2 evaluates the flag-57 cubic spline on",
+    "BASE075, REG075, REG100, SUB075, and SUB100. All models use MFCL option-3",
+    "robust-normal LF likelihood with common initial divisor 20; Francis",
+    "reweighting is intentionally performed only after this initial fit.",
+    "The processed FRQ already includes the SC22 duplicate-use ISS correction,",
+    "so no second model-stage /2 is applied. CPUE sigma is retained from Job 5319.",
+    "TAGF2ON changes only all 98 tag_flags(:,2) values.",
+    "Fish flag 26=2 evaluates the flag-57 cubic spline on",
     "scaled mean length-at-age to produce final selectivity-at-age; flag-61",
     "nodes use that coordinate, while flags 75/3/16 remain age constraints.",
     "This setting is separate from the LF likelihood. This model uses age-length level",
@@ -1138,19 +1176,21 @@ write_model_manifest <- function(step_dir, row, treatment, has_cutoff) {
       "grouping/overdispersion sensitivities, not exact duplicate-use corrections."
     )
   } else {
-    doitall_note <- sprintf(
-      paste0(
-        "Retained Job 5319 doitall control sequence except parest flag ",
-        "313=%d and three new flag-49 overrides for F21/F22/F23, each with ",
-        "divisor %d; %s"
+    doitall_note <- paste(
+      sprintf(
+        paste0(
+          "Retained Job 5319 doitall sequence with parest flag 313=%d and ",
+          "F21/F22/F23 flag-49 divisor %d."
+        ),
+        as.integer(row$tail_compression_percent),
+        as.integer(row$lf_size_divisor)
       ),
-      as.integer(row$tail_compression_percent),
-      as.integer(row$lf_size_divisor),
-      if (has_selectivity_sensitivity) {
-        "all inherited non-selectivity settings are unchanged."
-      } else {
-        "inherited settings for every other fishery are unchanged."
-      }
+      paste(
+        "The inherited F1/F2/F4/F6/F7/F8/F10/F29-F33 divisor-40 block is",
+        "removed because the processed SC22 FRQ already applies the 50%",
+        "duplicate-use ISS reduction. Global LF/WF divisor 20 is retained as",
+        "the common initial weight before Francis reweighting."
+      )
     )
   }
   if (has_selectivity_sensitivity) {
@@ -1341,7 +1381,7 @@ add_age_length_readme <- function(lines, row) {
     paste0("Source file: `", as.character(row$age_length_source_file), "`."),
     paste0("SHA-256: `", as.character(row$age_length_sha256), "`."),
     paste(
-      "Every other model input and all inherited normal/DM/cutoff controls are",
+      "Every other model input and all inherited normal/cutoff controls are",
       "identical to the paired BASE075 sensitivity."
     )
   )
@@ -1353,7 +1393,7 @@ add_design_context_readme <- function(lines, row) {
   if (length(status_line) != 1L) fail("Generated model README must contain one status line")
   section <- c(
     "",
-    "## 41-model design context",
+    "## 13-model design context",
     "",
     design_context_note(row)
   )
@@ -1384,7 +1424,7 @@ add_selectivity_readme <- function(lines, row) {
     paste0(
       "Selectivity nodes: `",
       if (treatment == "sa28_n8") "N8" else "N5",
-      "`. The single-area-derived F1-F28 structure is common to all 41 models."
+      "`. The single-area-derived F1-F28 structure is common to all 13 models."
     ),
     if (!is_promoted_baseline) {
       paste0("Paired N5 reference: `", as.character(row$selectivity_reference), "`.")
@@ -1623,7 +1663,7 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
     "| --- | --- |",
     sprintf("| Global MFCL LF tail compression | %d%% |", as.integer(row$tail_compression_percent)),
     sprintf("| F21/F22/F23 observed LF upper-bin zeroing | %s |", cutoff_label),
-    sprintf("| F21/F22/F23 LF likelihood downweight | %dx; flag-49 divisor %d |", as.integer(row$lf_downweight_factor), as.integer(row$lf_size_divisor)),
+    sprintf("| Initial F21/F22/F23 flag-49 divisor | %d |", as.integer(row$lf_size_divisor)),
     "| Regional-scaling penalty weight | 50 |",
     "",
     "## Observed LF semantics",
@@ -1678,15 +1718,16 @@ write_model_readme <- function(step_dir, row, treatment, audit = NULL) {
     ),
     if (identical(as.character(row$selectivity_treatment), "reference")) {
       paste(
-        "The `doitall.sh` changes are limited to flag 313 and three new",
-        "F21/F22/F23 flag-49 overrides; all other inherited Job 5319 controls",
-        "remain unchanged."
+        "The `doitall.sh` changes are flag 313, F21/F22/F23 flag-49 divisor 20,",
+        "and removal of the inherited F1/F2/F4/F6/F7/F8/F10/F29-F33",
+        "divisor-40 block. The FRQ already contains the SC22 duplicate-use",
+        "reduction; global divisor 20 remains the initial Francis-fit weight."
       )
     } else {
       paste(
-        "Beyond the inherited CUT90 and flag-49 treatment, `doitall.sh` changes",
-        "only the documented selectivity treatment; all other Job 5319 controls",
-        "remain unchanged."
+        "Beyond CUT90, flag 313, F21/F22/F23 divisor 20, and the documented",
+        "selectivity treatment, `doitall.sh` removes only the inherited",
+        "divisor-40 duplicate-use block. Global divisor 20 remains unchanged."
       )
     },
     "No MFCL source or executable is changed.",
