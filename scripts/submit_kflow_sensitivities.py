@@ -1169,11 +1169,13 @@ def graph_material(
             "hessian_partitions": 5,
             "profile_chains": ["downstream", "upstream"],
             "profile_execution_mode": "continuation",
+            "profile_preset": "robust_fast",
             "parallel_units": True,
             "auto_merge": True,
             "auto_attach": True,
             "profile_name": "likelihood",
             "profile_quantity_type": "2",
+            "profile_preset": "robust_fast",
             "profile_convergence": "-3",
             "profile_target_rel_tolerance": "1e-3",
         },
@@ -1513,6 +1515,7 @@ def checks_environment(token: str, runtime: dict[str, Any]) -> dict[str, str]:
             "PROFILE_QUANTITY_TYPE": "2",
             "PROFILE_VALUE_MODE": "percent",
             "PROFILE_CENTER": "100",
+            "PROFILE_PRESET": "robust_fast",
             "PROFILE_VALUES": " ".join(
                 [f"{value / 2:g}" for value in range(120, 201, 5) if value != 200]
                 + [f"{value / 2:g}" for value in range(205, 281, 5)]
