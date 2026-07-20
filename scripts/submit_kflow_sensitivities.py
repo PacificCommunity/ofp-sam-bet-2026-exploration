@@ -340,12 +340,13 @@ def derive_model_label(model_name: str, row: dict[str, str]) -> str:
     ]
     likelihood = (row.get("lf_likelihood") or "").lower()
     if likelihood == "normal":
-        downweight = row.get("downweight") or "1"
-        divisor = ""
-        try:
-            divisor = str(int(float(downweight)) * 20)
-        except ValueError:
-            pass
+        downweight = row.get("lf_downweight_factor") or row.get("downweight") or "1"
+        divisor = row.get("lf_size_divisor") or ""
+        if not divisor:
+            try:
+                divisor = str(int(float(downweight)) * 20)
+            except ValueError:
+                pass
         parts.extend(
             [
                 "normal LF likelihood",
@@ -355,16 +356,19 @@ def derive_model_label(model_name: str, row: dict[str, str]) -> str:
                 + (f" with flag-49 divisor {divisor}" if divisor else ""),
             ]
         )
-    elif likelihood == "dm_nore":
+    elif likelihood in {"dm_nore", "dm_no_re"}:
         grouping = row.get("dm_grouping") or "unspecified grouping"
-        estimated = (row.get("dm_relative_sample_size_estimated") or "").upper() == "TRUE"
+        concentration = (row.get("dm_concentration") or "").lower()
+        estimated = concentration.startswith("estimated") or (
+            row.get("dm_relative_sample_size_estimated") or ""
+        ).upper() == "TRUE"
         parts.extend(
             [
                 "MFCL LF Dirichlet-multinomial noRE",
                 f"grouping {grouping}",
-                "relative sample-size exponent estimated"
+                "concentration estimated"
                 if estimated
-                else "relative sample-size exponent fixed",
+                else "concentration fixed",
                 cutoff_label(row.get("cutoff_cm", "")),
                 f"DM nmax {row.get('dm_nmax') or 'default'}",
             ]
