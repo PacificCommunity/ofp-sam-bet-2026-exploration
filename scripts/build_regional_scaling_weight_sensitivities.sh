@@ -13,9 +13,8 @@ normal_templates=(
   "S017-TC1-NOCUT-SUB075-TAGF2OFF"
   "S018-TC1-NOCUT-SUB075-TAGF2ON"
 )
-weights=(3 1 0)
+weights=(50 11 1 0)
 dm_template="S035-DM-G5PROC-CEST-NOCUT-TAGF2ON"
-dm_normal_template="S018-TC1-NOCUT-SUB075-TAGF2ON"
 
 if ! git -C "$ROOT" cat-file -e "${SOURCE_COMMIT}^{commit}" 2>/dev/null; then
   git -C "$ROOT" fetch --depth=1 origin "$SOURCE_COMMIT"
@@ -39,12 +38,13 @@ git -C "$ROOT" archive "$DM_SOURCE_COMMIT" \
 mkdir -p "$ROOT/sensitivity"
 find "$ROOT/sensitivity" -depth -mindepth 1 -delete
 mapping="$tmp/model-map.csv"
-printf '%s\n' 'model,source_model,dm_source_model,regional_scaling_weight,actual_cv,tag_flag2,tag_control,lf_likelihood,dm_grouping,dm_nmax,lf_downweight_factor,lf_size_divisor' > "$mapping"
+printf '%s\n' 'model,source_model,dm_source_model,regional_scaling_weight,standardized_sd_interpretation,tag_flag2,tag_control,lf_likelihood,dm_grouping,dm_nmax,lf_downweight_factor,lf_size_divisor' > "$mapping"
 
-cv_text() {
+regw_text() {
   case "$1" in
-    3) printf '%s' 'about 9.4-11.5 percent marginal CV' ;;
-    1) printf '%s' 'about 16.3-19.8 percent marginal CV (raw CPUE covariance)' ;;
+    50) printf '%s' 'standardized SD multiplier 0.1414 (effective covariance Sigma/50)' ;;
+    11) printf '%s' 'standardized SD multiplier 0.3015 (effective covariance Sigma/11)' ;;
+    1) printf '%s' 'standardized SD multiplier 1.0000 (empirical covariance Sigma)' ;;
     0) printf '%s' 'regional-scaling penalty disabled' ;;
     *) return 1 ;;
   esac
@@ -85,10 +85,10 @@ for template_index in "${!normal_templates[@]}"; do
 
     control="$model"
     if [[ "$tag_flag2" -eq 1 ]]; then
-      control_id="$(printf 'S%03d' "$((number - 3))")"
+      control_id="$(printf 'S%03d' "$((number - 4))")"
       control="${control_id}-TC1-NOCUT-DW10-SUB075-TAGF2OFF-REGW${weight}"
     fi
-    interpretation="$(cv_text "$weight")"
+    interpretation="$(regw_text "$weight")"
 
     cat > "$destination/README.md" <<MODEL_README
 # BET 2026 $model
@@ -110,10 +110,11 @@ This model is part of the focused SUB075 regional-scaling sensitivity design.
 | Regional-scaling weight | $weight; $interpretation |
 | Regional-scaling target/window | Mean proportions and covariance from 20 quarters in 1965-1969 |
 
-The 1965-1969 CPUE-derived marginal CVs are 16.3-19.8 percent before
-weighting. A positive weight divides that covariance by the weight. Weight 3
-therefore gives approximately 9.4-11.5 percent marginal CV; weight 1 retains
-the empirical covariance; weight 0 disables the regional-scaling penalty.
+In the active MFCL MVN path, the penalty is w/2 times the squared
+Mahalanobis distance from the regional-scaling target. A positive weight
+therefore changes the effective covariance to Sigma/w and the standardized
+SD multiplier to 1/sqrt(w). Weights 50, 11, and 1 give multipliers 0.1414,
+0.3015, and 1.0000, respectively; weight 0 disables the penalty.
 Region 5 is the MVN reference category, as in MFCL, while its proportion is
 implicitly determined because all five proportions sum to one.
 
@@ -123,6 +124,9 @@ F21/F22/F23 divisor, parest flag 77, identifiers, and metadata, all CPUE sigma,
 regional-scaling data, flags 78-81, phase timing, FRQ, INI, tag, age-length,
 and selectivity settings are unchanged.
 
+The retained FRQ already contains the selected 2026 effort-creep adjustment;
+this build never reapplies effort creep.
+
 Status: generated; Kflow has not been submitted.
 MODEL_README
 
@@ -131,14 +135,21 @@ MODEL_README
   done
 done
 
-# Add matched DM G5PROC-CEST models. Fixed flag-49 divisors are intentionally
-# not labelled DW10 because they are not the DM observation-weight control.
-for weight in "${weights[@]}"; do
-  number=$((number + 1))
-  id="$(printf 'S%03d' "$number")"
-  model="${id}-DM-G5PROC-CEST-NOCUT-SUB075-TAGF2ON-NMAX10-REGW${weight}"
-  destination="$ROOT/sensitivity/$model"
-  cp -a "$tmp/sensitivity/$dm_normal_template" "$destination"
+# Add matched TAGF2OFF/ON DM G5PROC-CEST models. Fixed flag-49 divisors are
+# intentionally not labelled DW10 because they are not the DM observation-
+# weight control.
+for template_index in "${!normal_templates[@]}"; do
+  dm_normal_template="${normal_templates[$template_index]}"
+  tag_flag2="$template_index"
+  tag_code="TAGF2OFF"
+  [[ "$tag_flag2" -eq 1 ]] && tag_code="TAGF2ON"
+
+  for weight in "${weights[@]}"; do
+    number=$((number + 1))
+    id="$(printf 'S%03d' "$number")"
+    model="${id}-DM-G5PROC-CEST-NOCUT-SUB075-${tag_code}-NMAX20-REGW${weight}"
+    destination="$ROOT/sensitivity/$model"
+    cp -a "$tmp/sensitivity/$dm_normal_template" "$destination"
 
   Rscript - \
     "$destination/model/doitall.sh" \
@@ -198,22 +209,32 @@ stopifnot(!any(grepl("PHASE7A|PHASE9A|06a[.]par|08a[.]par", target)))
 writeLines(target, target_path, useBytes = TRUE)
 RS
 
-  awk -v weight="$weight" '
-    $1 == 1 && $2 == 77 && $3 == 50 {
-      if (weight == 0) {
-        print "  1 77 0    # regional-scaling penalty disabled"
-      } else {
-        print "  1 77 " weight "    # MVN regional-scaling penalty weight"
+    awk -v weight="$weight" '
+      $1 == 1 && $2 == 77 && $3 == 50 {
+        if (weight == 0) {
+          print "  1 77 0    # regional-scaling penalty disabled"
+        } else {
+          print "  1 77 " weight "    # MVN regional-scaling penalty weight"
+        }
+        next
       }
-      next
-    }
-    { print }
-  ' "$destination/model/doitall.sh" > "$destination/model/doitall.sh.new"
-  mv "$destination/model/doitall.sh.new" "$destination/model/doitall.sh"
-  chmod 0755 "$destination/model/doitall.sh"
-  interpretation="$(cv_text "$weight")"
+      $1 == 1 && $2 == 342 && $3 == 10 {
+        print "  1 342 20    # DM maximum LF sample-size control (Nmax20)"
+        next
+      }
+      { print }
+    ' "$destination/model/doitall.sh" > "$destination/model/doitall.sh.new"
+    mv "$destination/model/doitall.sh.new" "$destination/model/doitall.sh"
+    chmod 0755 "$destination/model/doitall.sh"
+    interpretation="$(regw_text "$weight")"
 
-  cat > "$destination/README.md" <<MODEL_README
+    control="$model"
+    if [[ "$tag_flag2" -eq 1 ]]; then
+      control_id="$(printf 'S%03d' "$((number - 4))")"
+      control="${control_id}-DM-G5PROC-CEST-NOCUT-SUB075-TAGF2OFF-NMAX20-REGW${weight}"
+    fi
+
+    cat > "$destination/README.md" <<MODEL_README
 # BET 2026 $model
 
 This model is the matched DM interaction in the focused SUB075 regional-scaling
@@ -228,11 +249,11 @@ design.
 | LF likelihood | MFCL option 11, Dirichlet-multinomial without random effects |
 | DM grouping | G5PROC |
 | DM relative sample-size exponent | CEST, activated in phase 2 |
-| DM maximum LF effective sample size | 10 directly from phase 1 |
+| DM maximum LF sample-size control | 20 directly from phase 1 |
 | DM tail compression | Retain at least five class intervals |
 | Observed LF cutoff | None |
 | Fixed DW10 divisor | Not applicable to DM weighting |
-| Tag flag column 2 | TAGF2ON |
+| Tag flag column 2 | $tag_code; paired OFF control: $control |
 | Regional-scaling weight | $weight; $interpretation |
 
 All non-doitall inputs come from **$dm_normal_template** at
@@ -241,11 +262,16 @@ All non-doitall inputs come from **$dm_normal_template** at
 separate selectivity-tail changes, and extra stabilization phases are excluded.
 The report is deferred from phase 2 to the final fit only for DM output safety.
 
+The retained FRQ already contains the selected 2026 effort-creep adjustment;
+this build never reapplies effort creep.
+
 Status: generated; Kflow has not been submitted.
 MODEL_README
 
-  printf '"%s","%s","%s",%s,"%s",1,"","dm_no_re","G5PROC_CEST",10,,\n' \
-    "$model" "$dm_normal_template" "$dm_template" "$weight" "$interpretation" >> "$mapping"
+    printf '"%s","%s","%s",%s,"%s",%s,"%s","dm_no_re","G5PROC_CEST",20,,\n' \
+      "$model" "$dm_normal_template" "$dm_template" "$weight" "$interpretation" \
+      "$tag_flag2" "$control" >> "$mapping"
+  done
 done
 
 Rscript - "$ROOT" "$mapping" "$SOURCE_COMMIT" "$DM_SOURCE_COMMIT" "$AGE_SHA256" <<'RS'
@@ -267,7 +293,8 @@ for (i in seq_len(nrow(mapping))) {
   reg_row <- manifest$role == "reg_scaling"
   manifest$note[reg_row] <- paste0(
     "Active 20x5 regional-scaling matrix retained unchanged. Parest flag 77 is ",
-    mapping$regional_scaling_weight[[i]], ": ", mapping$actual_cv[[i]],
+    mapping$regional_scaling_weight[[i]], ": ",
+    mapping$standardized_sd_interpretation[[i]],
     "; flags 78-81 and the 1965-1969 window are unchanged."
   )
 
@@ -279,7 +306,7 @@ for (i in seq_len(nrow(mapping))) {
     )
     manifest$source_commit[doitall_row] <- dm_source_commit
     manifest$note[doitall_row] <- paste0(
-      "Matched DM-noRE G5PROC-CEST doitall with Nmax10 directly from phase 1; ",
+      "Matched DM-noRE G5PROC-CEST doitall with Nmax20 directly from phase 1; ",
       "fixed DW10 is not used by the DM likelihood. Parest flag 77 is ",
       mapping$regional_scaling_weight[[i]], "."
     )
@@ -292,25 +319,19 @@ for (i in seq_len(nrow(mapping))) {
   }
 
   ini_row <- manifest$role == "ini"
-  if (!is_dm && mapping$tag_flag2[[i]] == 1L) {
+  if (mapping$tag_flag2[[i]] == 1L) {
     manifest$note[ini_row] <- sub(
       "its exact flag-column-2=0 control is [^;]+;",
       paste0("its exact flag-column-2=0 control is ", mapping$tag_control[[i]], ";"),
-      manifest$note[ini_row], perl = TRUE
-    )
-  } else if (is_dm) {
-    manifest$note[ini_row] <- sub(
-      "its exact flag-column-2=0 control is [^;]+;",
-      "no DM TAGF2OFF counterpart is included in this focused subset;",
       manifest$note[ini_row], perl = TRUE
     )
   }
 
   context_row <- manifest$role == "design_context"
   manifest$note[context_row] <- paste0(
-    "Public nine-model SUB075 NOCUT regional-scaling design: six robust-normal ",
-    "DW10 models crossing TAGF2OFF/ON with weights 3/1/0, plus three matched ",
-    "TAGF2ON DM G5PROC-CEST Nmax10 models."
+    "Public sixteen-model SUB075 NOCUT regional-scaling design: eight robust-normal ",
+    "DW10 and eight DM G5PROC-CEST Nmax20 models, each crossing TAGF2OFF/ON ",
+    "with weights 50/11/1/0."
   )
   write.csv(manifest, manifest_path, row.names = FALSE, na = "")
 }
@@ -329,11 +350,11 @@ selection <- data.frame(
   dm_tail_min_classes = ifelse(is_dm, 5L, NA_integer_),
   dm_grouping = ifelse(is_dm, "G5PROC", NA_character_),
   dm_concentration = ifelse(is_dm, "estimated_phase2", NA_character_),
-  dm_nmax = ifelse(is_dm, 10L, NA_integer_),
+  dm_nmax = ifelse(is_dm, 20L, NA_integer_),
   cutoff_cm = NA_real_,
   tag_flag2 = mapping$tag_flag2,
   regional_scaling_weight = mapping$regional_scaling_weight,
-  regional_scaling_interpretation = mapping$actual_cv,
+  regional_scaling_interpretation = mapping$standardized_sd_interpretation,
   selectivity_treatment = "sa28_n5",
   status = "prepared",
   stringsAsFactors = FALSE
@@ -343,7 +364,9 @@ write.csv(selection, file.path(root, "SENSITIVITY_SELECTION.csv"), row.names = F
 labels <- ifelse(
   is_dm,
   paste0(
-    "SUB075 NOCUT TAGF2ON DM G5PROC-CEST Nmax10 REGW",
+    "SUB075 NOCUT ",
+    ifelse(mapping$tag_flag2 == 1L, "TAGF2ON", "TAGF2OFF"),
+    " DM G5PROC-CEST Nmax20 REGW",
     mapping$regional_scaling_weight
   ),
   paste0(
@@ -354,7 +377,7 @@ labels <- ifelse(
 )
 stepwise_run <- list(
   default_step_select = mapping$model[[1L]],
-  flow_group = "bet-2026-sub075-dw10-regw310-20260721",
+  flow_group = "bet-2026-sub075-regw501110-dm20-20260721",
   trigger_next = FALSE
 )
 stepwise_models <- data.frame(
@@ -372,11 +395,11 @@ stepwise_models <- data.frame(
   lf_size_divisor = ifelse(is_dm, NA_integer_, 200L),
   dm_grouping = ifelse(is_dm, "G5PROC", NA_character_),
   dm_concentration = ifelse(is_dm, "estimated_phase2", NA_character_),
-  dm_nmax = ifelse(is_dm, 10L, NA_integer_),
+  dm_nmax = ifelse(is_dm, 20L, NA_integer_),
   regional_scaling_weight = mapping$regional_scaling_weight,
   major_step = "Regional scaling",
   substep = paste0(
-    ifelse(is_dm, "DM Nmax10 ", "DW10 "),
+    ifelse(is_dm, "DM Nmax20 ", "DW10 "),
     "REGW", mapping$regional_scaling_weight
   ),
   change_axis = ifelse(
@@ -396,27 +419,47 @@ config_lines <- sub("[[:space:]]+$", "", config_lines)
 writeLines(config_lines, file.path(root, "job-config.R"), useBytes = TRUE)
 RS
 
-first_model="S001-TC1-NOCUT-DW10-SUB075-TAGF2OFF-REGW3"
-perl -0pi -e 's/STEP_SELECT: "[^"]+"/STEP_SELECT: "'"$first_model"'"/; s/JOB_TITLE: "[^"]+"/JOB_TITLE: "BET 2026 SUB075 regional-scaling sensitivity fit"/; s/JOB_DESCRIPTION: "[^"]+"/JOB_DESCRIPTION: "Run one SUB075 NOCUT DW10 regional-scaling sensitivity model."/; s/MODEL_LABEL: "[^"]+"/MODEL_LABEL: "SUB075 NOCUT DW10 TAGF2OFF REGW3"/; s/JOB_KEY: [^\n]+/JOB_KEY: s001-sub075-nocut-dw10-tagf2off-regw3/; s/FLOW_GROUP: [^\n]+/FLOW_GROUP: bet-2026-sub075-dw10-regw310-20260721/' "$ROOT/kflow.yaml"
+first_model="S001-TC1-NOCUT-DW10-SUB075-TAGF2OFF-REGW50"
+perl -0pi -e 's/STEP_SELECT: "[^"]+"/STEP_SELECT: "'"$first_model"'"/; s/JOB_TITLE: "[^"]+"/JOB_TITLE: "BET 2026 SUB075 regional-scaling sensitivity fit"/; s/JOB_DESCRIPTION: "[^"]+"/JOB_DESCRIPTION: "Run one SUB075 NOCUT regional-scaling sensitivity model."/; s/MODEL_LABEL: "[^"]+"/MODEL_LABEL: "SUB075 NOCUT DW10 TAGF2OFF REGW50"/; s/JOB_KEY: [^\n]+/JOB_KEY: s001-sub075-nocut-dw10-tagf2off-regw50/; s/FLOW_GROUP: [^\n]+/FLOW_GROUP: bet-2026-sub075-regw501110-dm20-20260721/' "$ROOT/kflow.yaml"
 
 cat > "$ROOT/README.md" <<ROOT_README
-# BET 2026 SUB075 DW10 regional-scaling sensitivities
+# BET 2026 SUB075 regional-scaling sensitivities
 
-This branch contains nine NOCUT MFCL models based on
+This branch contains sixteen NOCUT MFCL models based on
 **$SOURCE_REPO@$SOURCE_COMMIT** (**$SOURCE_REF**). All models use the SUB075
 age-length input and corrected SA28-N5 selectivity baseline. CUT90 is excluded.
+The retained Job 5319 FRQ already contains the selected 2026 effort-creep
+adjustment, and the build never reapplies effort creep.
 
-## Design
+## Model design
 
-| IDs | LF treatment | Tag flag column 2 | Regional-scaling weights |
-| --- | --- | --- | --- |
-| S001-S003 | Robust normal, F21/F22/F23 DW10 | 0 | 3, 1, 0 |
-| S004-S006 | Robust normal, F21/F22/F23 DW10 | 1 | 3, 1, 0 |
-| S007-S009 | DM G5PROC-CEST Nmax10 | 1 | 3, 1, 0 |
+| IDs | LF likelihood and weighting | Tag flag column 2 | REGW sequence |
+| --- | --- | ---: | --- |
+| S001-S004 | Robust normal; F21/F22/F23 DW10 | 0 (OFF) | 50, 11, 1, 0 |
+| S005-S008 | Robust normal; F21/F22/F23 DW10 | 1 (ON) | 50, 11, 1, 0 |
+| S009-S012 | DM G5PROC-CEST; Nmax20 | 0 (OFF) | 50, 11, 1, 0 |
+| S013-S016 | DM G5PROC-CEST; Nmax20 | 1 (ON) | 50, 11, 1, 0 |
+
+The four REGW values occur in the displayed order within every ID range. This
+gives matched comparisons for LF likelihood, tag flag column 2, and regional-
+scaling weight. Within each OFF/ON pair, all 98 values in tag flag column 2
+change from 0 to 1; the other INI fields and model data are unchanged.
 
 For robust-normal models, DW10 means F21/F22/F23 flag-49 divisor 200 against
 the global divisor 20. It is not applied to DM models because fixed flag-49
-divisors are not the DM observation-weight parameter.
+divisors are not the DM observation-weight parameter. For DM models, Nmax20 is
+the phase-1 maximum LF sample-size control. It is not a statement that the
+realized effective sample size is exactly 20; realized information also
+depends on the estimated DM concentration and relative sample-size exponent.
+
+## Regional-scaling weights
+
+| REGW | Effective covariance | Standardized SD multiplier | Role in this design |
+| ---: | ---: | ---: | --- |
+| 50 | Sigma / 50 | 0.1414 | Inherited strong constraint |
+| 11 | Sigma / 11 | 0.3015 | Intermediate constraint |
+| 1 | Sigma | 1.0000 | Empirical covariance without an extra precision multiplier |
+| 0 | Not applicable | Not applicable | Regional-scaling penalty disabled |
 
 The active regional-scaling data are 20 quarterly regional CPUE values for
 1965-1969. MFCL converts each row to regional proportions, calculates their
@@ -424,10 +467,14 @@ mean and covariance, removes Region 5 as the MVN reference dimension, and uses
 
     penalty = 0.5 * weight * d' * Sigma^-1 * d.
 
-Thus weight 3 gives approximately 9.4-11.5 percent marginal CV, weight 1 uses
-the raw CPUE covariance (16.3-19.8 percent marginal CV), and weight 0 disables
-the regional-scaling penalty. These are data-specific marginal CVs, not the
-generic penalty-only approximation.
+Thus weights 50, 11, and 1 give standardized SD multipliers of 0.1414,
+0.3015, and 1.0000 relative to the empirical MVN covariance; weight 0 disables
+the regional-scaling penalty. These are penalty-strength interpretations, not
+literal CVs on regional biomass or on each regional target mean.
+
+The derivation, source/manual references, and distinction from target-relative
+marginal CV are documented in
+**notes/regional-scaling-weight-interpretation.md**.
 
 ## Rebuild
 

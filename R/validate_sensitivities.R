@@ -1,4 +1,4 @@
-## Validate the focused nine-model SUB075 regional-scaling design.
+## Validate the focused sixteen-model SUB075 regional-scaling design.
 
 root <- normalizePath(getwd(), winslash = "/", mustWork = TRUE)
 fail <- function(...) stop(paste0(...), call. = FALSE)
@@ -6,24 +6,24 @@ config <- new.env(parent = globalenv())
 sys.source(file.path(root, "job-config.R"), envir = config)
 models <- config$stepwise_models
 
-expected_ids <- sprintf("S%03d", 1:9)
+expected_ids <- sprintf("S%03d", 1:16)
 actual_ids <- sub("-.*$", "", models$step_id)
-if (!is.data.frame(models) || nrow(models) != 9L ||
+if (!is.data.frame(models) || nrow(models) != 16L ||
     !identical(actual_ids, expected_ids) || anyDuplicated(models$step_id)) {
-  fail("Expected contiguous model IDs S001:S009")
+  fail("Expected contiguous model IDs S001:S016")
 }
 normal_rows <- models$lf_likelihood == "normal"
 dm_rows <- models$lf_likelihood == "dm_no_re"
-if (sum(normal_rows) != 6L || sum(dm_rows) != 3L ||
+if (sum(normal_rows) != 8L || sum(dm_rows) != 8L ||
     any(models$age_length_variant != "SUB075") ||
     any(models$cutoff_code != "NOCUT") ||
     any(grepl("CUT[0-9]+", models$step_id))) {
-  fail("Expected six normal and three DM SUB075 NOCUT models")
+  fail("Expected eight normal and eight DM SUB075 NOCUT models")
 }
-if (!identical(models$regional_scaling_weight, rep(c(3L, 1L, 0L), 3L))) {
-  fail("Each model family must use REGW3, REGW1, and REGW0")
+if (!identical(models$regional_scaling_weight, rep(c(50L, 11L, 1L, 0L), 4L))) {
+  fail("Each model family must use REGW50, REGW11, REGW1, and REGW0")
 }
-if (!identical(models$tag_flag2, c(rep(0L, 3L), rep(1L, 6L)))) {
+if (!identical(models$tag_flag2, rep(c(0L, 1L, 0L, 1L), each = 4L))) {
   fail("TAGF2 settings do not match the focused design")
 }
 if (any(models$lf_downweight_factor[normal_rows] != 10L) ||
@@ -31,13 +31,13 @@ if (any(models$lf_downweight_factor[normal_rows] != 10L) ||
     any(!is.na(models$lf_downweight_factor[dm_rows])) ||
     any(!is.na(models$lf_size_divisor[dm_rows])) ||
     any(models$dm_grouping[dm_rows] != "G5PROC") ||
-    any(models$dm_nmax[dm_rows] != 10L)) {
-  fail("Normal DW10 or DM G5PROC Nmax10 metadata are incorrect")
+    any(models$dm_nmax[dm_rows] != 20L)) {
+  fail("Normal DW10 or DM G5PROC Nmax20 metadata are incorrect")
 }
 
 sensitivity_root <- file.path(root, "sensitivity")
 model_dirs <- list.files(sensitivity_root, pattern = "^S[0-9]{3}-", full.names = FALSE)
-if (!setequal(model_dirs, models$step_id) || length(model_dirs) != 9L) {
+if (!setequal(model_dirs, models$step_id) || length(model_dirs) != 16L) {
   fail("Generated sensitivity folders do not match job-config.R")
 }
 
@@ -116,13 +116,125 @@ for (i in seq_len(nrow(models))) {
     }
   } else {
     if (sum(grepl("^[[:space:]]*1[[:space:]]+141[[:space:]]+11([[:space:]]|$)", lines)) != 1L ||
-        sum(grepl("^[[:space:]]*1[[:space:]]+342[[:space:]]+10([[:space:]]|$)", lines)) != 1L ||
+        sum(grepl("^[[:space:]]*1[[:space:]]+342[[:space:]]+20([[:space:]]|$)", lines)) != 1L ||
         sum(grepl("^[[:space:]]*-[0-9]+[[:space:]]+68[[:space:]]+", lines)) != 33L ||
         sum(grepl("^[[:space:]]*-999[[:space:]]+89[[:space:]]+1([[:space:]]|$)", lines)) != 1L ||
         any(grepl("^[[:space:]]*-2[123][[:space:]]+49[[:space:]]+200([[:space:]]|$)", lines))) {
-      fail(row$step_id, ": DM G5PROC-CEST Nmax10 controls are incorrect")
+      fail(row$step_id, ": DM G5PROC-CEST Nmax20 controls are incorrect")
     }
   }
 }
 
-cat("Validated nine SUB075 NOCUT REGW3/1/0 models.\n")
+model_file <- function(step_id, filename) {
+  file.path(sensitivity_root, step_id, "model", filename)
+}
+canonical_regw_doitall <- function(step_id) {
+  lines <- readLines(model_file(step_id, "doitall.sh"), warn = FALSE)
+  regw_row <- grep("^[[:space:]]*1[[:space:]]+77[[:space:]]+", lines)
+  if (length(regw_row) != 1L) {
+    fail(step_id, ": cannot canonicalize parest flag 77")
+  }
+  lines[regw_row] <- "<PAREST_FLAG_77>"
+  lines
+}
+compare_binary_files <- function(left_id, right_id, filenames, context) {
+  for (filename in filenames) {
+    left_hash <- sha256_file(model_file(left_id, filename))
+    right_hash <- sha256_file(model_file(right_id, filename))
+    if (!identical(left_hash, right_hash)) {
+      fail(context, ": unexpected difference in ", filename, " between ",
+           left_id, " and ", right_id)
+    }
+  }
+}
+compare_tag_ini <- function(off_id, on_id) {
+  off <- readLines(model_file(off_id, "bet.ini"), warn = FALSE)
+  on <- readLines(model_file(on_id, "bet.ini"), warn = FALSE)
+  off_start <- grep("^# tag flags[[:space:]]*$", off)
+  on_start <- grep("^# tag flags[[:space:]]*$", on)
+  if (length(off_start) != 1L || length(on_start) != 1L ||
+      length(off) != length(on)) {
+    fail("Cannot compare tag INI pair ", off_id, " and ", on_id)
+  }
+  off_rows <- off_start + seq_len(98L)
+  on_rows <- on_start + seq_len(98L)
+  if (!identical(off[-off_rows], on[-on_rows])) {
+    fail("INI fields outside the tag block differ between ", off_id, " and ", on_id)
+  }
+  off_fields <- strsplit(trimws(off[off_rows]), "[[:space:]]+")
+  on_fields <- strsplit(trimws(on[on_rows]), "[[:space:]]+")
+  for (j in seq_len(98L)) {
+    if (length(off_fields[[j]]) != length(on_fields[[j]]) ||
+        !identical(off_fields[[j]][-2L], on_fields[[j]][-2L]) ||
+        off_fields[[j]][[2L]] != "0" || on_fields[[j]][[2L]] != "1") {
+      fail("Tag INI pair differs beyond flag column 2 at row ", j, ": ",
+           off_id, " versus ", on_id)
+    }
+  }
+}
+
+# Within each likelihood/tag family, REGW is the only doitall difference.
+family_key <- paste(models$lf_likelihood, models$tag_flag2, sep = ":")
+for (indices in split(seq_len(nrow(models)), family_key)) {
+  reference <- canonical_regw_doitall(models$step_id[[indices[[1L]]]])
+  for (index in indices[-1L]) {
+    candidate <- canonical_regw_doitall(models$step_id[[index]])
+    if (!identical(reference, candidate)) {
+      fail("Unexpected doitall difference within REGW family: ",
+           models$step_id[[indices[[1L]]]], " versus ", models$step_id[[index]])
+    }
+  }
+}
+
+common_pair_files <- c(
+  "bet.frq", "bet.tag", "bet.age_length", "bet.reg_scaling",
+  "bet.reg_scaling.full", "fishery_map.R", "tag_rep_map.R"
+)
+for (likelihood in c("normal", "dm_no_re")) {
+  for (weight in c(50L, 11L, 1L, 0L)) {
+    off <- models$step_id[
+      models$lf_likelihood == likelihood & models$tag_flag2 == 0L &
+        models$regional_scaling_weight == weight
+    ]
+    on <- models$step_id[
+      models$lf_likelihood == likelihood & models$tag_flag2 == 1L &
+        models$regional_scaling_weight == weight
+    ]
+    if (length(off) != 1L || length(on) != 1L) {
+      fail("Missing matched TAGF2 pair for ", likelihood, " REGW", weight)
+    }
+    if (!identical(
+      readLines(model_file(off, "doitall.sh"), warn = FALSE),
+      readLines(model_file(on, "doitall.sh"), warn = FALSE)
+    )) {
+      fail("TAGF2 pair has different doitall files: ", off, " versus ", on)
+    }
+    compare_tag_ini(off, on)
+    compare_binary_files(off, on, common_pair_files, "TAGF2 pair")
+  }
+}
+
+# Normal and DM counterparts retain exactly the same non-doitall model inputs.
+matched_likelihood_files <- c("bet.ini", common_pair_files)
+for (tag_value in 0:1) {
+  for (weight in c(50L, 11L, 1L, 0L)) {
+    normal <- models$step_id[
+      models$lf_likelihood == "normal" & models$tag_flag2 == tag_value &
+        models$regional_scaling_weight == weight
+    ]
+    dm <- models$step_id[
+      models$lf_likelihood == "dm_no_re" & models$tag_flag2 == tag_value &
+        models$regional_scaling_weight == weight
+    ]
+    if (length(normal) != 1L || length(dm) != 1L) {
+      fail("Missing matched normal/DM pair for TAGF2=", tag_value,
+           " REGW", weight)
+    }
+    compare_binary_files(normal, dm, matched_likelihood_files, "Normal/DM pair")
+  }
+}
+
+cat(paste0(
+  "Validated sixteen SUB075 NOCUT REGW50/11/1/0 models, including exact ",
+  "TAGF2 OFF/ON and normal/DM input pairing.\n"
+))

@@ -6,8 +6,8 @@
 
 # Stable task id shown in Kflow and used by the API:
 #   /api/job/ofp-sam-bet-2026-integrated-sensitivities-20260718
-name: ofp-sam-bet-2026-integrated-sensitivities-20260718
-description: Run the curated BET 2026 age-length, LF likelihood, tag flag, selectivity-node, and OPR sensitivity set.
+name: ofp-sam-bet-2026-sub075-regw501110-dm20-20260721
+description: Run the matched BET 2026 SUB075 regional-scaling, tag-flag, and LF-likelihood sensitivity design.
 
 # Command executed inside the Docker container after checkout.
 command: bash run.sh
@@ -31,17 +31,17 @@ exclude_slots: []
 env:
   # Default selected model folder. Override per job in the Kflow job config.
   # Examples: 01-Diag2023, 08-RegionalCPUE, 01-Diag2023,09-NewOtoliths, all
-  STEP_SELECT: "S001-TC1-NOCUT-DW10-SUB075-TAGF2OFF-REGW3"
+  STEP_SELECT: "S001-TC1-NOCUT-DW10-SUB075-TAGF2OFF-REGW50"
 
   # Default Kflow display labels for the default model. `make kflow` computes
   # these from job-config.R. When launching directly from the Kflow UI and
   # changing STEP_SELECT, update these fields too if the job list should show
   # the selected model label before the run starts.
   JOB_TITLE: "BET 2026 SUB075 regional-scaling sensitivity fit"
-  JOB_DESCRIPTION: "Run one SUB075 NOCUT DW10 regional-scaling sensitivity model."
-  MODEL_LABEL: "SUB075 NOCUT DW10 TAGF2OFF REGW3"
-  JOB_KEY: s001-sub075-nocut-dw10-tagf2off-regw3
-  FLOW_GROUP: bet-2026-sub075-dw10-regw310-20260721
+  JOB_DESCRIPTION: "Run one SUB075 NOCUT regional-scaling sensitivity model."
+  MODEL_LABEL: "SUB075 NOCUT DW10 TAGF2OFF REGW50"
+  JOB_KEY: s001-sub075-nocut-dw10-tagf2off-regw50
+  FLOW_GROUP: bet-2026-sub075-regw501110-dm20-20260721
   TRIGGER_NEXT: "false"
   FLOW_SPECIES: BET
   FLOW_SPECIES_LABEL: bigeye tuna
@@ -80,8 +80,8 @@ env:
   TUNA_FLOW_RUNTIME_UPDATE: never
   KFLOW_REPO_RUNTIME_UPDATE: auto
   KFLOW_RUNTIME_PACKAGES: none
-  KFLOW_REPO_RUNTIME_PACKAGES: mfclkit=PacificCommunity/ofp-sam-mfclkit@95d92923b52d06e0b51c8a244fe1537ec5a125e7,mfclshiny=PacificCommunity/mfclshiny@c6c685ad2edc3b95c427bea9c15747035df4d7bd
-  MFCLKIT_GITHUB_REF: 95d92923b52d06e0b51c8a244fe1537ec5a125e7
+  KFLOW_REPO_RUNTIME_PACKAGES: mfclkit=PacificCommunity/ofp-sam-mfclkit@0272c9dabf7810326f650b1377d5e8a747e1ed26,mfclshiny=PacificCommunity/mfclshiny@c6c685ad2edc3b95c427bea9c15747035df4d7bd
+  MFCLKIT_GITHUB_REF: 0272c9dabf7810326f650b1377d5e8a747e1ed26
   MFCLSHINY_GITHUB_REF: c6c685ad2edc3b95c427bea9c15747035df4d7bd
   KFLOW_RUNTIME_GITHUB_AUTH: "true"
   KFLOW_FORWARD_GITHUB_TOKEN_TO_RUNTIME: "true"
@@ -120,7 +120,7 @@ local_apps:
       NUMEXPR_NUM_THREADS: "1"
       R_REMOTES_NO_ERRORS_FROM_WARNINGS: "true"
       KFLOW_LOCAL_APP_PACKAGE_UPDATE: "never"
-      MFCLKIT_GITHUB_REF: 95d92923b52d06e0b51c8a244fe1537ec5a125e7
+      MFCLKIT_GITHUB_REF: 0272c9dabf7810326f650b1377d5e8a747e1ed26
       MFCLSHINY_GITHUB_REF: c6c685ad2edc3b95c427bea9c15747035df4d7bd
       MFCLSHINY_AUTO_LOAD: "true"
       MFCLSHINY_INITIAL_RENDER: "true"
