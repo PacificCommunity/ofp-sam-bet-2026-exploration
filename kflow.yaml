@@ -31,17 +31,17 @@ exclude_slots: []
 env:
   # Default selected model folder. Override per job in the Kflow job config.
   # Examples: 01-Diag2023, 08-RegionalCPUE, 01-Diag2023,09-NewOtoliths, all
-  STEP_SELECT: "S001-TC1-NOCUT-BASE075-TAGF2OFF-REGW25"
+  STEP_SELECT: "S001-TC1-NOCUT-DW10-SUB075-TAGF2OFF-REGW3"
 
   # Default Kflow display labels for the default model. `make kflow` computes
   # these from job-config.R. When launching directly from the Kflow UI and
   # changing STEP_SELECT, update these fields too if the job list should show
   # the selected model label before the run starts.
-  JOB_TITLE: "BET 2026 regional-scaling sensitivity fit"
-  JOB_DESCRIPTION: "Run one BASE075 regional-scaling-weight sensitivity model."
-  MODEL_LABEL: "BASE075 NOCUT TAGF2OFF regional-scaling weight 25"
-  JOB_KEY: s001-base075-nocut-tagf2off-regw25
-  FLOW_GROUP: bet-2026-base075-regional-scaling-weights-20260720
+  JOB_TITLE: "BET 2026 SUB075 regional-scaling sensitivity fit"
+  JOB_DESCRIPTION: "Run one SUB075 NOCUT DW10 regional-scaling sensitivity model."
+  MODEL_LABEL: "SUB075 NOCUT DW10 TAGF2OFF REGW3"
+  JOB_KEY: s001-sub075-nocut-dw10-tagf2off-regw3
+  FLOW_GROUP: bet-2026-sub075-dw10-regw310-20260721
   TRIGGER_NEXT: "false"
   FLOW_SPECIES: BET
   FLOW_SPECIES_LABEL: bigeye tuna
