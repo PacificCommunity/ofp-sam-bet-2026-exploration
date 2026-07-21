@@ -26,27 +26,32 @@ gives matched comparisons for LF likelihood, tag flag column 2, and regional-
 scaling weight. Within each OFF/ON pair, all 98 values in tag flag column 2
 change from 0 to 1; the other INI fields and model data are unchanged.
 
-## PTTP reporting-rate prior sensitivity
+## PTTP-derived cross-program reporting-rate prior sensitivity
 
 The original S001-S016 models retain the upstream manual reporting-rate
-penalties of 8 for RTTP and 10 for PTTP purse-seine cells. S017-S032 are exact
-matched copies in which only the PTTP purse-seine prior cells are restored to
-the 2026 assessment values.
+penalties. S017-S032 are exact matched copies that propagate the 2026
+PTTP-derived regional purse-seine priors to corresponding active
+program-specific RTTP, PTTP/pooled, and JPTP groups.
 
-| Models | PTTP release/event rows | Fisheries | Mean / target | Penalty |
-| --- | --- | --- | --- | ---: |
-| S001-S016 | 16-61 and pooled row 99 | F19-F20, PTTP Region 2 | 0.4962 / 49.62 | 10 |
-| S017-S032 | 16-61 and pooled row 99 | F19-F20, PTTP Region 2 | 0.4962 / 49.62 | 354.5 |
-| S001-S016 | 16-61 and pooled row 99 | F25/F27, PTTP Region 3 | 0.52015 / 52.015 | 10 |
-| S017-S032 | 16-61 and pooled row 99 | F25/F27, PTTP Region 3 | 0.5121 / 51.21 | 739.2 |
-| S001-S016 | 16-61 and pooled row 99 | F26/F28, PTTP Region 4 | 0.52015 / 52.015 | 10 |
-| S017-S032 | 16-61 and pooled row 99 | F26/F28, PTTP Region 4 | 0.5282 / 52.82 | 231.2 |
+| Region | Fisheries | Active groups receiving prior | Inactive groups retained at zero | S017-S032 mean / target | S017-S032 penalty |
+| --- | --- | --- | --- | --- | ---: |
+| 2 | F19/F20 | RTTP 7; PTTP 14 | JPTP 26 | 0.4962 / 49.62 | 354.5 |
+| 3 | F25/F27 | RTTP 10; PTTP 17; JPTP 29 | None | 0.5121 / 51.21 | 739.2 |
+| 4 | F26/F28 | PTTP 18 | RTTP 11; JPTP 30 | 0.5282 / 52.82 | 231.2 |
 
-The Region 2 mean is unchanged. PTTP26 restores the distinct Region 3 and
-Region 4 means and changes all three PTTP purse-seine penalty precisions. RTTP
-and JPTP cells, reporting-group IDs, active flags, and all non-INI inputs are
-unchanged. In the mix-0.15 INI, these cells already map to separate reporting
+The mix-0.15 INI already maps these strata to separate program-by-region
 groups, so the sensitivity changes prior values without changing membership.
+The generator assigns values by reporting-group ID across the complete tag
+matrix, but only where the corresponding parameter is active. Active flags are
+unchanged. Inactive groups must retain zero initial, target, and penalty values
+for native MFCL compatibility and are not activated by this sensitivity.
+
+The 2026 report directly estimates priors from 2007-2024 PTTP tag-seeding data;
+it does not estimate separate RTTP or JPTP priors. Applying the PTTP-derived
+values to corresponding RTTP and JPTP groups is therefore an explicit modelling
+sensitivity, not a recommendation attributed to the report. Domestic Indonesian
+and Philippines purse-seine groups remain unchanged, consistent with the
+report's recommendation that these priors are not representative of them.
 
 The source report is WCPFC-SC22-2026-SA-IP05, which reports PTTP purse-seine
 means and penalties by assessment region. Exact project input values were

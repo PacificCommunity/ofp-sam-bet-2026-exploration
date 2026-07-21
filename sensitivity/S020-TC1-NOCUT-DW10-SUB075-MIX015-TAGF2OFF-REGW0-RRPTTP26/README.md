@@ -38,14 +38,17 @@ The retained FRQ already contains the selected 2026 effort-creep adjustment;
 this build never reapplies effort creep.
 
 
-## PTTP reporting-rate prior sensitivity
+## PTTP-derived cross-program reporting-rate prior sensitivity
 
-Only PTTP purse-seine prior cells are restored to the 2026 assessment
-values: F19/F20 (Region 2) use mean 0.4962, target 49.62, and penalty 354.5;
+The 2026 PTTP purse-seine priors are propagated to corresponding active
+RTTP, PTTP/pooled, and JPTP groups: F19/F20 (Region 2) use mean 0.4962,
+target 49.62, and penalty 354.5;
 F25/F27 (Region 3) use 0.5121, 51.21, and 739.2; F26/F28 (Region 4)
 use 0.5282, 52.82, and 231.2.
-The corresponding PTTP rows are release rows 16-61 plus pooled row 99.
-RTTP, JPTP, reporting groups, active flags, and all other settings are
+The active group IDs receiving these values are 7/14 (Region 2),
+10/17/29 (Region 3), and 18 (Region 4). Corresponding inactive groups
+26, 11, and 30 retain zero values. Reporting groups, active flags,
+and all other settings are
 identical to the matched manual-8/10 model.
 
 Status: generated; Kflow has not been submitted.
