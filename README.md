@@ -5,6 +5,8 @@ This branch contains 32 NOCUT MFCL models based on
 age-length input, the upstream mix-period 0.15 INI, and corrected SA28-N5
 selectivity baseline. The F9-only non-decreasing constraint is removed, so no
 fishery uses fish flag 16=1. CUT90 is excluded.
+All models use **PacificCommunity/ofp-sam-2026-BET-YFT-tag-prep@44f804341a8e1d9b46e8e6c147dee884c476c28d/BET/bet.2026.low.recaps.removed.tag**, the
+current low-recapture-filtered BET tag input (SHA-256 b140e66eb52f2b7e022ef2c562134f8bc9baf3dede18ce95283a001acd2b013f).
 The retained Job 5319 FRQ already contains the selected 2026 effort-creep
 adjustment, and the build never reapplies effort creep.
 
@@ -14,12 +16,12 @@ adjustment, and the build never reapplies effort creep.
 | --- | --- | ---: | --- |
 | S001-S004 | Robust normal; F21/F22/F23 DW10 | 0 (OFF) | 50, 11, 1, 0 |
 | S005-S008 | Robust normal; F21/F22/F23 DW10 | 1 (ON) | 50, 11, 1, 0 |
-| S009-S012 | DM G7OSHL-CEST; Nmax20 | 0 (OFF) | 50, 11, 1, 0 |
-| S013-S016 | DM G7OSHL-CEST; Nmax20 | 1 (ON) | 50, 11, 1, 0 |
+| S009-S012 | DM G7OSHL-CEST; Nmax10 | 0 (OFF) | 50, 11, 1, 0 |
+| S013-S016 | DM G7OSHL-CEST; Nmax10 | 1 (ON) | 50, 11, 1, 0 |
 | S017-S020 | Robust normal; F21/F22/F23 DW10; PTTP26 prior | 0 (OFF) | 50, 11, 1, 0 |
 | S021-S024 | Robust normal; F21/F22/F23 DW10; PTTP26 prior | 1 (ON) | 50, 11, 1, 0 |
-| S025-S028 | DM G7OSHL-CEST; Nmax20; PTTP26 prior | 0 (OFF) | 50, 11, 1, 0 |
-| S029-S032 | DM G7OSHL-CEST; Nmax20; PTTP26 prior | 1 (ON) | 50, 11, 1, 0 |
+| S025-S028 | DM G7OSHL-CEST; Nmax10; PTTP26 prior | 0 (OFF) | 50, 11, 1, 0 |
+| S029-S032 | DM G7OSHL-CEST; Nmax10; PTTP26 prior | 1 (ON) | 50, 11, 1, 0 |
 
 The four REGW values occur in the displayed order within every ID range. This
 gives matched comparisons for LF likelihood, tag flag column 2, and regional-
@@ -64,7 +66,7 @@ https://meetings.wcpfc.int/node/32332
 
 For robust-normal models, DW10 means F21/F22/F23 flag-49 divisor 200 against
 the global divisor 20. It is not applied to DM models because fixed flag-49
-divisors are not the DM observation-weight parameter. For DM models, Nmax20 is
+divisors are not the DM observation-weight parameter. For DM models, Nmax10 is
 the phase-1 maximum LF sample-size control. It is not a statement that the
 realized effective sample size is exactly 20; realized information also
 depends on the estimated DM concentration and relative sample-size exponent.
@@ -83,6 +85,15 @@ depends on the estimated DM concentration and relative sample-size exponent.
 
 This changes only DM fish flag 68. Tag-reporting groups (flag 32), selectivity
 groups (flag 24), the FRQ, and other model data are unchanged.
+
+## Tag data provenance
+
+Every model uses the same byte-identical
+**bet.2026.low.recaps.removed.tag** input from
+**PacificCommunity/ofp-sam-2026-BET-YFT-tag-prep@44f804341a8e1d9b46e8e6c147dee884c476c28d/BET/bet.2026.low.recaps.removed.tag**. This update replaces
+the previous tag-data snapshot only. It does not change the mix-0.15 INI,
+reporting-rate group membership or priors, FRQ, age-length input, selectivity,
+regional-scaling data, or likelihood settings.
 
 ## INI provenance
 

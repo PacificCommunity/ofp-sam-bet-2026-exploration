@@ -8,6 +8,7 @@ This model is part of the focused SUB075 regional-scaling sensitivity design.
 | --- | --- |
 | Age-length input | SUB075, bet.2026.sub.basin.0.75.age_length |
 | INI | bet.2026.mix-0.15.ini |
+| Tag data | bet.2026.low.recaps.removed.tag |
 | Selectivity | Corrected SA28-N5 baseline; no fishery has flag 16=1 |
 | LF likelihood | MFCL option-3 robust normal |
 | LF tail compression | 1 percent |
@@ -30,7 +31,9 @@ The model is copied from **S018-TC1-NOCUT-SUB075-TAGF2ON** at
 **PacificCommunity/ofp-sam-bet-2026-exploration@81a456fa5c36ef1be5bd9da38308ef07ebc55ff4** (**experiment/normal-francis-initial-20260719**). Apart from the documented
 F21/F22/F23 divisor, parest flag 77, F9 monotonicity removal, identifiers, and
 metadata, all CPUE sigma, regional-scaling data, flags 78-81, phase timing,
-FRQ, tag, age-length, and remaining selectivity settings are unchanged. The INI
+FRQ, age-length, and remaining selectivity settings are unchanged. The tag
+input is replaced by **PacificCommunity/ofp-sam-2026-BET-YFT-tag-prep@44f804341a8e1d9b46e8e6c147dee884c476c28d/BET/bet.2026.low.recaps.removed.tag**.
+The INI
 is replaced by **PacificCommunity/ofp-sam-2026-BET-YFT-build-ini@86627214cbac6db5766841e404bb32ea4f6afe61/BET/ini.mix-period/bet.2026.mix-0.15.ini**;
 TAGF2OFF changes only tag_flags(:,2) from 1 to 0.
 

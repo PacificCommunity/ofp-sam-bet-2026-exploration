@@ -13,6 +13,11 @@ INI_SOURCE_COMMIT="86627214cbac6db5766841e404bb32ea4f6afe61"
 INI_SOURCE_PATH="BET/ini.mix-period/bet.2026.mix-0.15.ini"
 INI_SOURCE_SHA256="b8a43730e7808c0f2d0f07924a2e175910294ce63a1359c2585b44f9e5e2dad6"
 INI_SOURCE_FILE="$ROOT/reference-inputs/bet.2026.mix-0.15.ini"
+TAG_SOURCE_REPO="PacificCommunity/ofp-sam-2026-BET-YFT-tag-prep"
+TAG_SOURCE_COMMIT="44f804341a8e1d9b46e8e6c147dee884c476c28d"
+TAG_SOURCE_PATH="BET/bet.2026.low.recaps.removed.tag"
+TAG_SOURCE_SHA256="b140e66eb52f2b7e022ef2c562134f8bc9baf3dede18ce95283a001acd2b013f"
+TAG_SOURCE_FILE="$ROOT/reference-inputs/bet.2026.low.recaps.removed.tag"
 
 normal_templates=(
   "S017-TC1-NOCUT-SUB075-TAGF2OFF"
@@ -26,6 +31,11 @@ if ! git -C "$ROOT" cat-file -e "${SOURCE_COMMIT}^{commit}" 2>/dev/null; then
 fi
 if ! git -C "$ROOT" cat-file -e "${DM_SOURCE_COMMIT}^{commit}" 2>/dev/null; then
   git -C "$ROOT" fetch --depth=1 origin "$DM_SOURCE_COMMIT"
+fi
+if [[ ! -f "$TAG_SOURCE_FILE" ]] ||
+   [[ "$(sha256sum "$TAG_SOURCE_FILE" | awk '{print $1}')" != "$TAG_SOURCE_SHA256" ]]; then
+  echo "Tag reference input is missing or has the wrong SHA-256: $TAG_SOURCE_FILE" >&2
+  exit 1
 fi
 
 tmp="$(mktemp -d)"
@@ -111,6 +121,7 @@ for template_index in "${!normal_templates[@]}"; do
     model="${id}-TC1-NOCUT-DW10-SUB075-MIX015-${tag_code}-REGW${weight}"
     destination="$ROOT/sensitivity/$model"
     cp -a "$tmp/sensitivity/$template" "$destination"
+    install -m 0644 "$TAG_SOURCE_FILE" "$destination/model/bet.tag"
     write_model_ini "$destination/model/bet.ini" "$tag_flag2"
     remove_f9_monotonicity "$destination/model/doitall.sh"
 
@@ -151,6 +162,7 @@ This model is part of the focused SUB075 regional-scaling sensitivity design.
 | --- | --- |
 | Age-length input | SUB075, bet.2026.sub.basin.0.75.age_length |
 | INI | bet.2026.mix-0.15.ini |
+| Tag data | bet.2026.low.recaps.removed.tag |
 | Selectivity | Corrected SA28-N5 baseline; no fishery has flag 16=1 |
 | LF likelihood | MFCL option-3 robust normal |
 | LF tail compression | 1 percent |
@@ -173,7 +185,9 @@ The model is copied from **$template** at
 **$SOURCE_REPO@$SOURCE_COMMIT** (**$SOURCE_REF**). Apart from the documented
 F21/F22/F23 divisor, parest flag 77, F9 monotonicity removal, identifiers, and
 metadata, all CPUE sigma, regional-scaling data, flags 78-81, phase timing,
-FRQ, tag, age-length, and remaining selectivity settings are unchanged. The INI
+FRQ, age-length, and remaining selectivity settings are unchanged. The tag
+input is replaced by **$TAG_SOURCE_REPO@$TAG_SOURCE_COMMIT/$TAG_SOURCE_PATH**.
+The INI
 is replaced by **$INI_SOURCE_REPO@$INI_SOURCE_COMMIT/$INI_SOURCE_PATH**;
 TAGF2OFF changes only tag_flags(:,2) from 1 to 0.
 
@@ -200,9 +214,10 @@ for template_index in "${!normal_templates[@]}"; do
   for weight in "${weights[@]}"; do
     number=$((number + 1))
     id="$(printf 'S%03d' "$number")"
-    model="${id}-DM-G7OSHL-CEST-NOCUT-SUB075-MIX015-${tag_code}-NMAX20-REGW${weight}"
+    model="${id}-DM-G7OSHL-CEST-NOCUT-SUB075-MIX015-${tag_code}-NMAX10-REGW${weight}"
     destination="$ROOT/sensitivity/$model"
     cp -a "$tmp/sensitivity/$dm_normal_template" "$destination"
+    install -m 0644 "$TAG_SOURCE_FILE" "$destination/model/bet.tag"
     write_model_ini "$destination/model/bet.ini" "$tag_flag2"
     remove_f9_monotonicity "$destination/model/doitall.sh"
 
@@ -309,7 +324,7 @@ RS
         next
       }
       $1 == 1 && $2 == 342 && $3 == 10 {
-        print "  1 342 20    # DM maximum LF sample-size control (Nmax20)"
+        print "  1 342 10    # DM maximum LF sample-size control (Nmax10)"
         next
       }
       { print }
@@ -321,7 +336,7 @@ RS
     control="$model"
     if [[ "$tag_flag2" -eq 1 ]]; then
       control_id="$(printf 'S%03d' "$((number - 4))")"
-      control="${control_id}-DM-G7OSHL-CEST-NOCUT-SUB075-MIX015-TAGF2OFF-NMAX20-REGW${weight}"
+      control="${control_id}-DM-G7OSHL-CEST-NOCUT-SUB075-MIX015-TAGF2OFF-NMAX10-REGW${weight}"
     fi
 
     cat > "$destination/README.md" <<MODEL_README
@@ -336,19 +351,21 @@ design.
 | --- | --- |
 | Age-length input | SUB075, bet.2026.sub.basin.0.75.age_length |
 | INI | bet.2026.mix-0.15.ini |
+| Tag data | bet.2026.low.recaps.removed.tag |
 | Selectivity | Exact matched SA28-N5 normal-model settings; no fishery has flag 16=1 |
 | LF likelihood | MFCL option 11, Dirichlet-multinomial without random effects |
 | DM grouping | G7OSHL: remaining LL; OS F5/F9; large-scale PS; domestic PS; HL F14/F15; other extraction; index |
 | DM relative sample-size exponent | CEST, activated in phase 2 |
-| DM maximum LF sample-size control | 20 directly from phase 1 |
+| DM maximum LF sample-size control | 10 directly from phase 1 |
 | DM tail compression | Retain at least five class intervals |
 | Observed LF cutoff | None |
 | Fixed DW10 divisor | Not applicable to DM weighting |
 | Tag flag column 2 | $tag_code; paired OFF control: $control |
 | Regional-scaling weight | $weight; $interpretation |
 
-All non-doitall inputs except the INI come from **$dm_normal_template** at
-**$SOURCE_COMMIT** and retain SUB075. The INI comes from
+All non-doitall inputs except the INI and tag file come from
+**$dm_normal_template** at **$SOURCE_COMMIT** and retain SUB075. The tag file
+comes from **$TAG_SOURCE_REPO@$TAG_SOURCE_COMMIT/$TAG_SOURCE_PATH**. The INI comes from
 **$INI_SOURCE_REPO@$INI_SOURCE_COMMIT/$INI_SOURCE_PATH**. The DM controls come from
 **$dm_template** at **$DM_SOURCE_COMMIT** (**$DM_SOURCE_REF**). HAC4 sigma,
 additional selectivity-tail constraints, and extra stabilization phases are excluded.
@@ -360,7 +377,7 @@ this build never reapplies effort creep.
 Status: generated; Kflow has not been submitted.
 MODEL_README
 
-    printf '"%s","%s","%s","manual_8_10",%s,"%s",%s,"%s","dm_no_re","G7OSHL_CEST",20,,\n' \
+    printf '"%s","%s","%s","manual_8_10",%s,"%s",%s,"%s","dm_no_re","G7OSHL_CEST",10,,\n' \
       "$model" "$dm_normal_template" "$dm_template" "$weight" "$interpretation" \
       "$tag_flag2" "$control" >> "$mapping"
   done
@@ -583,7 +600,8 @@ RS
 number=$((number * 2))
 
 Rscript - "$ROOT" "$mapping" "$SOURCE_COMMIT" "$DM_SOURCE_COMMIT" "$AGE_SHA256" \
-  "$INI_SOURCE_REPO" "$INI_SOURCE_COMMIT" "$INI_SOURCE_PATH" "$INI_SOURCE_SHA256" <<'RS'
+  "$INI_SOURCE_REPO" "$INI_SOURCE_COMMIT" "$INI_SOURCE_PATH" "$INI_SOURCE_SHA256" \
+  "$TAG_SOURCE_REPO" "$TAG_SOURCE_COMMIT" "$TAG_SOURCE_PATH" "$TAG_SOURCE_SHA256" <<'RS'
 args <- commandArgs(trailingOnly = TRUE)
 root <- args[[1L]]
 mapping <- read.csv(args[[2L]], stringsAsFactors = FALSE, check.names = FALSE)
@@ -594,6 +612,10 @@ ini_source_repo <- args[[6L]]
 ini_source_commit <- args[[7L]]
 ini_source_path <- args[[8L]]
 ini_source_sha256 <- args[[9L]]
+tag_source_repo <- args[[10L]]
+tag_source_commit <- args[[11L]]
+tag_source_path <- args[[12L]]
+tag_source_sha256 <- args[[13L]]
 mapping$regional_scaling_weight <- as.integer(mapping$regional_scaling_weight)
 mapping$reporting_rate_prior <- as.character(mapping$reporting_rate_prior)
 
@@ -620,7 +642,7 @@ for (i in seq_len(nrow(mapping))) {
     )
     manifest$source_commit[doitall_row] <- dm_source_commit
     manifest$note[doitall_row] <- paste0(
-      "Matched DM-noRE G7OSHL-CEST doitall with Nmax20 directly from phase 1; ",
+      "Matched DM-noRE G7OSHL-CEST doitall with Nmax10 directly from phase 1; ",
       "fixed DW10 is not used by the DM likelihood. Parest flag 77 is ",
       mapping$regional_scaling_weight[[i]], "."
     )
@@ -657,6 +679,19 @@ for (i in seq_len(nrow(mapping))) {
     mapping$tag_control[[i]], ".", prior_note
   )
 
+  tag_row <- manifest$role == "tag"
+  stopifnot(sum(tag_row) == 1L)
+  manifest$source[tag_row] <- paste0(
+    "https://github.com/", tag_source_repo, "/blob/", tag_source_commit, "/",
+    tag_source_path
+  )
+  manifest$source_commit[tag_row] <- tag_source_commit
+  manifest$note[tag_row] <- paste0(
+    "Exact BET low-recapture-filtered tag input from the 2026 tag-preparation ",
+    "repository; SHA-256 ", tag_source_sha256,
+    ". The same byte-identical tag file is used by all 32 models."
+  )
+
   context_row <- manifest$role == "design_context"
   manifest$note[context_row] <- paste0(
     "Public 32-model SUB075 NOCUT design: the original sixteen manual-8/10 ",
@@ -680,7 +715,7 @@ selection <- data.frame(
   dm_tail_min_classes = ifelse(is_dm, 5L, NA_integer_),
   dm_grouping = ifelse(is_dm, "G7OSHL", NA_character_),
   dm_concentration = ifelse(is_dm, "estimated_phase2", NA_character_),
-  dm_nmax = ifelse(is_dm, 20L, NA_integer_),
+  dm_nmax = ifelse(is_dm, 10L, NA_integer_),
   cutoff_cm = NA_real_,
   tag_flag2 = mapping$tag_flag2,
   regional_scaling_weight = mapping$regional_scaling_weight,
@@ -697,7 +732,7 @@ labels <- ifelse(
   paste0(
     "SUB075 NOCUT ",
     ifelse(mapping$tag_flag2 == 1L, "TAGF2ON", "TAGF2OFF"),
-    " DM G7OSHL-CEST Nmax20 REGW",
+    " DM G7OSHL-CEST Nmax10 REGW",
     mapping$regional_scaling_weight
   ),
   paste0(
@@ -712,7 +747,7 @@ labels <- paste0(
 )
 stepwise_run <- list(
   default_step_select = mapping$model[[1L]],
-  flow_group = "bet-2026-sub075-mix015-rrpttp26-g7oshl-dm20-20260721",
+  flow_group = "bet-2026-sub075-mix015-rrpttp26-g7oshl-dm10-20260721",
   trigger_next = FALSE
 )
 stepwise_models <- data.frame(
@@ -730,12 +765,12 @@ stepwise_models <- data.frame(
   lf_size_divisor = ifelse(is_dm, NA_integer_, 200L),
   dm_grouping = ifelse(is_dm, "G7OSHL", NA_character_),
   dm_concentration = ifelse(is_dm, "estimated_phase2", NA_character_),
-  dm_nmax = ifelse(is_dm, 20L, NA_integer_),
+  dm_nmax = ifelse(is_dm, 10L, NA_integer_),
   regional_scaling_weight = mapping$regional_scaling_weight,
   reporting_rate_prior = mapping$reporting_rate_prior,
   major_step = "Regional scaling and reporting-rate prior",
   substep = paste0(
-    ifelse(is_dm, "DM Nmax20 ", "DW10 "),
+    ifelse(is_dm, "DM Nmax10 ", "DW10 "),
     "REGW", mapping$regional_scaling_weight,
     ifelse(mapping$reporting_rate_prior == "Tom_Peatman_2026_PTTP", " PTTP26", " RR8/10")
   ),
@@ -757,7 +792,7 @@ writeLines(config_lines, file.path(root, "job-config.R"), useBytes = TRUE)
 RS
 
 first_model="S001-TC1-NOCUT-DW10-SUB075-MIX015-TAGF2OFF-REGW50"
-perl -0pi -e 's/STEP_SELECT: "[^"]+"/STEP_SELECT: "'"$first_model"'"/; s/JOB_TITLE: "[^"]+"/JOB_TITLE: "BET 2026 mix-0.15 regional-scaling and reporting-prior fit"/; s/JOB_DESCRIPTION: "[^"]+"/JOB_DESCRIPTION: "Run one SUB075 mix-0.15 regional-scaling and reporting-prior sensitivity model."/; s/MODEL_LABEL: "[^"]+"/MODEL_LABEL: "SUB075 MIX015 NOCUT DW10 TAGF2OFF REGW50 RR8\/10"/; s/JOB_KEY: [^\n]+/JOB_KEY: s001-sub075-mix015-nocut-dw10-tagf2off-regw50-rr8-10/; s/FLOW_GROUP: [^\n]+/FLOW_GROUP: bet-2026-sub075-mix015-rrpttp26-g7oshl-dm20-20260721/' "$ROOT/kflow.yaml"
+perl -0pi -e 's/STEP_SELECT: "[^"]+"/STEP_SELECT: "'"$first_model"'"/; s/JOB_TITLE: "[^"]+"/JOB_TITLE: "BET 2026 mix-0.15 regional-scaling and reporting-prior fit"/; s/JOB_DESCRIPTION: "[^"]+"/JOB_DESCRIPTION: "Run one SUB075 mix-0.15 regional-scaling and reporting-prior sensitivity model."/; s/MODEL_LABEL: "[^"]+"/MODEL_LABEL: "SUB075 MIX015 NOCUT DW10 TAGF2OFF REGW50 RR8\/10"/; s/JOB_KEY: [^\n]+/JOB_KEY: s001-sub075-mix015-nocut-dw10-tagf2off-regw50-rr8-10/; s/FLOW_GROUP: [^\n]+/FLOW_GROUP: bet-2026-sub075-mix015-rrpttp26-g7oshl-dm10-20260721/' "$ROOT/kflow.yaml"
 
 cat > "$ROOT/README.md" <<ROOT_README
 # BET 2026 mix-0.15 unconstrained regional-scaling sensitivities
@@ -767,6 +802,8 @@ This branch contains 32 NOCUT MFCL models based on
 age-length input, the upstream mix-period 0.15 INI, and corrected SA28-N5
 selectivity baseline. The F9-only non-decreasing constraint is removed, so no
 fishery uses fish flag 16=1. CUT90 is excluded.
+All models use **$TAG_SOURCE_REPO@$TAG_SOURCE_COMMIT/$TAG_SOURCE_PATH**, the
+current low-recapture-filtered BET tag input (SHA-256 $TAG_SOURCE_SHA256).
 The retained Job 5319 FRQ already contains the selected 2026 effort-creep
 adjustment, and the build never reapplies effort creep.
 
@@ -776,12 +813,12 @@ adjustment, and the build never reapplies effort creep.
 | --- | --- | ---: | --- |
 | S001-S004 | Robust normal; F21/F22/F23 DW10 | 0 (OFF) | 50, 11, 1, 0 |
 | S005-S008 | Robust normal; F21/F22/F23 DW10 | 1 (ON) | 50, 11, 1, 0 |
-| S009-S012 | DM G7OSHL-CEST; Nmax20 | 0 (OFF) | 50, 11, 1, 0 |
-| S013-S016 | DM G7OSHL-CEST; Nmax20 | 1 (ON) | 50, 11, 1, 0 |
+| S009-S012 | DM G7OSHL-CEST; Nmax10 | 0 (OFF) | 50, 11, 1, 0 |
+| S013-S016 | DM G7OSHL-CEST; Nmax10 | 1 (ON) | 50, 11, 1, 0 |
 | S017-S020 | Robust normal; F21/F22/F23 DW10; PTTP26 prior | 0 (OFF) | 50, 11, 1, 0 |
 | S021-S024 | Robust normal; F21/F22/F23 DW10; PTTP26 prior | 1 (ON) | 50, 11, 1, 0 |
-| S025-S028 | DM G7OSHL-CEST; Nmax20; PTTP26 prior | 0 (OFF) | 50, 11, 1, 0 |
-| S029-S032 | DM G7OSHL-CEST; Nmax20; PTTP26 prior | 1 (ON) | 50, 11, 1, 0 |
+| S025-S028 | DM G7OSHL-CEST; Nmax10; PTTP26 prior | 0 (OFF) | 50, 11, 1, 0 |
+| S029-S032 | DM G7OSHL-CEST; Nmax10; PTTP26 prior | 1 (ON) | 50, 11, 1, 0 |
 
 The four REGW values occur in the displayed order within every ID range. This
 gives matched comparisons for LF likelihood, tag flag column 2, and regional-
@@ -826,7 +863,7 @@ https://meetings.wcpfc.int/node/32332
 
 For robust-normal models, DW10 means F21/F22/F23 flag-49 divisor 200 against
 the global divisor 20. It is not applied to DM models because fixed flag-49
-divisors are not the DM observation-weight parameter. For DM models, Nmax20 is
+divisors are not the DM observation-weight parameter. For DM models, Nmax10 is
 the phase-1 maximum LF sample-size control. It is not a statement that the
 realized effective sample size is exactly 20; realized information also
 depends on the estimated DM concentration and relative sample-size exponent.
@@ -845,6 +882,15 @@ depends on the estimated DM concentration and relative sample-size exponent.
 
 This changes only DM fish flag 68. Tag-reporting groups (flag 32), selectivity
 groups (flag 24), the FRQ, and other model data are unchanged.
+
+## Tag data provenance
+
+Every model uses the same byte-identical
+**bet.2026.low.recaps.removed.tag** input from
+**$TAG_SOURCE_REPO@$TAG_SOURCE_COMMIT/$TAG_SOURCE_PATH**. This update replaces
+the previous tag-data snapshot only. It does not change the mix-0.15 INI,
+reporting-rate group membership or priors, FRQ, age-length input, selectivity,
+regional-scaling data, or likelihood settings.
 
 ## INI provenance
 
