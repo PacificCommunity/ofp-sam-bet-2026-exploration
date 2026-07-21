@@ -368,9 +368,10 @@ done
 
 # Add exact matched copies using the PTTP purse-seine priors documented for the
 # 2026 assessment. As an explicit cross-program sensitivity, propagate each
-# region-specific prior to the corresponding active RTTP, PTTP/pooled, and
-# JPTP reporting groups. Inactive corresponding groups retain their zero
-# values. Group membership, active flags, and non-INI inputs remain unchanged.
+# region-specific prior to the corresponding active RTTP and PTTP/pooled
+# reporting groups. JPTP retains its upstream program-specific prior, and
+# inactive corresponding groups retain zero. Group membership, active flags,
+# and non-INI inputs remain unchanged.
 Rscript - "$ROOT" "$mapping" <<'RS'
 args <- commandArgs(trailingOnly = TRUE)
 root <- args[[1L]]
@@ -439,6 +440,7 @@ replace_pttp_prior <- function(path) {
     stop("Expected nine distinct program-by-region reporting groups in ", path,
          call. = FALSE)
   }
+  jptp_groups <- c(r2_groups[[3L]], r3_groups[[3L]], r4_groups[[3L]])
 
   active_marker_i <- which(trimws(lines) == "# tag_fish_rep active flags")
   if (length(active_marker_i) != 1L) {
@@ -498,9 +500,12 @@ replace_pttp_prior <- function(path) {
     for (r in seq_len(99L)) {
       for (f in seq_len(33L)) {
         group <- group_values[r, f]
-        if (active_values[r, f] == 1L && group %in% r2_groups) fields[[r]][f] <- r2_value
-        if (active_values[r, f] == 1L && group %in% r3_groups) fields[[r]][f] <- r3_value
-        if (active_values[r, f] == 1L && group %in% r4_groups) fields[[r]][f] <- r4_value
+        if (active_values[r, f] == 1L && group %in% r2_groups &&
+            !(group %in% jptp_groups)) fields[[r]][f] <- r2_value
+        if (active_values[r, f] == 1L && group %in% r3_groups &&
+            !(group %in% jptp_groups)) fields[[r]][f] <- r3_value
+        if (active_values[r, f] == 1L && group %in% r4_groups &&
+            !(group %in% jptp_groups)) fields[[r]][f] <- r4_value
       }
     }
     lines[row_i] <<- vapply(fields, paste, collapse = " ", character(1))
@@ -533,16 +538,17 @@ for (i in seq_len(nrow(base))) {
   }
   prior_note <- c(
     "",
-    "## PTTP-derived cross-program reporting-rate prior sensitivity",
+    "## PTTP-derived RTTP/PTTP reporting-rate prior sensitivity",
     "",
     "The 2026 PTTP purse-seine priors are propagated to corresponding active",
-    "RTTP, PTTP/pooled, and JPTP groups: F19/F20 (Region 2) use mean 0.4962,",
+    "RTTP and PTTP/pooled groups: F19/F20 (Region 2) use mean 0.4962,",
     "target 49.62, and penalty 354.5;",
     "F25/F27 (Region 3) use 0.5121, 51.21, and 739.2; F26/F28 (Region 4)",
     "use 0.5282, 52.82, and 231.2.",
     "The active group IDs receiving these values are 7/14 (Region 2),",
-    "10/17/29 (Region 3), and 18 (Region 4). Corresponding inactive groups",
-    "26, 11, and 30 retain zero values. Reporting groups, active flags,",
+    "10/17 (Region 3), and 18 (Region 4). JPTP group 29 retains its upstream",
+    "mean 0.5, target 50, and penalty 1; inactive groups 26, 11, and 30 retain",
+    "zero values. Reporting groups, active flags,",
     "and all other settings are",
     "identical to the matched manual-8/10 model.",
     ""
@@ -635,11 +641,11 @@ for (i in seq_len(nrow(mapping))) {
   is_tom_prior <- mapping$reporting_rate_prior[[i]] == "Tom_Peatman_2026_PTTP"
   prior_note <- if (is_tom_prior) {
     paste0(
-      " PTTP-derived Region 2/3/4 priors are propagated across matched active RTTP, PTTP, and JPTP groups: ",
+      " PTTP-derived Region 2/3/4 priors are propagated across matched active RTTP and PTTP groups: ",
       "purse-seine priors: F19/F20 Region 2 mean 0.4962, target 49.62, penalty 354.5; ",
       "F25/F27 Region 3 mean 0.5121, target 51.21, penalty 739.2; ",
       "F26/F28 Region 4 mean 0.5282, target 52.82, penalty 231.2. ",
-      "Active groups 7, 14, 10, 17, 29, and 18 receive the values; inactive groups 26, 11, and 30 remain zero. Reporting-group membership and active flags are unchanged."
+      "Active groups 7, 14, 10, 17, and 18 receive the values; JPTP group 29 retains mean 0.5, target 50, and penalty 1, while inactive groups 26, 11, and 30 remain zero. Reporting-group membership and active flags are unchanged."
     )
   } else {
     " The upstream manual reporting-rate penalty scheme (8 for RTTP and 10 for PTTP purse-seine cells) is retained."
@@ -782,18 +788,18 @@ gives matched comparisons for LF likelihood, tag flag column 2, and regional-
 scaling weight. Within each OFF/ON pair, all 98 values in tag flag column 2
 change from 0 to 1; the other INI fields and model data are unchanged.
 
-## PTTP-derived cross-program reporting-rate prior sensitivity
+## PTTP-derived RTTP/PTTP reporting-rate prior sensitivity
 
 The original S001-S016 models retain the upstream manual reporting-rate
 penalties. S017-S032 are exact matched copies that propagate the 2026
 PTTP-derived regional purse-seine priors to corresponding active
-program-specific RTTP, PTTP/pooled, and JPTP groups.
+program-specific RTTP and PTTP/pooled groups. JPTP retains its upstream prior.
 
-| Region | Fisheries | Active groups receiving prior | Inactive groups retained at zero | S017-S032 mean / target | S017-S032 penalty |
-| --- | --- | --- | --- | --- | ---: |
-| 2 | F19/F20 | RTTP 7; PTTP 14 | JPTP 26 | 0.4962 / 49.62 | 354.5 |
-| 3 | F25/F27 | RTTP 10; PTTP 17; JPTP 29 | None | 0.5121 / 51.21 | 739.2 |
-| 4 | F26/F28 | PTTP 18 | RTTP 11; JPTP 30 | 0.5282 / 52.82 | 231.2 |
+| Region | Fisheries | Active groups receiving Tom prior | JPTP handling | Inactive groups retained at zero | S017-S032 mean / target | S017-S032 penalty |
+| --- | --- | --- | --- | --- | --- | ---: |
+| 2 | F19/F20 | RTTP 7; PTTP 14 | Group 26 inactive | JPTP 26 | 0.4962 / 49.62 | 354.5 |
+| 3 | F25/F27 | RTTP 10; PTTP 17 | Group 29 retains 0.5 / 50 / 1 | None | 0.5121 / 51.21 | 739.2 |
+| 4 | F26/F28 | PTTP 18 | Group 30 inactive | RTTP 11; JPTP 30 | 0.5282 / 52.82 | 231.2 |
 
 The mix-0.15 INI already maps these strata to separate program-by-region
 groups, so the sensitivity changes prior values without changing membership.
@@ -804,10 +810,11 @@ for native MFCL compatibility and are not activated by this sensitivity.
 
 The 2026 report directly estimates priors from 2007-2024 PTTP tag-seeding data;
 it does not estimate separate RTTP or JPTP priors. Applying the PTTP-derived
-values to corresponding RTTP and JPTP groups is therefore an explicit modelling
-sensitivity, not a recommendation attributed to the report. Domestic Indonesian
-and Philippines purse-seine groups remain unchanged, consistent with the
-report's recommendation that these priors are not representative of them.
+values to corresponding RTTP groups is therefore an explicit modelling
+sensitivity, not a recommendation attributed to the report. JPTP retains its
+program-specific upstream prior. Domestic Indonesian and Philippines purse-
+seine groups remain unchanged, consistent with the report's recommendation
+that these priors are not representative of them.
 
 The source report is WCPFC-SC22-2026-SA-IP05, which reports PTTP purse-seine
 means and penalties by assessment region. Exact project input values were

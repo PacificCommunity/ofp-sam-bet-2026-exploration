@@ -31,16 +31,17 @@ The retained FRQ already contains the selected 2026 effort-creep adjustment;
 this build never reapplies effort creep.
 
 
-## PTTP-derived cross-program reporting-rate prior sensitivity
+## PTTP-derived RTTP/PTTP reporting-rate prior sensitivity
 
 The 2026 PTTP purse-seine priors are propagated to corresponding active
-RTTP, PTTP/pooled, and JPTP groups: F19/F20 (Region 2) use mean 0.4962,
+RTTP and PTTP/pooled groups: F19/F20 (Region 2) use mean 0.4962,
 target 49.62, and penalty 354.5;
 F25/F27 (Region 3) use 0.5121, 51.21, and 739.2; F26/F28 (Region 4)
 use 0.5282, 52.82, and 231.2.
 The active group IDs receiving these values are 7/14 (Region 2),
-10/17/29 (Region 3), and 18 (Region 4). Corresponding inactive groups
-26, 11, and 30 retain zero values. Reporting groups, active flags,
+10/17 (Region 3), and 18 (Region 4). JPTP group 29 retains its upstream
+mean 0.5, target 50, and penalty 1; inactive groups 26, 11, and 30 retain
+zero values. Reporting groups, active flags,
 and all other settings are
 identical to the matched manual-8/10 model.
 

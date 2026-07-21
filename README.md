@@ -26,18 +26,18 @@ gives matched comparisons for LF likelihood, tag flag column 2, and regional-
 scaling weight. Within each OFF/ON pair, all 98 values in tag flag column 2
 change from 0 to 1; the other INI fields and model data are unchanged.
 
-## PTTP-derived cross-program reporting-rate prior sensitivity
+## PTTP-derived RTTP/PTTP reporting-rate prior sensitivity
 
 The original S001-S016 models retain the upstream manual reporting-rate
 penalties. S017-S032 are exact matched copies that propagate the 2026
 PTTP-derived regional purse-seine priors to corresponding active
-program-specific RTTP, PTTP/pooled, and JPTP groups.
+program-specific RTTP and PTTP/pooled groups. JPTP retains its upstream prior.
 
-| Region | Fisheries | Active groups receiving prior | Inactive groups retained at zero | S017-S032 mean / target | S017-S032 penalty |
-| --- | --- | --- | --- | --- | ---: |
-| 2 | F19/F20 | RTTP 7; PTTP 14 | JPTP 26 | 0.4962 / 49.62 | 354.5 |
-| 3 | F25/F27 | RTTP 10; PTTP 17; JPTP 29 | None | 0.5121 / 51.21 | 739.2 |
-| 4 | F26/F28 | PTTP 18 | RTTP 11; JPTP 30 | 0.5282 / 52.82 | 231.2 |
+| Region | Fisheries | Active groups receiving Tom prior | JPTP handling | Inactive groups retained at zero | S017-S032 mean / target | S017-S032 penalty |
+| --- | --- | --- | --- | --- | --- | ---: |
+| 2 | F19/F20 | RTTP 7; PTTP 14 | Group 26 inactive | JPTP 26 | 0.4962 / 49.62 | 354.5 |
+| 3 | F25/F27 | RTTP 10; PTTP 17 | Group 29 retains 0.5 / 50 / 1 | None | 0.5121 / 51.21 | 739.2 |
+| 4 | F26/F28 | PTTP 18 | Group 30 inactive | RTTP 11; JPTP 30 | 0.5282 / 52.82 | 231.2 |
 
 The mix-0.15 INI already maps these strata to separate program-by-region
 groups, so the sensitivity changes prior values without changing membership.
@@ -48,10 +48,11 @@ for native MFCL compatibility and are not activated by this sensitivity.
 
 The 2026 report directly estimates priors from 2007-2024 PTTP tag-seeding data;
 it does not estimate separate RTTP or JPTP priors. Applying the PTTP-derived
-values to corresponding RTTP and JPTP groups is therefore an explicit modelling
-sensitivity, not a recommendation attributed to the report. Domestic Indonesian
-and Philippines purse-seine groups remain unchanged, consistent with the
-report's recommendation that these priors are not representative of them.
+values to corresponding RTTP groups is therefore an explicit modelling
+sensitivity, not a recommendation attributed to the report. JPTP retains its
+program-specific upstream prior. Domestic Indonesian and Philippines purse-
+seine groups remain unchanged, consistent with the report's recommendation
+that these priors are not representative of them.
 
 The source report is WCPFC-SC22-2026-SA-IP05, which reports PTTP purse-seine
 means and penalties by assessment region. Exact project input values were
