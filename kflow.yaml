@@ -37,11 +37,11 @@ env:
   # these from job-config.R. When launching directly from the Kflow UI and
   # changing STEP_SELECT, update these fields too if the job list should show
   # the selected model label before the run starts.
-  JOB_TITLE: "BET 2026 mix-0.15 unconstrained regional-scaling fit"
-  JOB_DESCRIPTION: "Run one SUB075 mix-0.15 unconstrained regional-scaling sensitivity model."
-  MODEL_LABEL: "SUB075 MIX015 NOCUT DW10 TAGF2OFF REGW50"
-  JOB_KEY: s001-sub075-mix015-nocut-dw10-tagf2off-regw50
-  FLOW_GROUP: bet-2026-sub075-mix015-unconstrained-g7oshl-dm20-20260721
+  JOB_TITLE: "BET 2026 mix-0.15 regional-scaling and reporting-prior fit"
+  JOB_DESCRIPTION: "Run one SUB075 mix-0.15 regional-scaling and reporting-prior sensitivity model."
+  MODEL_LABEL: "SUB075 MIX015 NOCUT DW10 TAGF2OFF REGW50 RR8/10"
+  JOB_KEY: s001-sub075-mix015-nocut-dw10-tagf2off-regw50-rr8-10
+  FLOW_GROUP: bet-2026-sub075-mix015-rrpttp26-g7oshl-dm20-20260721
   TRIGGER_NEXT: "false"
   FLOW_SPECIES: BET
   FLOW_SPECIES_LABEL: bigeye tuna

@@ -43,7 +43,7 @@ git -C "$ROOT" archive "$DM_SOURCE_COMMIT" \
 mkdir -p "$ROOT/sensitivity"
 find "$ROOT/sensitivity" -depth -mindepth 1 -delete
 mapping="$tmp/model-map.csv"
-printf '%s\n' 'model,source_model,dm_source_model,regional_scaling_weight,standardized_sd_interpretation,tag_flag2,tag_control,lf_likelihood,dm_grouping,dm_nmax,lf_downweight_factor,lf_size_divisor' > "$mapping"
+printf '%s\n' 'model,source_model,dm_source_model,reporting_rate_prior,regional_scaling_weight,standardized_sd_interpretation,tag_flag2,tag_control,lf_likelihood,dm_grouping,dm_nmax,lf_downweight_factor,lf_size_divisor' > "$mapping"
 
 regw_text() {
   case "$1" in
@@ -183,7 +183,7 @@ this build never reapplies effort creep.
 Status: generated; Kflow has not been submitted.
 MODEL_README
 
-    printf '"%s","%s","",%s,"%s",%s,"%s","normal","",,10,200\n' \
+    printf '"%s","%s","","manual_8_10",%s,"%s",%s,"%s","normal","",,10,200\n' \
       "$model" "$template" "$weight" "$interpretation" "$tag_flag2" "$control" >> "$mapping"
   done
 done
@@ -360,11 +360,130 @@ this build never reapplies effort creep.
 Status: generated; Kflow has not been submitted.
 MODEL_README
 
-    printf '"%s","%s","%s",%s,"%s",%s,"%s","dm_no_re","G7OSHL_CEST",20,,\n' \
+    printf '"%s","%s","%s","manual_8_10",%s,"%s",%s,"%s","dm_no_re","G7OSHL_CEST",20,,\n' \
       "$model" "$dm_normal_template" "$dm_template" "$weight" "$interpretation" \
       "$tag_flag2" "$control" >> "$mapping"
   done
 done
+
+# Add exact matched copies using the PTTP purse-seine priors documented for the
+# 2026 assessment. RTTP, JPTP, grouping, flags, and all non-INI inputs remain
+# unchanged. The mix-0.15 INI already separates Regions 3 and 4, so retain
+# Tom Peatman's region-specific means and penalty precisions.
+Rscript - "$ROOT" "$mapping" <<'RS'
+args <- commandArgs(trailingOnly = TRUE)
+root <- args[[1L]]
+mapping_path <- args[[2L]]
+base <- read.csv(mapping_path, stringsAsFactors = FALSE, check.names = FALSE)
+stopifnot(nrow(base) == 16L, all(base$reporting_rate_prior == "manual_8_10"))
+
+copy_tree <- function(from, to) {
+  if (!dir.create(to, recursive = TRUE, showWarnings = FALSE)) {
+    stop("Could not create ", to, call. = FALSE)
+  }
+  entries <- list.files(from, all.files = TRUE, no.. = TRUE, full.names = TRUE)
+  if (length(entries) && !all(file.copy(
+    entries, to, recursive = TRUE, copy.mode = TRUE, copy.date = TRUE
+  ))) {
+    stop("Could not copy ", from, " to ", to, call. = FALSE)
+  }
+}
+
+replace_pttp_prior <- function(path) {
+  lines <- readLines(path, warn = FALSE)
+  pttp_rows <- c(16:61, 99L)
+
+  update_block <- function(marker, r2_value, r3_value, r4_value) {
+    marker_i <- which(trimws(lines) == marker)
+    if (length(marker_i) != 1L) {
+      stop("Expected one ", marker, " block in ", path, call. = FALSE)
+    }
+    next_header <- which(
+      seq_along(lines) > marker_i & grepl("^[[:space:]]*#", lines)
+    )
+    if (!length(next_header)) {
+      stop("Could not find the end of ", marker, " in ", path, call. = FALSE)
+    }
+    row_i <- seq.int(marker_i + 1L, next_header[[1L]] - 1L)
+    row_i <- row_i[nzchar(trimws(lines[row_i]))]
+    fields <- strsplit(trimws(lines[row_i]), "[[:space:]]+")
+    if (length(fields) != 99L || any(lengths(fields) != 33L)) {
+      stop(marker, " must be a 99 x 33 matrix in ", path, call. = FALSE)
+    }
+    for (r in pttp_rows) {
+      fields[[r]][19:20] <- r2_value
+      fields[[r]][c(25, 27)] <- r3_value
+      fields[[r]][c(26, 28)] <- r4_value
+    }
+    lines[row_i] <<- vapply(fields, paste, collapse = " ", character(1))
+  }
+
+  update_block("# tag fish rep", "0.4962", "0.5121", "0.5282")
+  update_block("# tag_fish_rep target", "49.62", "51.21", "52.82")
+  update_block("# tag_fish_rep penalty", "354.5", "739.2", "231.2")
+  writeLines(lines, path, useBytes = TRUE)
+}
+
+tom <- base
+name_map <- character(nrow(base))
+for (i in seq_len(nrow(base))) {
+  old_model <- base$model[[i]]
+  new_id <- sprintf("S%03d", nrow(base) + i)
+  new_model <- paste0(sub("^S[0-9]{3}", new_id, old_model), "-RRPTTP26")
+  name_map[[i]] <- new_model
+  source_dir <- file.path(root, "sensitivity", old_model)
+  destination_dir <- file.path(root, "sensitivity", new_model)
+  copy_tree(source_dir, destination_dir)
+  replace_pttp_prior(file.path(destination_dir, "model", "bet.ini"))
+
+  readme_path <- file.path(destination_dir, "README.md")
+  readme <- readLines(readme_path, warn = FALSE)
+  readme <- gsub(old_model, new_model, readme, fixed = TRUE)
+  status_i <- grep("^Status:", readme)
+  if (length(status_i) != 1L) {
+    stop("Expected one Status line in ", readme_path, call. = FALSE)
+  }
+  prior_note <- c(
+    "",
+    "## PTTP reporting-rate prior sensitivity",
+    "",
+    "Only PTTP purse-seine prior cells are restored to the 2026 assessment",
+    "values: F19/F20 (Region 2) use mean 0.4962, target 49.62, and penalty 354.5;",
+    "F25/F27 (Region 3) use 0.5121, 51.21, and 739.2; F26/F28 (Region 4)",
+    "use 0.5282, 52.82, and 231.2.",
+    "The corresponding PTTP rows are release rows 16-61 plus pooled row 99.",
+    "RTTP, JPTP, reporting groups, active flags, and all other settings are",
+    "identical to the matched manual-8/10 model.",
+    ""
+  )
+  readme <- append(readme, prior_note, after = status_i - 1L)
+  writeLines(readme, readme_path, useBytes = TRUE)
+}
+
+names(name_map) <- base$model
+tom$model <- unname(name_map)
+tom$tag_control <- unname(name_map[base$tag_control])
+if (anyNA(tom$tag_control)) {
+  stop("Could not map one or more PTTP26 tag controls", call. = FALSE)
+}
+tom$reporting_rate_prior <- "Tom_Peatman_2026_PTTP"
+combined <- rbind(base, tom)
+write.csv(combined, mapping_path, row.names = FALSE, na = "", quote = TRUE)
+
+# Rebuild the audit map from each actual INI. This also removes stale source-map
+# values from the manual 8/10 models and validates within-group consistency.
+helper <- new.env(parent = globalenv())
+sys.source(file.path(root, "R", "prepare_common.R"), envir = helper)
+sys.source(file.path(root, "R", "prepare_mfcl_inputs.R"), envir = helper)
+for (model in combined$model) {
+  model_dir <- file.path(root, "sensitivity", model, "model")
+  helper$validate_tag_reporting_grouped_initial_values(
+    file.path(model_dir, "bet.ini")
+  )
+  helper$write_generated_tag_rep_map(model_dir)
+}
+RS
+number=$((number * 2))
 
 Rscript - "$ROOT" "$mapping" "$SOURCE_COMMIT" "$DM_SOURCE_COMMIT" "$AGE_SHA256" \
   "$INI_SOURCE_REPO" "$INI_SOURCE_COMMIT" "$INI_SOURCE_PATH" "$INI_SOURCE_SHA256" <<'RS'
@@ -379,6 +498,7 @@ ini_source_commit <- args[[7L]]
 ini_source_path <- args[[8L]]
 ini_source_sha256 <- args[[9L]]
 mapping$regional_scaling_weight <- as.integer(mapping$regional_scaling_weight)
+mapping$reporting_rate_prior <- as.character(mapping$reporting_rate_prior)
 
 for (i in seq_len(nrow(mapping))) {
   model <- mapping$model[[i]]
@@ -421,18 +541,30 @@ for (i in seq_len(nrow(mapping))) {
     ini_source_path
   )
   manifest$source_commit[ini_row] <- ini_source_commit
+  is_tom_prior <- mapping$reporting_rate_prior[[i]] == "Tom_Peatman_2026_PTTP"
+  prior_note <- if (is_tom_prior) {
+    paste0(
+      " PTTP rows 16-61 and pooled row 99 restore the 2026 assessment ",
+      "purse-seine priors: F19/F20 Region 2 mean 0.4962, target 49.62, penalty 354.5; ",
+      "F25/F27 Region 3 mean 0.5121, target 51.21, penalty 739.2; ",
+      "F26/F28 Region 4 mean 0.5282, target 52.82, penalty 231.2. ",
+      "RTTP, JPTP, and reporting groups are unchanged."
+    )
+  } else {
+    " The upstream manual reporting-rate penalty scheme (8 for RTTP and 10 for PTTP purse-seine cells) is retained."
+  }
   manifest$note[ini_row] <- paste0(
     "Upstream mix-period 0.15 INI (SHA-256 ", ini_source_sha256,
     "). The model retains every upstream field; TAGF2OFF changes only all 98 ",
     "tag_flags(:,2) values from 1 to 0. Matched OFF control: ",
-    mapping$tag_control[[i]], "."
+    mapping$tag_control[[i]], ".", prior_note
   )
 
   context_row <- manifest$role == "design_context"
   manifest$note[context_row] <- paste0(
-    "Public sixteen-model SUB075 NOCUT regional-scaling design: eight robust-normal ",
-    "DW10 and eight DM G7OSHL-CEST Nmax20 models, each crossing TAGF2OFF/ON ",
-    "with weights 50/11/1/0."
+    "Public 32-model SUB075 NOCUT design: the original sixteen manual-8/10 ",
+    "reporting-prior models and sixteen exact PTTP26 counterparts, each crossing ",
+    "robust-normal/DM, TAGF2OFF/ON, and regional-scaling weights 50/11/1/0."
   )
   write.csv(manifest, manifest_path, row.names = FALSE, na = "")
 }
@@ -456,6 +588,7 @@ selection <- data.frame(
   tag_flag2 = mapping$tag_flag2,
   regional_scaling_weight = mapping$regional_scaling_weight,
   regional_scaling_interpretation = mapping$standardized_sd_interpretation,
+  reporting_rate_prior = mapping$reporting_rate_prior,
   selectivity_treatment = "sa28_n5",
   status = "prepared",
   stringsAsFactors = FALSE
@@ -476,9 +609,13 @@ labels <- ifelse(
     " REGW", mapping$regional_scaling_weight
   )
 )
+labels <- paste0(
+  labels,
+  ifelse(mapping$reporting_rate_prior == "Tom_Peatman_2026_PTTP", " PTTP26", " RR8/10")
+)
 stepwise_run <- list(
   default_step_select = mapping$model[[1L]],
-  flow_group = "bet-2026-sub075-mix015-unconstrained-g7oshl-dm20-20260721",
+  flow_group = "bet-2026-sub075-mix015-rrpttp26-g7oshl-dm20-20260721",
   trigger_next = FALSE
 )
 stepwise_models <- data.frame(
@@ -498,20 +635,22 @@ stepwise_models <- data.frame(
   dm_concentration = ifelse(is_dm, "estimated_phase2", NA_character_),
   dm_nmax = ifelse(is_dm, 20L, NA_integer_),
   regional_scaling_weight = mapping$regional_scaling_weight,
-  major_step = "Regional scaling",
+  reporting_rate_prior = mapping$reporting_rate_prior,
+  major_step = "Regional scaling and reporting-rate prior",
   substep = paste0(
     ifelse(is_dm, "DM Nmax20 ", "DW10 "),
-    "REGW", mapping$regional_scaling_weight
+    "REGW", mapping$regional_scaling_weight,
+    ifelse(mapping$reporting_rate_prior == "Tom_Peatman_2026_PTTP", " PTTP26", " RR8/10")
   ),
   change_axis = ifelse(
     is_dm,
-    "lf_likelihood+regional_scaling_weight",
-    "regional_scaling_weight"
+    "lf_likelihood+regional_scaling_weight+reporting_rate_prior",
+    "regional_scaling_weight+reporting_rate_prior"
   ),
   stringsAsFactors = FALSE
 )
 config_lines <- c(
-  "# Generated SUB075 NOCUT DW10 regional-scaling sensitivity configuration.",
+  "# Generated SUB075 NOCUT regional-scaling and reporting-prior sensitivity configuration.",
   "stepwise_run <-", capture.output(dput(stepwise_run)), "",
   "stepwise_models <-", capture.output(dput(stepwise_models)), "",
   "stepwise_models_all <- stepwise_models"
@@ -521,12 +660,12 @@ writeLines(config_lines, file.path(root, "job-config.R"), useBytes = TRUE)
 RS
 
 first_model="S001-TC1-NOCUT-DW10-SUB075-MIX015-TAGF2OFF-REGW50"
-perl -0pi -e 's/STEP_SELECT: "[^"]+"/STEP_SELECT: "'"$first_model"'"/; s/JOB_TITLE: "[^"]+"/JOB_TITLE: "BET 2026 mix-0.15 unconstrained regional-scaling fit"/; s/JOB_DESCRIPTION: "[^"]+"/JOB_DESCRIPTION: "Run one SUB075 mix-0.15 unconstrained regional-scaling sensitivity model."/; s/MODEL_LABEL: "[^"]+"/MODEL_LABEL: "SUB075 MIX015 NOCUT DW10 TAGF2OFF REGW50"/; s/JOB_KEY: [^\n]+/JOB_KEY: s001-sub075-mix015-nocut-dw10-tagf2off-regw50/; s/FLOW_GROUP: [^\n]+/FLOW_GROUP: bet-2026-sub075-mix015-unconstrained-g7oshl-dm20-20260721/' "$ROOT/kflow.yaml"
+perl -0pi -e 's/STEP_SELECT: "[^"]+"/STEP_SELECT: "'"$first_model"'"/; s/JOB_TITLE: "[^"]+"/JOB_TITLE: "BET 2026 mix-0.15 regional-scaling and reporting-prior fit"/; s/JOB_DESCRIPTION: "[^"]+"/JOB_DESCRIPTION: "Run one SUB075 mix-0.15 regional-scaling and reporting-prior sensitivity model."/; s/MODEL_LABEL: "[^"]+"/MODEL_LABEL: "SUB075 MIX015 NOCUT DW10 TAGF2OFF REGW50 RR8\/10"/; s/JOB_KEY: [^\n]+/JOB_KEY: s001-sub075-mix015-nocut-dw10-tagf2off-regw50-rr8-10/; s/FLOW_GROUP: [^\n]+/FLOW_GROUP: bet-2026-sub075-mix015-rrpttp26-g7oshl-dm20-20260721/' "$ROOT/kflow.yaml"
 
 cat > "$ROOT/README.md" <<ROOT_README
 # BET 2026 mix-0.15 unconstrained regional-scaling sensitivities
 
-This branch contains sixteen NOCUT MFCL models based on
+This branch contains 32 NOCUT MFCL models based on
 **$SOURCE_REPO@$SOURCE_COMMIT** (**$SOURCE_REF**). All models use the SUB075
 age-length input, the upstream mix-period 0.15 INI, and corrected SA28-N5
 selectivity baseline. The F9-only non-decreasing constraint is removed, so no
@@ -542,11 +681,45 @@ adjustment, and the build never reapplies effort creep.
 | S005-S008 | Robust normal; F21/F22/F23 DW10 | 1 (ON) | 50, 11, 1, 0 |
 | S009-S012 | DM G7OSHL-CEST; Nmax20 | 0 (OFF) | 50, 11, 1, 0 |
 | S013-S016 | DM G7OSHL-CEST; Nmax20 | 1 (ON) | 50, 11, 1, 0 |
+| S017-S020 | Robust normal; F21/F22/F23 DW10; PTTP26 prior | 0 (OFF) | 50, 11, 1, 0 |
+| S021-S024 | Robust normal; F21/F22/F23 DW10; PTTP26 prior | 1 (ON) | 50, 11, 1, 0 |
+| S025-S028 | DM G7OSHL-CEST; Nmax20; PTTP26 prior | 0 (OFF) | 50, 11, 1, 0 |
+| S029-S032 | DM G7OSHL-CEST; Nmax20; PTTP26 prior | 1 (ON) | 50, 11, 1, 0 |
 
 The four REGW values occur in the displayed order within every ID range. This
 gives matched comparisons for LF likelihood, tag flag column 2, and regional-
 scaling weight. Within each OFF/ON pair, all 98 values in tag flag column 2
 change from 0 to 1; the other INI fields and model data are unchanged.
+
+## PTTP reporting-rate prior sensitivity
+
+The original S001-S016 models retain the upstream manual reporting-rate
+penalties of 8 for RTTP and 10 for PTTP purse-seine cells. S017-S032 are exact
+matched copies in which only the PTTP purse-seine prior cells are restored to
+the 2026 assessment values.
+
+| Models | PTTP release/event rows | Fisheries | Mean / target | Penalty |
+| --- | --- | --- | --- | ---: |
+| S001-S016 | 16-61 and pooled row 99 | F19-F20, PTTP Region 2 | 0.4962 / 49.62 | 10 |
+| S017-S032 | 16-61 and pooled row 99 | F19-F20, PTTP Region 2 | 0.4962 / 49.62 | 354.5 |
+| S001-S016 | 16-61 and pooled row 99 | F25/F27, PTTP Region 3 | 0.52015 / 52.015 | 10 |
+| S017-S032 | 16-61 and pooled row 99 | F25/F27, PTTP Region 3 | 0.5121 / 51.21 | 739.2 |
+| S001-S016 | 16-61 and pooled row 99 | F26/F28, PTTP Region 4 | 0.52015 / 52.015 | 10 |
+| S017-S032 | 16-61 and pooled row 99 | F26/F28, PTTP Region 4 | 0.5282 / 52.82 | 231.2 |
+
+The Region 2 mean is unchanged. PTTP26 restores the distinct Region 3 and
+Region 4 means and changes all three PTTP purse-seine penalty precisions. RTTP
+and JPTP cells, reporting-group IDs, active flags, and all non-INI inputs are
+unchanged. In the mix-0.15 INI, these cells already map to separate reporting
+groups, so the sensitivity changes prior values without changing membership.
+
+The source report is WCPFC-SC22-2026-SA-IP05, which reports PTTP purse-seine
+means and penalties by assessment region. Exact project input values were
+cross-checked against BET/bet.2026.single.region.ini in the 2026 INI-build
+repository. The model input itself remains bet.2026.mix-0.15.ini, including its
+existing separate Region 3 and Region 4 reporting-group membership:
+
+https://meetings.wcpfc.int/node/32332
 
 For robust-normal models, DW10 means F21/F22/F23 flag-49 divisor 200 against
 the global divisor 20. It is not applied to DM models because fixed flag-49
@@ -608,4 +781,4 @@ marginal CV are documented in
 Generated inputs and file-level provenance are under **sensitivity/**.
 ROOT_README
 
-printf 'Generated %s SUB075 NOCUT regional-scaling sensitivity models.\n' "$number"
+printf 'Generated %s SUB075 NOCUT regional-scaling and reporting-prior sensitivity models.\n' "$number"

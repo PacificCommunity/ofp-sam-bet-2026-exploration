@@ -1,6 +1,6 @@
 # BET 2026 mix-0.15 unconstrained regional-scaling sensitivities
 
-This branch contains sixteen NOCUT MFCL models based on
+This branch contains 32 NOCUT MFCL models based on
 **PacificCommunity/ofp-sam-bet-2026-exploration@81a456fa5c36ef1be5bd9da38308ef07ebc55ff4** (**experiment/normal-francis-initial-20260719**). All models use the SUB075
 age-length input, the upstream mix-period 0.15 INI, and corrected SA28-N5
 selectivity baseline. The F9-only non-decreasing constraint is removed, so no
@@ -16,11 +16,45 @@ adjustment, and the build never reapplies effort creep.
 | S005-S008 | Robust normal; F21/F22/F23 DW10 | 1 (ON) | 50, 11, 1, 0 |
 | S009-S012 | DM G7OSHL-CEST; Nmax20 | 0 (OFF) | 50, 11, 1, 0 |
 | S013-S016 | DM G7OSHL-CEST; Nmax20 | 1 (ON) | 50, 11, 1, 0 |
+| S017-S020 | Robust normal; F21/F22/F23 DW10; PTTP26 prior | 0 (OFF) | 50, 11, 1, 0 |
+| S021-S024 | Robust normal; F21/F22/F23 DW10; PTTP26 prior | 1 (ON) | 50, 11, 1, 0 |
+| S025-S028 | DM G7OSHL-CEST; Nmax20; PTTP26 prior | 0 (OFF) | 50, 11, 1, 0 |
+| S029-S032 | DM G7OSHL-CEST; Nmax20; PTTP26 prior | 1 (ON) | 50, 11, 1, 0 |
 
 The four REGW values occur in the displayed order within every ID range. This
 gives matched comparisons for LF likelihood, tag flag column 2, and regional-
 scaling weight. Within each OFF/ON pair, all 98 values in tag flag column 2
 change from 0 to 1; the other INI fields and model data are unchanged.
+
+## PTTP reporting-rate prior sensitivity
+
+The original S001-S016 models retain the upstream manual reporting-rate
+penalties of 8 for RTTP and 10 for PTTP purse-seine cells. S017-S032 are exact
+matched copies in which only the PTTP purse-seine prior cells are restored to
+the 2026 assessment values.
+
+| Models | PTTP release/event rows | Fisheries | Mean / target | Penalty |
+| --- | --- | --- | --- | ---: |
+| S001-S016 | 16-61 and pooled row 99 | F19-F20, PTTP Region 2 | 0.4962 / 49.62 | 10 |
+| S017-S032 | 16-61 and pooled row 99 | F19-F20, PTTP Region 2 | 0.4962 / 49.62 | 354.5 |
+| S001-S016 | 16-61 and pooled row 99 | F25/F27, PTTP Region 3 | 0.52015 / 52.015 | 10 |
+| S017-S032 | 16-61 and pooled row 99 | F25/F27, PTTP Region 3 | 0.5121 / 51.21 | 739.2 |
+| S001-S016 | 16-61 and pooled row 99 | F26/F28, PTTP Region 4 | 0.52015 / 52.015 | 10 |
+| S017-S032 | 16-61 and pooled row 99 | F26/F28, PTTP Region 4 | 0.5282 / 52.82 | 231.2 |
+
+The Region 2 mean is unchanged. PTTP26 restores the distinct Region 3 and
+Region 4 means and changes all three PTTP purse-seine penalty precisions. RTTP
+and JPTP cells, reporting-group IDs, active flags, and all non-INI inputs are
+unchanged. In the mix-0.15 INI, these cells already map to separate reporting
+groups, so the sensitivity changes prior values without changing membership.
+
+The source report is WCPFC-SC22-2026-SA-IP05, which reports PTTP purse-seine
+means and penalties by assessment region. Exact project input values were
+cross-checked against BET/bet.2026.single.region.ini in the 2026 INI-build
+repository. The model input itself remains bet.2026.mix-0.15.ini, including its
+existing separate Region 3 and Region 4 reporting-group membership:
+
+https://meetings.wcpfc.int/node/32332
 
 For robust-normal models, DW10 means F21/F22/F23 flag-49 divisor 200 against
 the global divisor 20. It is not applied to DM models because fixed flag-49

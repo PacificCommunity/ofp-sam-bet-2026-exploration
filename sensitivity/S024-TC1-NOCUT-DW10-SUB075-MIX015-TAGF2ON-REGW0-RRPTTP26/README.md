@@ -1,0 +1,51 @@
+# BET 2026 S024-TC1-NOCUT-DW10-SUB075-MIX015-TAGF2ON-REGW0-RRPTTP26
+
+This model is part of the focused SUB075 regional-scaling sensitivity design.
+
+## Design
+
+| Control | Setting |
+| --- | --- |
+| Age-length input | SUB075, bet.2026.sub.basin.0.75.age_length |
+| INI | bet.2026.mix-0.15.ini |
+| Selectivity | Corrected SA28-N5 baseline; no fishery has flag 16=1 |
+| LF likelihood | MFCL option-3 robust normal |
+| LF tail compression | 1 percent |
+| Observed LF cutoff | None |
+| F21/F22/F23 LF weighting | DW10, flag-49 divisor 200 versus global divisor 20 |
+| Tag flag column 2 | TAGF2ON; paired OFF control: S004-TC1-NOCUT-DW10-SUB075-MIX015-TAGF2OFF-REGW0 |
+| Regional-scaling form | Multivariate normal when weight is positive |
+| Regional-scaling weight | 0; regional-scaling penalty disabled |
+| Regional-scaling target/window | Mean proportions and covariance from 20 quarters in 1965-1969 |
+
+In the active MFCL MVN path, the penalty is w/2 times the squared
+Mahalanobis distance from the regional-scaling target. A positive weight
+therefore changes the effective covariance to Sigma/w and the standardized
+SD multiplier to 1/sqrt(w). Weights 50, 11, and 1 give multipliers 0.1414,
+0.3015, and 1.0000, respectively; weight 0 disables the penalty.
+Region 5 is the MVN reference category, as in MFCL, while its proportion is
+implicitly determined because all five proportions sum to one.
+
+The model is copied from **S018-TC1-NOCUT-SUB075-TAGF2ON** at
+**PacificCommunity/ofp-sam-bet-2026-exploration@81a456fa5c36ef1be5bd9da38308ef07ebc55ff4** (**experiment/normal-francis-initial-20260719**). Apart from the documented
+F21/F22/F23 divisor, parest flag 77, F9 monotonicity removal, identifiers, and
+metadata, all CPUE sigma, regional-scaling data, flags 78-81, phase timing,
+FRQ, tag, age-length, and remaining selectivity settings are unchanged. The INI
+is replaced by **PacificCommunity/ofp-sam-2026-BET-YFT-build-ini@86627214cbac6db5766841e404bb32ea4f6afe61/BET/ini.mix-period/bet.2026.mix-0.15.ini**;
+TAGF2OFF changes only tag_flags(:,2) from 1 to 0.
+
+The retained FRQ already contains the selected 2026 effort-creep adjustment;
+this build never reapplies effort creep.
+
+
+## PTTP reporting-rate prior sensitivity
+
+Only PTTP purse-seine prior cells are restored to the 2026 assessment
+values: F19/F20 (Region 2) use mean 0.4962, target 49.62, and penalty 354.5;
+F25/F27 (Region 3) use 0.5121, 51.21, and 739.2; F26/F28 (Region 4)
+use 0.5282, 52.82, and 231.2.
+The corresponding PTTP rows are release rows 16-61 plus pooled row 99.
+RTTP, JPTP, reporting groups, active flags, and all other settings are
+identical to the matched manual-8/10 model.
+
+Status: generated; Kflow has not been submitted.
