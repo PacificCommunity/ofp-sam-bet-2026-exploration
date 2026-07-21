@@ -49,7 +49,7 @@ DEFAULT_MODEL_SELECTOR = "S001:S041"
 DEFAULT_EXPECTED_MODELS = 41
 CURRENT_AGE_LENGTH_MODEL_SELECTOR = "S001:S041"
 CURRENT_AGE_LENGTH_FORBIDDEN = ""
-INPUT_JOB = "5319"
+DEFAULT_INPUT_JOB = ""
 
 SUVA_HOST = "suvofpsubmit.corp.spc.int"
 SUVA_USER = "kyuhank"
@@ -233,6 +233,7 @@ class SubmitConfig:
     selection_text: str
     forbidden_text: str
     expected_count: int
+    input_job: str
     legacy_job_text: bool
 
     @property
@@ -900,23 +901,31 @@ def job_metadata(job: dict[str, Any]) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
-def resolve_input_job(api: KflowApi, *, archive_timeout: float) -> dict[str, str]:
-    response = api.request("GET", f"/api/job/{INPUT_JOB}")
+def resolve_input_job(
+    api: KflowApi, job_number: str, *, archive_timeout: float
+) -> dict[str, str]:
+    response = api.request("GET", f"/api/job/{job_number}")
     job = response.get("job", response)
     if not isinstance(job, dict):
-        raise OrchestratorError("Kflow did not return Job 5319.")
+        raise OrchestratorError(f"Kflow did not return Job {job_number}.")
     number = preferred_job_number(job)
-    if number != INPUT_JOB:
-        raise OrchestratorError(f"Input job resolved to #{number or '?'}, not #5319.")
+    if number != job_number:
+        raise OrchestratorError(
+            f"Input job resolved to #{number or '?'}, not #{job_number}."
+        )
     status = str(job.get("status") or "").strip().lower()
     if status != "completed":
-        raise OrchestratorError(f"Input job 5319 must be completed; status is {status or 'unknown'}.")
+        raise OrchestratorError(
+            f"Input job {job_number} must be completed; status is {status or 'unknown'}."
+        )
     source_candidates = nested_values(job.get("details", {}), {"git_commit_sha"})
     source_sha = next(
         (value.lower() for value in source_candidates if SHA40_RE.fullmatch(value.strip())), ""
     )
     if not source_sha:
-        raise OrchestratorError("Job 5319 input/source commit SHA is unresolved.")
+        raise OrchestratorError(
+            f"Job {job_number} input/source commit SHA is unresolved."
+        )
     return {
         "job_number": number,
         "job_id": preferred_job_id(job),
@@ -1124,7 +1133,7 @@ def fit_payload(
             "model_git_tree_sha256": model.git_tree_sha256,
             "input_manifest_sha256": model.manifest_sha256,
             "doitall_sha256": model.doitall_sha256,
-            "input_job": INPUT_JOB,
+            "input_job": config.input_job,
             "input_job_id": input_job["job_id"],
             "input_archive_sha256": input_job["archive_sha256"],
             "input_source_commit": input_job["source_commit"],
@@ -1327,7 +1336,7 @@ def validate_existing_fit(
             and str(metadata.get("submission_key") or "") == submission_key
             and str(metadata.get("model_selector") or "") == model.name
             and str(metadata.get("model_source_commit") or "") == source_sha
-            and str(metadata.get("input_job") or "") == INPUT_JOB
+            and str(metadata.get("input_job") or "") == config.input_job
         ):
             matching.append(job)
     if len(matching) > 1:
@@ -1706,6 +1715,14 @@ def parse_args() -> argparse.Namespace:
         help="Kflow diagnostic flow-group; default is <task-code>-<source-commit12>.",
     )
     parser.add_argument(
+        "--input-job",
+        default=DEFAULT_INPUT_JOB,
+        help=(
+            "Optional completed Kflow parent job used only for provenance. "
+            "Leave empty for independent RUN_MODE=doitall fits."
+        ),
+    )
+    parser.add_argument(
         "--source-branch",
         default="",
         help="Human/source branch label to record; defaults to the current model repo branch.",
@@ -1753,6 +1770,9 @@ def validate_args(args: argparse.Namespace) -> None:
         raise OrchestratorError("--campaign must contain only letters, numbers, dot, colon, underscore, or hyphen.")
     if args.flow_group and not re.fullmatch(r"[A-Za-z0-9_.:-]+", args.flow_group):
         raise OrchestratorError("--flow-group must contain only letters, numbers, dot, colon, underscore, or hyphen.")
+    args.input_job = str(args.input_job or "").strip().lstrip("#")
+    if args.input_job and not args.input_job.isdigit():
+        raise OrchestratorError("--input-job must be a numeric Kflow job number.")
     parse_model_selector(args.models)
     if args.forbid_models:
         parse_model_selector(args.forbid_models)
@@ -1846,6 +1866,7 @@ def preflight(args: argparse.Namespace) -> tuple[
         selection_text=args.models,
         forbidden_text=args.forbid_models,
         expected_count=args.expected_count,
+        input_job=args.input_job,
         legacy_job_text=(
             args.task_code == DEFAULT_TASK_CODE
             and args.task_title == DEFAULT_TASK_TITLE
@@ -1899,13 +1920,22 @@ def preflight(args: argparse.Namespace) -> tuple[
 
     workers, worker_source = resolve_workers(args.submit_workers)
     input_job = {
-        "job_number": INPUT_JOB,
-        "job_id": "UNRESOLVED_OFFLINE",
-        "status": "UNRESOLVED_OFFLINE",
-        "source_commit": "UNRESOLVED_OFFLINE",
-        "archive_sha256": "UNRESOLVED_OFFLINE",
+        "job_number": config.input_job,
+        "job_id": "",
+        "status": "not_applicable",
+        "source_commit": "",
+        "archive_sha256": "",
     }
-    if not args.offline and url and token:
+    if config.input_job and args.offline:
+        input_job.update(
+            {
+                "job_id": "UNRESOLVED_OFFLINE",
+                "status": "UNRESOLVED_OFFLINE",
+                "source_commit": "UNRESOLVED_OFFLINE",
+                "archive_sha256": "UNRESOLVED_OFFLINE",
+            }
+        )
+    if config.input_job and not args.offline and url and token:
         semaphore = threading.BoundedSemaphore(workers)
         api = KflowApi(
             url,
@@ -1915,11 +1945,13 @@ def preflight(args: argparse.Namespace) -> tuple[
             semaphore=semaphore,
         )
         try:
-            input_job = resolve_input_job(api, archive_timeout=args.archive_timeout)
+            input_job = resolve_input_job(
+                api, config.input_job, archive_timeout=args.archive_timeout
+            )
         except OrchestratorError as exc:
             issues.append(str(exc))
             input_job = {
-                "job_number": INPUT_JOB,
+                "job_number": config.input_job,
                 "job_id": "UNRESOLVED",
                 "status": "UNRESOLVED",
                 "source_commit": "UNRESOLVED",
