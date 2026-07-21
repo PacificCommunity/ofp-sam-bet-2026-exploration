@@ -26,7 +26,7 @@ All non-doitall inputs except the INI and tag file come from
 comes from **PacificCommunity/ofp-sam-2026-BET-YFT-tag-prep@44f804341a8e1d9b46e8e6c147dee884c476c28d/BET/bet.2026.low.recaps.removed.tag**. The INI comes from
 **PacificCommunity/ofp-sam-2026-BET-YFT-build-ini@86627214cbac6db5766841e404bb32ea4f6afe61/BET/ini.mix-period/bet.2026.mix-0.15.ini**. The DM controls come from
 **S035-DM-G5PROC-CEST-NOCUT-TAGF2ON** at **20c19b02498a6ee22cc39441a073159accca020b** (**experiment/cpue-hac4-single-area-tail-nmax10-20260719**). HAC4 sigma,
-additional selectivity-tail constraints, and extra stabilization phases are excluded.
+additional selectivity-tail constraints, and extra stabilization phases are excluded. For this S014 numerical retry only, DM Nmax is continued from 50 in PHASE1-2 to 30 in PHASE3-4 and the final target of 10 from PHASE5 onward. This uses the existing phases and adds no extra MFCL run.
 The report is deferred from phase 2 to the final fit only for DM output safety.
 
 The retained FRQ already contains the selected 2026 effort-creep adjustment;

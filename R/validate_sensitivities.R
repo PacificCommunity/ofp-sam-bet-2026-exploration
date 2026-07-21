@@ -276,6 +276,25 @@ for (i in seq_len(nrow(models))) {
       }
     }
   } else {
+    nmax_rows <- grep("^[[:space:]]*1[[:space:]]+342[[:space:]]+", lines)
+    nmax_values <- vapply(
+      strsplit(trimws(lines[nmax_rows]), "[[:space:]]+"),
+      function(fields) as.integer(fields[[3L]]),
+      integer(1L)
+    )
+    is_s014_continuation <- startsWith(as.character(row$step_id[[1L]]), "S014-")
+    if (is_s014_continuation) {
+      phase3_row <- grep("<<PHASE3", lines)
+      phase5_row <- grep("<<PHASE5", lines)
+      if (!identical(nmax_values, c(50L, 30L, 10L)) ||
+          length(phase3_row) != 1L || length(phase5_row) != 1L ||
+          nmax_rows[[2L]] != phase3_row[[1L]] + 1L ||
+          nmax_rows[[3L]] != phase5_row[[1L]] + 1L) {
+        fail(row$step_id, ": expected S014 Nmax continuation 50 -> 30 -> 10 at PHASE1, PHASE3, and PHASE5")
+      }
+    } else if (!identical(nmax_values, 10L)) {
+      fail(row$step_id, ": expected one Nmax10 control")
+    }
     if (sum(grepl("^[[:space:]]*1[[:space:]]+141[[:space:]]+11([[:space:]]|$)", lines)) != 1L ||
         sum(grepl("^[[:space:]]*1[[:space:]]+342[[:space:]]+10([[:space:]]|$)", lines)) != 1L ||
         sum(grepl("^[[:space:]]*-[0-9]+[[:space:]]+68[[:space:]]+", lines)) != 33L ||
@@ -313,6 +332,13 @@ canonical_regw_doitall <- function(step_id) {
     fail(step_id, ": cannot canonicalize parest flag 77")
   }
   lines[regw_row] <- "<PAREST_FLAG_77>"
+  nmax_rows <- grep("^[[:space:]]*1[[:space:]]+342[[:space:]]+", lines)
+  if (length(nmax_rows)) {
+    lines[nmax_rows[[1L]]] <- "<DM_NMAX_CONTROL>"
+    if (length(nmax_rows) > 1L) {
+      lines <- lines[-nmax_rows[-1L]]
+    }
+  }
   lines
 }
 compare_binary_files <- function(left_id, right_id, filenames, context) {
@@ -388,8 +414,8 @@ for (prior in unique(models$reporting_rate_prior)) {
       fail("Missing matched TAGF2 pair for ", likelihood, " REGW", weight)
     }
     if (!identical(
-      readLines(model_file(off, "doitall.sh"), warn = FALSE),
-      readLines(model_file(on, "doitall.sh"), warn = FALSE)
+      canonical_regw_doitall(off),
+      canonical_regw_doitall(on)
     )) {
       fail("TAGF2 pair has different doitall files: ", off, " versus ", on)
     }
@@ -444,8 +470,8 @@ for (likelihood in c("normal", "dm_no_re")) {
       }
       compare_binary_files(manual, pttp, cross_prior_files, "Manual/PTTP26 pair")
       if (!identical(
-        readLines(model_file(manual, "doitall.sh"), warn = FALSE),
-        readLines(model_file(pttp, "doitall.sh"), warn = FALSE)
+        canonical_regw_doitall(manual),
+        canonical_regw_doitall(pttp)
       )) {
         fail("Manual/PTTP26 pair has different doitall files: ", manual, " versus ", pttp)
       }

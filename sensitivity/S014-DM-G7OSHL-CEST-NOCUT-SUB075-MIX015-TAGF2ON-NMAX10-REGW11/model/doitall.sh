@@ -112,7 +112,7 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   1 111 4     # set likelihood function for tags to negative binomial
   1 141 11    # LF Dirichlet-multinomial likelihood without random effects
   1 320 5     # DM LF tail compression; retain at least five class intervals
-  1 342 10    # DM maximum LF sample-size control (Nmax10)
+  1 342 50    # DM continuation start; final Nmax10 begins in PHASE5
   1 139 3     # set likelihood function for WF data to normal
   -999 49 20  # divide LF sample sizes by 20
   -1 68 1  # DM LF group: Remaining longline
@@ -316,6 +316,7 @@ PHASE2
 # ---------
 
 $program_path bet.frq 02.par 03.par -file - <<PHASE3
+  1 342 30  # intermediate DM Nmax continuation
   2 70 1   # activate time series of reg recruitment parameters
   2 71 1   # estimate temporal changes in recruitment distribution
   2 178 1  # constrain regional recruitments
@@ -337,6 +338,7 @@ PHASE4
 # ---------
 
 $program_path bet.frq 04.par 05.par -file - <<PHASE5
+  1 342 10  # final DM Nmax target from the middle phase onward
   -100000 1 1  # estimate
   -100000 2 1  # time-invariant
   -100000 3 1  # distribution
