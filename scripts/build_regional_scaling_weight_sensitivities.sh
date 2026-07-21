@@ -8,6 +8,11 @@ SOURCE_REPO="PacificCommunity/ofp-sam-bet-2026-exploration"
 DM_SOURCE_COMMIT="20c19b02498a6ee22cc39441a073159accca020b"
 DM_SOURCE_REF="experiment/cpue-hac4-single-area-tail-nmax10-20260719"
 AGE_SHA256="426859b825bd815aa69c8d97c9dd93097027ed1eb6b9e444d88b69562097a00c"
+INI_SOURCE_REPO="PacificCommunity/ofp-sam-2026-BET-YFT-build-ini"
+INI_SOURCE_COMMIT="86627214cbac6db5766841e404bb32ea4f6afe61"
+INI_SOURCE_PATH="BET/ini.mix-period/bet.2026.mix-0.15.ini"
+INI_SOURCE_SHA256="b8a43730e7808c0f2d0f07924a2e175910294ce63a1359c2585b44f9e5e2dad6"
+INI_SOURCE_FILE="$ROOT/reference-inputs/bet.2026.mix-0.15.ini"
 
 normal_templates=(
   "S017-TC1-NOCUT-SUB075-TAGF2OFF"
@@ -50,6 +55,49 @@ regw_text() {
   esac
 }
 
+write_model_ini() {
+  local output="$1"
+  local tag_flag2="$2"
+  Rscript - "$INI_SOURCE_FILE" "$output" "$tag_flag2" <<'RS'
+args <- commandArgs(trailingOnly = TRUE)
+source_path <- args[[1L]]
+output_path <- args[[2L]]
+tag_flag2 <- as.integer(args[[3L]])
+stopifnot(tag_flag2 %in% 0:1)
+
+lines <- readLines(source_path, warn = FALSE)
+tag_start <- grep("^# tag flags[[:space:]]*$", lines)
+stopifnot(length(tag_start) == 1L, tag_start + 98L <= length(lines))
+tag_rows <- tag_start + seq_len(98L)
+fields <- strsplit(trimws(lines[tag_rows]), "[[:space:]]+")
+stopifnot(
+  all(lengths(fields) == 10L),
+  all(vapply(fields, function(x) !is.na(suppressWarnings(as.integer(x[[1L]]))), logical(1))),
+  all(vapply(fields, function(x) x[[2L]] == "1", logical(1)))
+)
+fields <- lapply(fields, function(x) {
+  x[[2L]] <- as.character(tag_flag2)
+  x
+})
+lines[tag_rows] <- vapply(fields, paste, collapse = " ", character(1))
+writeLines(lines, output_path, useBytes = TRUE)
+RS
+}
+
+remove_f9_monotonicity() {
+  local path="$1"
+  awk '
+    /^# Single-area extraction monotonicity constraint[.]$/ {
+      print "# Extraction selectivity is not constrained to be non-decreasing."
+      next
+    }
+    $1 == -9 && $2 == 16 && $3 == 1 { next }
+    { print }
+  ' "$path" > "$path.new"
+  mv "$path.new" "$path"
+  chmod 0755 "$path"
+}
+
 number=0
 for template_index in "${!normal_templates[@]}"; do
   template="${normal_templates[$template_index]}"
@@ -60,9 +108,11 @@ for template_index in "${!normal_templates[@]}"; do
   for weight in "${weights[@]}"; do
     number=$((number + 1))
     id="$(printf 'S%03d' "$number")"
-    model="${id}-TC1-NOCUT-DW10-SUB075-${tag_code}-REGW${weight}"
+    model="${id}-TC1-NOCUT-DW10-SUB075-MIX015-${tag_code}-REGW${weight}"
     destination="$ROOT/sensitivity/$model"
     cp -a "$tmp/sensitivity/$template" "$destination"
+    write_model_ini "$destination/model/bet.ini" "$tag_flag2"
+    remove_f9_monotonicity "$destination/model/doitall.sh"
 
     awk -v weight="$weight" '
       $1 ~ /^-2[123]$/ && $2 == 49 && $3 == 20 {
@@ -86,7 +136,7 @@ for template_index in "${!normal_templates[@]}"; do
     control="$model"
     if [[ "$tag_flag2" -eq 1 ]]; then
       control_id="$(printf 'S%03d' "$((number - 4))")"
-      control="${control_id}-TC1-NOCUT-DW10-SUB075-TAGF2OFF-REGW${weight}"
+      control="${control_id}-TC1-NOCUT-DW10-SUB075-MIX015-TAGF2OFF-REGW${weight}"
     fi
     interpretation="$(regw_text "$weight")"
 
@@ -100,7 +150,8 @@ This model is part of the focused SUB075 regional-scaling sensitivity design.
 | Control | Setting |
 | --- | --- |
 | Age-length input | SUB075, bet.2026.sub.basin.0.75.age_length |
-| Selectivity | Corrected SA28-N5 baseline |
+| INI | bet.2026.mix-0.15.ini |
+| Selectivity | Corrected SA28-N5 baseline; no fishery has flag 16=1 |
 | LF likelihood | MFCL option-3 robust normal |
 | LF tail compression | 1 percent |
 | Observed LF cutoff | None |
@@ -120,9 +171,11 @@ implicitly determined because all five proportions sum to one.
 
 The model is copied from **$template** at
 **$SOURCE_REPO@$SOURCE_COMMIT** (**$SOURCE_REF**). Apart from the documented
-F21/F22/F23 divisor, parest flag 77, identifiers, and metadata, all CPUE sigma,
-regional-scaling data, flags 78-81, phase timing, FRQ, INI, tag, age-length,
-and selectivity settings are unchanged.
+F21/F22/F23 divisor, parest flag 77, F9 monotonicity removal, identifiers, and
+metadata, all CPUE sigma, regional-scaling data, flags 78-81, phase timing,
+FRQ, tag, age-length, and remaining selectivity settings are unchanged. The INI
+is replaced by **$INI_SOURCE_REPO@$INI_SOURCE_COMMIT/$INI_SOURCE_PATH**;
+TAGF2OFF changes only tag_flags(:,2) from 1 to 0.
 
 The retained FRQ already contains the selected 2026 effort-creep adjustment;
 this build never reapplies effort creep.
@@ -135,7 +188,7 @@ MODEL_README
   done
 done
 
-# Add matched TAGF2OFF/ON DM G5PROC-CEST models. Fixed flag-49 divisors are
+# Add matched TAGF2OFF/ON DM G7OSHL-CEST models. Fixed flag-49 divisors are
 # intentionally not labelled DW10 because they are not the DM observation-
 # weight control.
 for template_index in "${!normal_templates[@]}"; do
@@ -147,9 +200,11 @@ for template_index in "${!normal_templates[@]}"; do
   for weight in "${weights[@]}"; do
     number=$((number + 1))
     id="$(printf 'S%03d' "$number")"
-    model="${id}-DM-G5PROC-CEST-NOCUT-SUB075-${tag_code}-NMAX20-REGW${weight}"
+    model="${id}-DM-G7OSHL-CEST-NOCUT-SUB075-MIX015-${tag_code}-NMAX20-REGW${weight}"
     destination="$ROOT/sensitivity/$model"
     cp -a "$tmp/sensitivity/$dm_normal_template" "$destination"
+    write_model_ini "$destination/model/bet.ini" "$tag_flag2"
+    remove_f9_monotonicity "$destination/model/doitall.sh"
 
   Rscript - \
     "$destination/model/doitall.sh" \
@@ -205,6 +260,41 @@ phase11_end <- which(target == "PHASE11")
 stopifnot(length(final_report) == 1L, length(phase11_end) == 1L)
 target <- append(target, final_report, after = phase11_end - 1L)
 
+# G7OSHL preserves the process grouping while separating offshore longline
+# and handline observations into their own DM estimation groups.
+dm_groups <- list(
+  "Remaining longline" = c(1:4, 6:8, 10:11),
+  "Offshore longline" = c(5, 9),
+  "Large-scale purse seine" = c(12, 19:20, 25:28),
+  "Domestic purse seine" = 17:18,
+  "Handline" = 14:15,
+  "Other extraction" = c(13, 16, 21:24),
+  "Index" = 29:33
+)
+group_id <- integer(33L)
+group_name <- character(33L)
+for (group in seq_along(dm_groups)) {
+  fisheries <- dm_groups[[group]]
+  group_id[fisheries] <- group
+  group_name[fisheries] <- names(dm_groups)[[group]]
+}
+all_fisheries <- as.integer(unlist(dm_groups, use.names = FALSE))
+stopifnot(
+  all(group_id > 0L),
+  length(all_fisheries) == 33L,
+  !anyDuplicated(all_fisheries),
+  identical(sort(all_fisheries), 1:33)
+)
+for (fishery in 1:33) {
+  pattern <- paste0("^[[:space:]]*-", fishery, "[[:space:]]+68[[:space:]]+")
+  row <- grep(pattern, target)
+  stopifnot(length(row) == 1L)
+  target[row] <- sprintf(
+    "  -%d 68 %d  # DM LF group: %s",
+    fishery, group_id[[fishery]], group_name[[fishery]]
+  )
+}
+
 stopifnot(!any(grepl("PHASE7A|PHASE9A|06a[.]par|08a[.]par", target)))
 writeLines(target, target_path, useBytes = TRUE)
 RS
@@ -231,7 +321,7 @@ RS
     control="$model"
     if [[ "$tag_flag2" -eq 1 ]]; then
       control_id="$(printf 'S%03d' "$((number - 4))")"
-      control="${control_id}-DM-G5PROC-CEST-NOCUT-SUB075-TAGF2OFF-NMAX20-REGW${weight}"
+      control="${control_id}-DM-G7OSHL-CEST-NOCUT-SUB075-MIX015-TAGF2OFF-NMAX20-REGW${weight}"
     fi
 
     cat > "$destination/README.md" <<MODEL_README
@@ -245,9 +335,10 @@ design.
 | Control | Setting |
 | --- | --- |
 | Age-length input | SUB075, bet.2026.sub.basin.0.75.age_length |
-| Selectivity | Exact matched SA28-N5 normal-model settings |
+| INI | bet.2026.mix-0.15.ini |
+| Selectivity | Exact matched SA28-N5 normal-model settings; no fishery has flag 16=1 |
 | LF likelihood | MFCL option 11, Dirichlet-multinomial without random effects |
-| DM grouping | G5PROC |
+| DM grouping | G7OSHL: remaining LL; OS F5/F9; large-scale PS; domestic PS; HL F14/F15; other extraction; index |
 | DM relative sample-size exponent | CEST, activated in phase 2 |
 | DM maximum LF sample-size control | 20 directly from phase 1 |
 | DM tail compression | Retain at least five class intervals |
@@ -256,10 +347,11 @@ design.
 | Tag flag column 2 | $tag_code; paired OFF control: $control |
 | Regional-scaling weight | $weight; $interpretation |
 
-All non-doitall inputs come from **$dm_normal_template** at
-**$SOURCE_COMMIT** and retain SUB075. The DM controls come from
+All non-doitall inputs except the INI come from **$dm_normal_template** at
+**$SOURCE_COMMIT** and retain SUB075. The INI comes from
+**$INI_SOURCE_REPO@$INI_SOURCE_COMMIT/$INI_SOURCE_PATH**. The DM controls come from
 **$dm_template** at **$DM_SOURCE_COMMIT** (**$DM_SOURCE_REF**). HAC4 sigma,
-separate selectivity-tail changes, and extra stabilization phases are excluded.
+additional selectivity-tail constraints, and extra stabilization phases are excluded.
 The report is deferred from phase 2 to the final fit only for DM output safety.
 
 The retained FRQ already contains the selected 2026 effort-creep adjustment;
@@ -268,19 +360,24 @@ this build never reapplies effort creep.
 Status: generated; Kflow has not been submitted.
 MODEL_README
 
-    printf '"%s","%s","%s",%s,"%s",%s,"%s","dm_no_re","G5PROC_CEST",20,,\n' \
+    printf '"%s","%s","%s",%s,"%s",%s,"%s","dm_no_re","G7OSHL_CEST",20,,\n' \
       "$model" "$dm_normal_template" "$dm_template" "$weight" "$interpretation" \
       "$tag_flag2" "$control" >> "$mapping"
   done
 done
 
-Rscript - "$ROOT" "$mapping" "$SOURCE_COMMIT" "$DM_SOURCE_COMMIT" "$AGE_SHA256" <<'RS'
+Rscript - "$ROOT" "$mapping" "$SOURCE_COMMIT" "$DM_SOURCE_COMMIT" "$AGE_SHA256" \
+  "$INI_SOURCE_REPO" "$INI_SOURCE_COMMIT" "$INI_SOURCE_PATH" "$INI_SOURCE_SHA256" <<'RS'
 args <- commandArgs(trailingOnly = TRUE)
 root <- args[[1L]]
 mapping <- read.csv(args[[2L]], stringsAsFactors = FALSE, check.names = FALSE)
 source_commit <- args[[3L]]
 dm_source_commit <- args[[4L]]
 age_sha256 <- args[[5L]]
+ini_source_repo <- args[[6L]]
+ini_source_commit <- args[[7L]]
+ini_source_path <- args[[8L]]
+ini_source_sha256 <- args[[9L]]
 mapping$regional_scaling_weight <- as.integer(mapping$regional_scaling_weight)
 
 for (i in seq_len(nrow(mapping))) {
@@ -306,7 +403,7 @@ for (i in seq_len(nrow(mapping))) {
     )
     manifest$source_commit[doitall_row] <- dm_source_commit
     manifest$note[doitall_row] <- paste0(
-      "Matched DM-noRE G5PROC-CEST doitall with Nmax20 directly from phase 1; ",
+      "Matched DM-noRE G7OSHL-CEST doitall with Nmax20 directly from phase 1; ",
       "fixed DW10 is not used by the DM likelihood. Parest flag 77 is ",
       mapping$regional_scaling_weight[[i]], "."
     )
@@ -319,18 +416,22 @@ for (i in seq_len(nrow(mapping))) {
   }
 
   ini_row <- manifest$role == "ini"
-  if (mapping$tag_flag2[[i]] == 1L) {
-    manifest$note[ini_row] <- sub(
-      "its exact flag-column-2=0 control is [^;]+;",
-      paste0("its exact flag-column-2=0 control is ", mapping$tag_control[[i]], ";"),
-      manifest$note[ini_row], perl = TRUE
-    )
-  }
+  manifest$source[ini_row] <- paste0(
+    "https://github.com/", ini_source_repo, "/blob/", ini_source_commit, "/",
+    ini_source_path
+  )
+  manifest$source_commit[ini_row] <- ini_source_commit
+  manifest$note[ini_row] <- paste0(
+    "Upstream mix-period 0.15 INI (SHA-256 ", ini_source_sha256,
+    "). The model retains every upstream field; TAGF2OFF changes only all 98 ",
+    "tag_flags(:,2) values from 1 to 0. Matched OFF control: ",
+    mapping$tag_control[[i]], "."
+  )
 
   context_row <- manifest$role == "design_context"
   manifest$note[context_row] <- paste0(
     "Public sixteen-model SUB075 NOCUT regional-scaling design: eight robust-normal ",
-    "DW10 and eight DM G5PROC-CEST Nmax20 models, each crossing TAGF2OFF/ON ",
+    "DW10 and eight DM G7OSHL-CEST Nmax20 models, each crossing TAGF2OFF/ON ",
     "with weights 50/11/1/0."
   )
   write.csv(manifest, manifest_path, row.names = FALSE, na = "")
@@ -348,7 +449,7 @@ selection <- data.frame(
   lf_downweight_factor = ifelse(is_dm, NA_integer_, 10L),
   lf_size_divisor = ifelse(is_dm, NA_integer_, 200L),
   dm_tail_min_classes = ifelse(is_dm, 5L, NA_integer_),
-  dm_grouping = ifelse(is_dm, "G5PROC", NA_character_),
+  dm_grouping = ifelse(is_dm, "G7OSHL", NA_character_),
   dm_concentration = ifelse(is_dm, "estimated_phase2", NA_character_),
   dm_nmax = ifelse(is_dm, 20L, NA_integer_),
   cutoff_cm = NA_real_,
@@ -366,7 +467,7 @@ labels <- ifelse(
   paste0(
     "SUB075 NOCUT ",
     ifelse(mapping$tag_flag2 == 1L, "TAGF2ON", "TAGF2OFF"),
-    " DM G5PROC-CEST Nmax20 REGW",
+    " DM G7OSHL-CEST Nmax20 REGW",
     mapping$regional_scaling_weight
   ),
   paste0(
@@ -377,7 +478,7 @@ labels <- ifelse(
 )
 stepwise_run <- list(
   default_step_select = mapping$model[[1L]],
-  flow_group = "bet-2026-sub075-regw501110-dm20-20260721",
+  flow_group = "bet-2026-sub075-mix015-unconstrained-g7oshl-dm20-20260721",
   trigger_next = FALSE
 )
 stepwise_models <- data.frame(
@@ -393,7 +494,7 @@ stepwise_models <- data.frame(
   lf_likelihood = mapping$lf_likelihood,
   lf_downweight_factor = ifelse(is_dm, NA_integer_, 10L),
   lf_size_divisor = ifelse(is_dm, NA_integer_, 200L),
-  dm_grouping = ifelse(is_dm, "G5PROC", NA_character_),
+  dm_grouping = ifelse(is_dm, "G7OSHL", NA_character_),
   dm_concentration = ifelse(is_dm, "estimated_phase2", NA_character_),
   dm_nmax = ifelse(is_dm, 20L, NA_integer_),
   regional_scaling_weight = mapping$regional_scaling_weight,
@@ -419,15 +520,17 @@ config_lines <- sub("[[:space:]]+$", "", config_lines)
 writeLines(config_lines, file.path(root, "job-config.R"), useBytes = TRUE)
 RS
 
-first_model="S001-TC1-NOCUT-DW10-SUB075-TAGF2OFF-REGW50"
-perl -0pi -e 's/STEP_SELECT: "[^"]+"/STEP_SELECT: "'"$first_model"'"/; s/JOB_TITLE: "[^"]+"/JOB_TITLE: "BET 2026 SUB075 regional-scaling sensitivity fit"/; s/JOB_DESCRIPTION: "[^"]+"/JOB_DESCRIPTION: "Run one SUB075 NOCUT regional-scaling sensitivity model."/; s/MODEL_LABEL: "[^"]+"/MODEL_LABEL: "SUB075 NOCUT DW10 TAGF2OFF REGW50"/; s/JOB_KEY: [^\n]+/JOB_KEY: s001-sub075-nocut-dw10-tagf2off-regw50/; s/FLOW_GROUP: [^\n]+/FLOW_GROUP: bet-2026-sub075-regw501110-dm20-20260721/' "$ROOT/kflow.yaml"
+first_model="S001-TC1-NOCUT-DW10-SUB075-MIX015-TAGF2OFF-REGW50"
+perl -0pi -e 's/STEP_SELECT: "[^"]+"/STEP_SELECT: "'"$first_model"'"/; s/JOB_TITLE: "[^"]+"/JOB_TITLE: "BET 2026 mix-0.15 unconstrained regional-scaling fit"/; s/JOB_DESCRIPTION: "[^"]+"/JOB_DESCRIPTION: "Run one SUB075 mix-0.15 unconstrained regional-scaling sensitivity model."/; s/MODEL_LABEL: "[^"]+"/MODEL_LABEL: "SUB075 MIX015 NOCUT DW10 TAGF2OFF REGW50"/; s/JOB_KEY: [^\n]+/JOB_KEY: s001-sub075-mix015-nocut-dw10-tagf2off-regw50/; s/FLOW_GROUP: [^\n]+/FLOW_GROUP: bet-2026-sub075-mix015-unconstrained-g7oshl-dm20-20260721/' "$ROOT/kflow.yaml"
 
 cat > "$ROOT/README.md" <<ROOT_README
-# BET 2026 SUB075 regional-scaling sensitivities
+# BET 2026 mix-0.15 unconstrained regional-scaling sensitivities
 
 This branch contains sixteen NOCUT MFCL models based on
 **$SOURCE_REPO@$SOURCE_COMMIT** (**$SOURCE_REF**). All models use the SUB075
-age-length input and corrected SA28-N5 selectivity baseline. CUT90 is excluded.
+age-length input, the upstream mix-period 0.15 INI, and corrected SA28-N5
+selectivity baseline. The F9-only non-decreasing constraint is removed, so no
+fishery uses fish flag 16=1. CUT90 is excluded.
 The retained Job 5319 FRQ already contains the selected 2026 effort-creep
 adjustment, and the build never reapplies effort creep.
 
@@ -437,8 +540,8 @@ adjustment, and the build never reapplies effort creep.
 | --- | --- | ---: | --- |
 | S001-S004 | Robust normal; F21/F22/F23 DW10 | 0 (OFF) | 50, 11, 1, 0 |
 | S005-S008 | Robust normal; F21/F22/F23 DW10 | 1 (ON) | 50, 11, 1, 0 |
-| S009-S012 | DM G5PROC-CEST; Nmax20 | 0 (OFF) | 50, 11, 1, 0 |
-| S013-S016 | DM G5PROC-CEST; Nmax20 | 1 (ON) | 50, 11, 1, 0 |
+| S009-S012 | DM G7OSHL-CEST; Nmax20 | 0 (OFF) | 50, 11, 1, 0 |
+| S013-S016 | DM G7OSHL-CEST; Nmax20 | 1 (ON) | 50, 11, 1, 0 |
 
 The four REGW values occur in the displayed order within every ID range. This
 gives matched comparisons for LF likelihood, tag flag column 2, and regional-
@@ -451,6 +554,28 @@ divisors are not the DM observation-weight parameter. For DM models, Nmax20 is
 the phase-1 maximum LF sample-size control. It is not a statement that the
 realized effective sample size is exactly 20; realized information also
 depends on the estimated DM concentration and relative sample-size exponent.
+
+## DM G7OSHL grouping
+
+| Group | Fisheries |
+| --- | --- |
+| Remaining longline | F1-F4, F6-F8, F10-F11 |
+| Offshore longline | F5, F9 |
+| Large-scale purse seine | F12, F19-F20, F25-F28 |
+| Domestic purse seine | F17-F18 |
+| Handline | F14-F15 |
+| Other extraction | F13, F16, F21-F24 |
+| Index | F29-F33 |
+
+This changes only DM fish flag 68. Tag-reporting groups (flag 32), selectivity
+groups (flag 24), the FRQ, and other model data are unchanged.
+
+## INI provenance
+
+The model INI is derived from
+**$INI_SOURCE_REPO@$INI_SOURCE_COMMIT/$INI_SOURCE_PATH**. TAGF2ON retains the
+upstream tag flags. TAGF2OFF changes only all 98 values in tag flag column 2
+from 1 to 0.
 
 ## Regional-scaling weights
 

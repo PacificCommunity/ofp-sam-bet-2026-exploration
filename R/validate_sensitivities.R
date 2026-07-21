@@ -1,4 +1,4 @@
-## Validate the focused sixteen-model SUB075 regional-scaling design.
+## Validate the focused mix-0.15 unconstrained G7OSHL regional-scaling design.
 
 root <- normalizePath(getwd(), winslash = "/", mustWork = TRUE)
 fail <- function(...) stop(paste0(...), call. = FALSE)
@@ -30,9 +30,9 @@ if (any(models$lf_downweight_factor[normal_rows] != 10L) ||
     any(models$lf_size_divisor[normal_rows] != 200L) ||
     any(!is.na(models$lf_downweight_factor[dm_rows])) ||
     any(!is.na(models$lf_size_divisor[dm_rows])) ||
-    any(models$dm_grouping[dm_rows] != "G5PROC") ||
+    any(models$dm_grouping[dm_rows] != "G7OSHL") ||
     any(models$dm_nmax[dm_rows] != 20L)) {
-  fail("Normal DW10 or DM G5PROC Nmax20 metadata are incorrect")
+  fail("Normal DW10 or DM G7OSHL Nmax20 metadata are incorrect")
 }
 
 sensitivity_root <- file.path(root, "sensitivity")
@@ -47,6 +47,22 @@ sha256_file <- function(path) {
   strsplit(output[[1L]], "[[:space:]]+")[[1L]][[1L]]
 }
 expected_age_sha <- "426859b825bd815aa69c8d97c9dd93097027ed1eb6b9e444d88b69562097a00c"
+expected_ini_sha <- "b8a43730e7808c0f2d0f07924a2e175910294ce63a1359c2585b44f9e5e2dad6"
+ini_source <- file.path(root, "reference-inputs", "bet.2026.mix-0.15.ini")
+if (!file.exists(ini_source) || !identical(sha256_file(ini_source), expected_ini_sha)) {
+  fail("Pinned bet.2026.mix-0.15.ini source is missing or has the wrong SHA-256")
+}
+source_ini_lines <- readLines(ini_source, warn = FALSE)
+source_tag_start <- grep("^# tag flags[[:space:]]*$", source_ini_lines)
+if (length(source_tag_start) != 1L || source_tag_start + 98L > length(source_ini_lines)) {
+  fail("Pinned mix-0.15 INI tag block is missing or incomplete")
+}
+source_tag_rows <- source_tag_start + seq_len(98L)
+source_tag_fields <- strsplit(trimws(source_ini_lines[source_tag_rows]), "[[:space:]]+")
+if (any(lengths(source_tag_fields) != 10L) ||
+    any(vapply(source_tag_fields, function(x) x[[2L]] != "1", logical(1)))) {
+  fail("Pinned mix-0.15 INI does not contain the expected TAGF2ON source block")
+}
 duplicate_fisheries <- c(1L, 2L, 4L, 6L, 7L, 8L, 10L, 29L:33L)
 
 for (i in seq_len(nrow(models))) {
@@ -76,8 +92,21 @@ for (i in seq_len(nrow(models))) {
   if (anyNA(tag_flag2) || any(tag_flag2 != row$tag_flag2)) {
     fail(row$step_id, ": tag_flags(:,2) does not match the model identity")
   }
+  model_tag_rows <- tag_start + seq_len(98L)
+  if (!identical(ini_lines[-model_tag_rows], source_ini_lines[-source_tag_rows])) {
+    fail(row$step_id, ": INI differs from mix-0.15 outside the tag flag block")
+  }
+  for (j in seq_len(98L)) {
+    if (length(tag_rows[[j]]) != length(source_tag_fields[[j]]) ||
+        !identical(tag_rows[[j]][-2L], source_tag_fields[[j]][-2L])) {
+      fail(row$step_id, ": INI differs from mix-0.15 beyond tag flag column 2 at row ", j)
+    }
+  }
 
   lines <- readLines(file.path(model_dir, "doitall.sh"), warn = FALSE)
+  if (any(grepl("^[[:space:]]*-[0-9]+[[:space:]]+16[[:space:]]+1([[:space:]]|$)", lines))) {
+    fail(row$step_id, ": a fishery still has the removed flag 16=1 constraint")
+  }
   flag77 <- grep("^[[:space:]]*1[[:space:]]+77[[:space:]]+", lines, value = TRUE)
   expected77 <- paste0("^[[:space:]]*1[[:space:]]+77[[:space:]]+", row$regional_scaling_weight, "([[:space:]]|$)")
   if (length(flag77) != 1L || !grepl(expected77, flag77)) {
@@ -120,7 +149,24 @@ for (i in seq_len(nrow(models))) {
         sum(grepl("^[[:space:]]*-[0-9]+[[:space:]]+68[[:space:]]+", lines)) != 33L ||
         sum(grepl("^[[:space:]]*-999[[:space:]]+89[[:space:]]+1([[:space:]]|$)", lines)) != 1L ||
         any(grepl("^[[:space:]]*-2[123][[:space:]]+49[[:space:]]+200([[:space:]]|$)", lines))) {
-      fail(row$step_id, ": DM G5PROC-CEST Nmax20 controls are incorrect")
+      fail(row$step_id, ": DM G7OSHL-CEST Nmax20 controls are incorrect")
+    }
+    expected_groups <- integer(33L)
+    expected_groups[c(1:4, 6:8, 10:11)] <- 1L
+    expected_groups[c(5, 9)] <- 2L
+    expected_groups[c(12, 19:20, 25:28)] <- 3L
+    expected_groups[17:18] <- 4L
+    expected_groups[14:15] <- 5L
+    expected_groups[c(13, 16, 21:24)] <- 6L
+    expected_groups[29:33] <- 7L
+    for (fishery in 1:33) {
+      pattern <- sprintf(
+        "^[[:space:]]*-%d[[:space:]]+68[[:space:]]+%d([[:space:]]|$)",
+        fishery, expected_groups[[fishery]]
+      )
+      if (sum(grepl(pattern, lines)) != 1L) {
+        fail(row$step_id, ": incorrect G7OSHL group for F", fishery)
+      }
     }
   }
 }
@@ -235,6 +281,6 @@ for (tag_value in 0:1) {
 }
 
 cat(paste0(
-  "Validated sixteen SUB075 NOCUT REGW50/11/1/0 models, including exact ",
-  "TAGF2 OFF/ON and normal/DM input pairing.\n"
+  "Validated sixteen SUB075 mix-0.15 NOCUT REGW50/11/1/0 models, including ",
+  "no flag 16=1, exact G7OSHL DM grouping, and matched TAGF2 pairs.\n"
 ))
