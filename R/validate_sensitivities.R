@@ -6,38 +6,46 @@ config <- new.env(parent = globalenv())
 sys.source(file.path(root, "job-config.R"), envir = config)
 models <- config$stepwise_models
 
-expected_ids <- sprintf("S%03d", 1:16)
+expected_ids <- sprintf("S%03d", 1:32)
 actual_ids <- sub("-.*$", "", models$step_id)
-if (!is.data.frame(models) || nrow(models) != 16L ||
+if (!is.data.frame(models) || nrow(models) != 32L ||
     !identical(actual_ids, expected_ids) || anyDuplicated(models$step_id)) {
-  fail("Expected contiguous model IDs S001:S016")
+  fail("Expected contiguous model IDs S001:S032")
 }
 normal_rows <- models$lf_likelihood == "normal"
 dm_rows <- models$lf_likelihood == "dm_no_re"
-if (sum(normal_rows) != 8L || sum(dm_rows) != 8L ||
+if (sum(normal_rows) != 16L || sum(dm_rows) != 16L ||
     any(models$age_length_variant != "SUB075") ||
     any(models$cutoff_code != "NOCUT") ||
     any(grepl("CUT[0-9]+", models$step_id))) {
-  fail("Expected eight normal and eight DM SUB075 NOCUT models")
+  fail("Expected sixteen normal and sixteen DM SUB075 NOCUT models")
 }
-if (!identical(models$regional_scaling_weight, rep(c(50L, 11L, 1L, 0L), 4L))) {
+if (!identical(models$regional_scaling_weight, rep(c(50L, 11L, 1L, 0L), 8L))) {
   fail("Each model family must use REGW50, REGW11, REGW1, and REGW0")
 }
-if (!identical(models$tag_flag2, rep(c(0L, 1L, 0L, 1L), each = 4L))) {
+if (!identical(models$tag_flag2, rep(rep(c(0L, 1L), each = 4L), 4L))) {
   fail("TAGF2 settings do not match the focused design")
+}
+expected_reporting_prior <- c(
+  rep("manual_8_10", 16L),
+  rep("Tom_Peatman_2026_PTTP", 16L)
+)
+if (!"reporting_rate_prior" %in% names(models) ||
+    !identical(as.character(models$reporting_rate_prior), expected_reporting_prior)) {
+  fail("Expected sixteen manual_8_10 and sixteen Tom_Peatman_2026_PTTP models")
 }
 if (any(models$lf_downweight_factor[normal_rows] != 10L) ||
     any(models$lf_size_divisor[normal_rows] != 200L) ||
     any(!is.na(models$lf_downweight_factor[dm_rows])) ||
     any(!is.na(models$lf_size_divisor[dm_rows])) ||
     any(models$dm_grouping[dm_rows] != "G7OSHL") ||
-    any(models$dm_nmax[dm_rows] != 20L)) {
-  fail("Normal DW10 or DM G7OSHL Nmax20 metadata are incorrect")
+    any(models$dm_nmax[dm_rows] != 10L)) {
+  fail("Normal DW10 or DM G7OSHL Nmax10 metadata are incorrect")
 }
 
 sensitivity_root <- file.path(root, "sensitivity")
 model_dirs <- list.files(sensitivity_root, pattern = "^S[0-9]{3}-", full.names = FALSE)
-if (!setequal(model_dirs, models$step_id) || length(model_dirs) != 16L) {
+if (!setequal(model_dirs, models$step_id) || length(model_dirs) != 32L) {
   fail("Generated sensitivity folders do not match job-config.R")
 }
 
@@ -48,6 +56,7 @@ sha256_file <- function(path) {
 }
 expected_age_sha <- "426859b825bd815aa69c8d97c9dd93097027ed1eb6b9e444d88b69562097a00c"
 expected_ini_sha <- "b8a43730e7808c0f2d0f07924a2e175910294ce63a1359c2585b44f9e5e2dad6"
+expected_tag_sha <- "b140e66eb52f2b7e022ef2c562134f8bc9baf3dede18ce95283a001acd2b013f"
 ini_source <- file.path(root, "reference-inputs", "bet.2026.mix-0.15.ini")
 if (!file.exists(ini_source) || !identical(sha256_file(ini_source), expected_ini_sha)) {
   fail("Pinned bet.2026.mix-0.15.ini source is missing or has the wrong SHA-256")
@@ -65,6 +74,84 @@ if (any(lengths(source_tag_fields) != 10L) ||
 }
 duplicate_fisheries <- c(1L, 2L, 4L, 6L, 7L, 8L, 10L, 29L:33L)
 
+ini_section_rows <- function(lines, heading) {
+  start <- grep(paste0("^[[:space:]]*", heading, "[[:space:]]*$"), lines)
+  if (length(start) != 1L) fail("Missing or duplicated INI section: ", heading)
+  later_headers <- which(seq_along(lines) > start & grepl("^[[:space:]]*#", lines))
+  finish <- if (length(later_headers)) later_headers[[1L]] - 1L else length(lines)
+  rows <- seq.int(start + 1L, finish)
+  rows[nzchar(trimws(lines[rows])) & !grepl("^#", trimws(lines[rows]))]
+}
+
+ini_section_matrix <- function(lines, heading) {
+  rows <- ini_section_rows(lines, heading)
+  fields <- strsplit(trimws(lines[rows]), "[[:space:]]+")
+  if (length(fields) != 99L || any(lengths(fields) != 33L)) {
+    fail("Expected a 99 x 33 matrix in INI section ", heading)
+  }
+  matrix(
+    as.numeric(unlist(fields, use.names = FALSE)),
+    nrow = 99L, ncol = 33L, byrow = TRUE
+  )
+}
+
+canonical_prior_ini <- function(lines) {
+  for (heading in c("# tag fish rep", "# tag_fish_rep target", "# tag_fish_rep penalty")) {
+    rows <- ini_section_rows(lines, heading)
+    lines[rows] <- paste0("<", gsub("[^A-Za-z0-9]+", "_", heading), "_ROW_", seq_along(rows), ">")
+  }
+  lines
+}
+
+expected_prior_rows <- list(
+  manual_8_10 = data.frame(
+    group = c(7L, 10L, 11L, 14L, 17L, 18L, 29L, 30L),
+    mean = c(0.586, 0.586, 0, 0.4962, 0.52015, 0.52015, 0.5, 0),
+    target = c(58.6, 58.6, 0, 49.62, 52.015, 52.015, 50, 0),
+    penalty = c(8, 8, 0, 10, 10, 10, 1, 0)
+  ),
+  Tom_Peatman_2026_PTTP = data.frame(
+    group = c(7L, 10L, 11L, 14L, 17L, 18L, 29L, 30L),
+    mean = c(0.4962, 0.5121, 0, 0.4962, 0.5121, 0.5282, 0.5, 0),
+    target = c(49.62, 51.21, 0, 49.62, 51.21, 52.82, 50, 0),
+    penalty = c(354.5, 739.2, 0, 354.5, 739.2, 231.2, 1, 0)
+  )
+)
+
+expected_tag_labels <- c(
+  "RTTP / PS.2", "RTTP / PS.WEST.3", "RTTP / PS.EAST.4",
+  "PTTP/pooled / PS.2", "PTTP/pooled / PS.WEST.3",
+  "PTTP/pooled / PS.EAST.4", "JPTP / PS.WEST.3", "JPTP / PS.EAST.4"
+)
+expected_tag_fisheries <- list(
+  `7` = c(19L, 20L), `10` = c(25L, 27L), `11` = c(26L, 28L),
+  `14` = c(19L, 20L), `17` = c(25L, 27L), `18` = c(26L, 28L),
+  `29` = c(25L, 27L), `30` = c(26L, 28L)
+)
+
+tag_map_structure <- function(path) {
+  text <- readLines(path, warn = FALSE)
+  for (label in expected_tag_labels) {
+    if (!any(grepl(label, text, fixed = TRUE))) {
+      fail(path, ": missing reporting-rate label ", label)
+    }
+  }
+  # Strip only the three prior-value vectors; all group metadata stays exact.
+  text <- paste(text, collapse = "\n")
+  text <- gsub(
+    paste0(
+      "(?s)initial_values = c\\(.*?\\), target_values = c\\(.*?\\), ",
+      "penalty_values = c\\(.*?\\)(?=, row.names)"
+    ),
+    paste0(
+      "initial_values = <PRIOR_MEANS>, target_values = <PRIOR_TARGETS>, ",
+      "penalty_values = <PRIOR_PENALTIES>"
+    ),
+    text, perl = TRUE
+  )
+  gsub("[[:space:]]+", " ", text)
+}
+
 for (i in seq_len(nrow(models))) {
   row <- models[i, , drop = FALSE]
   model_dir <- file.path(sensitivity_root, row$step_id, "model")
@@ -77,6 +164,9 @@ for (i in seq_len(nrow(models))) {
   }
   if (!identical(sha256_file(file.path(model_dir, "bet.age_length")), expected_age_sha)) {
     fail(row$step_id, ": age-length input is not SUB075")
+  }
+  if (!identical(sha256_file(file.path(model_dir, "bet.tag")), expected_tag_sha)) {
+    fail(row$step_id, ": tag input is not the pinned low-recaptures-removed file")
   }
   if (file.exists(file.path(model_dir, "lf_cutoff_audit.csv"))) {
     fail(row$step_id, ": NOCUT model contains a cutoff audit")
@@ -93,15 +183,57 @@ for (i in seq_len(nrow(models))) {
     fail(row$step_id, ": tag_flags(:,2) does not match the model identity")
   }
   model_tag_rows <- tag_start + seq_len(98L)
-  if (!identical(ini_lines[-model_tag_rows], source_ini_lines[-source_tag_rows])) {
-    fail(row$step_id, ": INI differs from mix-0.15 outside the tag flag block")
-  }
   for (j in seq_len(98L)) {
     if (length(tag_rows[[j]]) != length(source_tag_fields[[j]]) ||
         !identical(tag_rows[[j]][-2L], source_tag_fields[[j]][-2L])) {
       fail(row$step_id, ": INI differs from mix-0.15 beyond tag flag column 2 at row ", j)
     }
   }
+  if (row$reporting_rate_prior == "manual_8_10") {
+    if (!identical(ini_lines[-model_tag_rows], source_ini_lines[-source_tag_rows])) {
+      fail(row$step_id, ": manual-prior INI differs from mix-0.15 outside tag flag column 2")
+    }
+  } else {
+    model_canonical <- canonical_prior_ini(ini_lines)
+    source_canonical <- canonical_prior_ini(source_ini_lines)
+    model_tag_rows_canonical <- grep("^# tag flags[[:space:]]*$", model_canonical) + seq_len(98L)
+    source_tag_rows_canonical <- grep("^# tag flags[[:space:]]*$", source_canonical) + seq_len(98L)
+    for (j in seq_len(98L)) {
+      model_fields <- strsplit(trimws(model_canonical[model_tag_rows_canonical[[j]]]), "[[:space:]]+")[[1L]]
+      source_fields <- strsplit(trimws(source_canonical[source_tag_rows_canonical[[j]]]), "[[:space:]]+")[[1L]]
+      model_fields[[2L]] <- "<TAGF2>"
+      source_fields[[2L]] <- "<TAGF2>"
+      model_canonical[model_tag_rows_canonical[[j]]] <- paste(model_fields, collapse = " ")
+      source_canonical[source_tag_rows_canonical[[j]]] <- paste(source_fields, collapse = " ")
+    }
+    if (!identical(model_canonical, source_canonical)) {
+      fail(row$step_id, ": PTTP26 INI differs outside allowed reporting-prior and TAGF2 fields")
+    }
+  }
+  expected_prior <- expected_prior_rows[[row$reporting_rate_prior]]
+  reporting_groups <- ini_section_matrix(ini_lines, "# tag fish rep group flags")
+  means <- ini_section_matrix(ini_lines, "# tag fish rep")
+  targets <- ini_section_matrix(ini_lines, "# tag_fish_rep target")
+  penalties <- ini_section_matrix(ini_lines, "# tag_fish_rep penalty")
+  for (k in seq_len(nrow(expected_prior))) {
+    group <- expected_prior$group[[k]]
+    cells <- which(reporting_groups == group, arr.ind = TRUE)
+    if (!nrow(cells)) {
+      fail(row$step_id, ": reporting-rate group ", group, " has no INI cells")
+    }
+    actual_fisheries <- sort(unique(cells[, "col"]))
+    if (!identical(actual_fisheries, expected_tag_fisheries[[as.character(group)]])) {
+      fail(row$step_id, ": reporting-rate group ", group,
+           " is assigned to unexpected fisheries: ", paste(actual_fisheries, collapse = ","))
+    }
+    if (any(abs(means[cells] - expected_prior$mean[[k]]) > 1e-8) ||
+        any(abs(targets[cells] - expected_prior$target[[k]]) > 1e-8) ||
+        any(abs(penalties[cells] - expected_prior$penalty[[k]]) > 1e-8)) {
+      fail(row$step_id, ": reporting-rate group ", group,
+           " mean, target, or penalty does not match ", row$reporting_rate_prior)
+    }
+  }
+  invisible(tag_map_structure(file.path(model_dir, "tag_rep_map.R")))
 
   lines <- readLines(file.path(model_dir, "doitall.sh"), warn = FALSE)
   if (any(grepl("^[[:space:]]*-[0-9]+[[:space:]]+16[[:space:]]+1([[:space:]]|$)", lines))) {
@@ -145,11 +277,11 @@ for (i in seq_len(nrow(models))) {
     }
   } else {
     if (sum(grepl("^[[:space:]]*1[[:space:]]+141[[:space:]]+11([[:space:]]|$)", lines)) != 1L ||
-        sum(grepl("^[[:space:]]*1[[:space:]]+342[[:space:]]+20([[:space:]]|$)", lines)) != 1L ||
+        sum(grepl("^[[:space:]]*1[[:space:]]+342[[:space:]]+10([[:space:]]|$)", lines)) != 1L ||
         sum(grepl("^[[:space:]]*-[0-9]+[[:space:]]+68[[:space:]]+", lines)) != 33L ||
         sum(grepl("^[[:space:]]*-999[[:space:]]+89[[:space:]]+1([[:space:]]|$)", lines)) != 1L ||
         any(grepl("^[[:space:]]*-2[123][[:space:]]+49[[:space:]]+200([[:space:]]|$)", lines))) {
-      fail(row$step_id, ": DM G7OSHL-CEST Nmax20 controls are incorrect")
+      fail(row$step_id, ": DM G7OSHL-CEST Nmax10 controls are incorrect")
     }
     expected_groups <- integer(33L)
     expected_groups[c(1:4, 6:8, 10:11)] <- 1L
@@ -220,7 +352,10 @@ compare_tag_ini <- function(off_id, on_id) {
 }
 
 # Within each likelihood/tag family, REGW is the only doitall difference.
-family_key <- paste(models$lf_likelihood, models$tag_flag2, sep = ":")
+family_key <- paste(
+  models$reporting_rate_prior, models$lf_likelihood, models$tag_flag2,
+  sep = ":"
+)
 for (indices in split(seq_len(nrow(models)), family_key)) {
   reference <- canonical_regw_doitall(models$step_id[[indices[[1L]]]])
   for (index in indices[-1L]) {
@@ -236,14 +371,17 @@ common_pair_files <- c(
   "bet.frq", "bet.tag", "bet.age_length", "bet.reg_scaling",
   "bet.reg_scaling.full", "fishery_map.R", "tag_rep_map.R"
 )
-for (likelihood in c("normal", "dm_no_re")) {
-  for (weight in c(50L, 11L, 1L, 0L)) {
+for (prior in unique(models$reporting_rate_prior)) {
+  for (likelihood in c("normal", "dm_no_re")) {
+    for (weight in c(50L, 11L, 1L, 0L)) {
     off <- models$step_id[
-      models$lf_likelihood == likelihood & models$tag_flag2 == 0L &
+      models$reporting_rate_prior == prior &
+        models$lf_likelihood == likelihood & models$tag_flag2 == 0L &
         models$regional_scaling_weight == weight
     ]
     on <- models$step_id[
-      models$lf_likelihood == likelihood & models$tag_flag2 == 1L &
+      models$reporting_rate_prior == prior &
+        models$lf_likelihood == likelihood & models$tag_flag2 == 1L &
         models$regional_scaling_weight == weight
     ]
     if (length(off) != 1L || length(on) != 1L) {
@@ -257,19 +395,23 @@ for (likelihood in c("normal", "dm_no_re")) {
     }
     compare_tag_ini(off, on)
     compare_binary_files(off, on, common_pair_files, "TAGF2 pair")
+    }
   }
 }
 
 # Normal and DM counterparts retain exactly the same non-doitall model inputs.
 matched_likelihood_files <- c("bet.ini", common_pair_files)
-for (tag_value in 0:1) {
-  for (weight in c(50L, 11L, 1L, 0L)) {
+for (prior in unique(models$reporting_rate_prior)) {
+  for (tag_value in 0:1) {
+    for (weight in c(50L, 11L, 1L, 0L)) {
     normal <- models$step_id[
-      models$lf_likelihood == "normal" & models$tag_flag2 == tag_value &
+      models$reporting_rate_prior == prior &
+        models$lf_likelihood == "normal" & models$tag_flag2 == tag_value &
         models$regional_scaling_weight == weight
     ]
     dm <- models$step_id[
-      models$lf_likelihood == "dm_no_re" & models$tag_flag2 == tag_value &
+      models$reporting_rate_prior == prior &
+        models$lf_likelihood == "dm_no_re" & models$tag_flag2 == tag_value &
         models$regional_scaling_weight == weight
     ]
     if (length(normal) != 1L || length(dm) != 1L) {
@@ -277,10 +419,56 @@ for (tag_value in 0:1) {
            " REGW", weight)
     }
     compare_binary_files(normal, dm, matched_likelihood_files, "Normal/DM pair")
+    }
+  }
+}
+
+# Manual and PTTP26 counterparts may differ only in reporting-prior fields.
+cross_prior_files <- setdiff(common_pair_files, "tag_rep_map.R")
+for (likelihood in c("normal", "dm_no_re")) {
+  for (tag_value in 0:1) {
+    for (weight in c(50L, 11L, 1L, 0L)) {
+      manual <- models$step_id[
+        models$reporting_rate_prior == "manual_8_10" &
+          models$lf_likelihood == likelihood & models$tag_flag2 == tag_value &
+          models$regional_scaling_weight == weight
+      ]
+      pttp <- models$step_id[
+        models$reporting_rate_prior == "Tom_Peatman_2026_PTTP" &
+          models$lf_likelihood == likelihood & models$tag_flag2 == tag_value &
+          models$regional_scaling_weight == weight
+      ]
+      if (length(manual) != 1L || length(pttp) != 1L) {
+        fail("Missing manual/PTTP26 counterpart for ", likelihood,
+             " TAGF2=", tag_value, " REGW", weight)
+      }
+      compare_binary_files(manual, pttp, cross_prior_files, "Manual/PTTP26 pair")
+      if (!identical(
+        readLines(model_file(manual, "doitall.sh"), warn = FALSE),
+        readLines(model_file(pttp, "doitall.sh"), warn = FALSE)
+      )) {
+        fail("Manual/PTTP26 pair has different doitall files: ", manual, " versus ", pttp)
+      }
+      if (!identical(
+        canonical_prior_ini(readLines(model_file(manual, "bet.ini"), warn = FALSE)),
+        canonical_prior_ini(readLines(model_file(pttp, "bet.ini"), warn = FALSE))
+      )) {
+        fail("Manual/PTTP26 pair differs outside allowed INI prior fields: ",
+             manual, " versus ", pttp)
+      }
+      if (!identical(
+        tag_map_structure(model_file(manual, "tag_rep_map.R")),
+        tag_map_structure(model_file(pttp, "tag_rep_map.R"))
+      )) {
+        fail("Manual/PTTP26 tag group names or memberships differ: ",
+             manual, " versus ", pttp)
+      }
+    }
   }
 }
 
 cat(paste0(
-  "Validated sixteen SUB075 mix-0.15 NOCUT REGW50/11/1/0 models, including ",
-  "no flag 16=1, exact G7OSHL DM grouping, and matched TAGF2 pairs.\n"
+  "Validated thirty-two SUB075 mix-0.15 NOCUT REGW50/11/1/0 models, including ",
+  "no flag 16=1, exact G7OSHL DM Nmax10 grouping, pinned low-recapture tags, ",
+  "matched TAGF2 pairs, and manual/PTTP26 reporting-rate prior families.\n"
 ))
