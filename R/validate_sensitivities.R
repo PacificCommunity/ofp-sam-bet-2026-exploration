@@ -1,17 +1,23 @@
-## Validate the public S001-S008 composition-weighting comparison.
+## Validate the public S001-S012 composition-weighting and REGW comparison.
 root <- normalizePath(getwd(), winslash = "/", mustWork = TRUE)
 fail <- function(...) stop(paste0(...), call. = FALSE)
 config <- new.env(parent = globalenv()); sys.source(file.path(root, "job-config.R"), envir = config)
 models <- config$stepwise_models; ids <- sub("-.*$", "", models$step_id)
-if (!is.data.frame(models) || nrow(models) != 8L || !identical(ids, sprintf("S%03d", 1:8)) || anyDuplicated(models$step_id)) fail("Expected contiguous public models S001:S008")
-if (!identical(models$lf_likelihood, c(rep("normal", 4), rep("dm_no_re", 4)))) fail("Expected four Francis and four DM models")
-if (!identical(models$regional_scaling_weight, rep(c(11L, 1L), 4))) fail("REGW pairing is incorrect")
-if (!identical(models$reporting_rate_prior, rep(c("Tom_Peatman_2026_PTTP", "Tom_Peatman_2026_PTTP", "manual_8_10", "manual_8_10"), 2))) fail("Reporting-rate pairing is incorrect")
-if (!identical(models$source_job, c(12306L,12307L,12292L,12291L,12314L,12313L,12751L,12299L))) fail("Source-job provenance is incorrect")
+if (!is.data.frame(models) || nrow(models) != 12L || !identical(ids, sprintf("S%03d", 1:12)) || anyDuplicated(models$step_id)) fail("Expected contiguous public models S001:S012")
+if (!identical(models$lf_likelihood, c(rep("normal", 4), rep("dm_no_re", 4), rep("normal", 2), rep("dm_no_re", 2)))) fail("Expected six robust-normal and six DM models")
+if (!identical(models$regional_scaling_weight, c(11L,25L,11L,25L,11L,25L,11L,25L,100L,100L,100L,100L))) fail("REGW grid is incorrect")
+if (!identical(models$reporting_rate_prior, c("Tom_Peatman_2026_PTTP","Tom_Peatman_2026_PTTP","manual_8_10","manual_8_10","Tom_Peatman_2026_PTTP","Tom_Peatman_2026_PTTP","manual_8_10","manual_8_10","Tom_Peatman_2026_PTTP","manual_8_10","Tom_Peatman_2026_PTTP","manual_8_10"))) fail("Reporting-rate grid is incorrect")
+if (!identical(models$source_job, c(12306L,12307L,12292L,12291L,12314L,12313L,12751L,12299L,12306L,12292L,12314L,12751L))) fail("Source-job provenance is incorrect")
 dm <- models$lf_likelihood == "dm_no_re"
 if (any(models$dm_grouping[dm] != "G8PSSET") || any(models$dm_nmax[dm] != 25L)) fail("DM metadata must be G8PSSET Nmax25")
 model_dirs <- list.files(file.path(root, "sensitivity"), pattern = "^S[0-9]{3}-", full.names = FALSE)
-if (!setequal(model_dirs, models$step_id) || length(model_dirs) != 8L) fail("Sensitivity folders do not match job-config.R")
+if (!setequal(model_dirs, models$step_id) || length(model_dirs) != 12L) fail("Sensitivity folders do not match job-config.R")
+for (i in seq_len(nrow(models))) {
+  path <- file.path(root, "sensitivity", models$step_id[i], "model", "doitall.sh"); x <- readLines(path, warn = FALSE)
+  regw <- grep("^[[:space:]]*1[[:space:]]+77[[:space:]]+", x, value = TRUE)
+  value <- as.integer(sub("^[[:space:]]*1[[:space:]]+77[[:space:]]+([0-9]+).*", "\\1", regw))
+  if (!length(value) || any(value != models$regional_scaling_weight[i])) fail(models$step_id[i], ": parest flag 77 does not match metadata")
+}
 expected_group <- as.integer(c(1,1,1,1,2,1,1,1,2,1,1,3,7,6,6,7,3,3,4,5,7,7,7,7,4,4,5,5,8,8,8,8,8))
 for (step in models$step_id[dm]) {
   path <- file.path(root, "sensitivity", step, "model", "doitall.sh"); x <- readLines(path, warn = FALSE)
@@ -23,4 +29,4 @@ for (step in models$step_id[dm]) {
 }
 selection <- read.csv(file.path(root, "SENSITIVITY_SELECTION.csv"), stringsAsFactors = FALSE, check.names = FALSE)
 if (!identical(selection$model, models$step_id)) fail("SENSITIVITY_SELECTION.csv does not match job-config.R")
-message("Validated S001-S008, including all four G8PSSET Nmax25 models.")
+message("Validated S001-S012 REGW grid, including all six G8PSSET Nmax25 models.")
