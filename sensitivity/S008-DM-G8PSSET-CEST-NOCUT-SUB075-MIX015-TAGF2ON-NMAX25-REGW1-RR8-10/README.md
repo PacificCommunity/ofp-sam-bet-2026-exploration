@@ -11,5 +11,15 @@ Public BET 2026 DM sensitivity derived from Kflow Job 12299 and source model
 - Nmax: 25
 
 The source FRQ already contains effort creep; effort creep is not reapplied.
-All source inputs and controls are retained except DM fish flag 68 and parest
-flag 342. The root README documents the G8 mapping and Nmax25 rationale.
+All source inputs and controls are retained except DM fish flag 68, parest
+flag 342, and the F25/F26 selectivity sensitivity documented below. The root README documents the G8 mapping and Nmax25 rationale.
+
+## F25-F26 selectivity sensitivity
+
+This branch pairs this model with parent Kflow Job ${parent_jobs[S008]} from
+BET 2026 Francis + CPUE MLE. F25 (PS.ASSOC.WEST.3) and F26
+(PS.ASSOC.EAST.4) now share selectivity group 25 and use seven cubic-spline
+nodes. Both retain fish flags 16 = 2, 3 = 25, 26 = 2, 57 = 3, and 75 = 0.
+Subsequent selectivity groups are renumbered contiguously; other fishery
+selectivity controls are unchanged. See
+[notes/f25-f26-selectivity.md](../../notes/f25-f26-selectivity.md).

@@ -1,9 +1,9 @@
-# BET 2026 composition-weighting sensitivities
+# BET 2026 composition-weighting and associated-purse-seine selectivity sensitivities
 
 This public branch contains eight matched BET 2026 MFCL fits comparing Francis
 TA1.8 reweighting with a Dirichlet-multinomial observation model. All retain
 SUB075, NOCUT, mix-period 0.15, TAGF2ON, the selected 2026 effort-creep FRQ,
-the low-recapture-filtered tag file, and SA28-N5 selectivity.
+the low-recapture-filtered tag file, and the SA28 selectivity baseline with a matched F25/F26 shared seven-node sensitivity.
 
 ## Models
 
@@ -18,6 +18,22 @@ S005-S008 preserve their source controls except DM fish flag 68 and parest flag
 342. Job 12751 completed its MFCL fit but failed while building
 `model_payload.rds`; S007 therefore uses its public source definition at commit
 `8df6a0e4b9856c5cd1e06ab7010c6e71c773f428`, not an incomplete output archive.
+
+## F25-F26 associated-purse-seine selectivity
+
+All eight models apply the same targeted selectivity sensitivity. Fisheries 25
+and 26 share one cubic-spline selectivity group with seven nodes. Both retain
+the inherited dome-tail penalty (fish flag 16 = 2), upper-age boundary (flag 3
+= 25), age-based length-overlap option (flag 26 = 2), and no forced zero at the
+youngest age (flag 75 = 0). Other fisheries retain five nodes and their existing
+shape controls. Group labels are renumbered contiguously through both the shared
+index initialization and final index ungrouping phases.
+
+This changes the two associated-purse-seine fisheries from ten independently
+estimated spline coefficients to seven shared coefficients. It therefore adds
+local shape resolution while reducing the combined parameter dimension by
+three. The full rationale and selectivity audit are in
+[notes/f25-f26-selectivity.md](notes/f25-f26-selectivity.md).
 
 ## DM G8PSSET grouping
 

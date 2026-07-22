@@ -212,7 +212,7 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -999 26 2  # build selectivity-at-age by evaluating the spline on scaled mean length-at-age (not length-bin selectivity)
   -999 57 3  # cubic spline basis for selectivity
   -999 61 5  # five spline nodes on the scaled mean-length-at-age coordinate
-# SA28: independent extraction selectivity with contiguous MFCL group labels.
+# SA28 baseline with F25/F26 sharing associated-purse-seine selectivity; contiguous MFCL group labels.
   -1 24 1  # LL.WEST.ALL.1
   -2 24 2  # LL.EAST.ALL.1
   -3 24 3  # LL.US.1
@@ -237,15 +237,15 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -22 24 22  # MISC.PH.2
   -23 24 23  # MISC.VN.2
   -24 24 24  # PL.ALL.WEST.3
-  -25 24 25  # PS.ASSOC.WEST.3
-  -26 24 26  # PS.ASSOC.EAST.4
-  -27 24 27  # PS.UNASSOC.WEST.3
-  -28 24 28  # PS.UNASSOC.EAST.4
-  -29 24 29  # Index R1; shared initialization group through phase 4
-  -30 24 29  # Index R2; shared initialization group through phase 4
-  -31 24 29  # Index R3; shared initialization group through phase 4
-  -32 24 29  # Index R4; shared initialization group through phase 4
-  -33 24 29  # Index R5; shared initialization group through phase 4
+  -25 24 25  # PS.ASSOC.WEST.3; shared associated-purse-seine selectivity
+  -26 24 25  # PS.ASSOC.EAST.4; shared associated-purse-seine selectivity
+  -27 24 26  # PS.UNASSOC.WEST.3
+  -28 24 27  # PS.UNASSOC.EAST.4
+  -29 24 28  # Index R1; shared initialization group through phase 4
+  -30 24 28  # Index R2; shared initialization group through phase 4
+  -31 24 28  # Index R3; shared initialization group through phase 4
+  -32 24 28  # Index R4; shared initialization group through phase 4
+  -33 24 28  # Index R5; shared initialization group through phase 4
 # Extraction selectivity is not constrained to be non-decreasing.
 # Single-area extraction young-age constraints.
   -1 75 2
@@ -275,8 +275,8 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   -17 16 2  -17 3 25
   -18 16 2  -18 3 25
   -19 16 2  -19 3 25
-  -25 16 2  -25 3 25
-  -26 16 2  -26 3 25
+  -25 16 2  -25 3 25  -25 61 7  -25 75 0
+  -26 16 2  -26 3 25  -26 61 7  -26 75 0
   -27 16 2  -27 3 30
   -16 16 2  -16 3 25
   -24 16 2  -24 3 25
@@ -351,11 +351,11 @@ $program_path bet.frq 04.par 05.par -file - <<PHASE5
   -32 99 32  -32 94 0  # Index R4
   -33 99 33  -33 94 0  # Index R5
 # Ungroup index selectivity for the regional-scaling prior.
-  -29 24 29  # Index R1; separate final selectivity from phase 5 onward
-  -30 24 30  # Index R2; separate final selectivity from phase 5 onward
-  -31 24 31  # Index R3; separate final selectivity from phase 5 onward
-  -32 24 32  # Index R4; separate final selectivity from phase 5 onward
-  -33 24 33  # Index R5; separate final selectivity from phase 5 onward
+  -29 24 28  # Index R1; separate final selectivity from phase 5 onward
+  -30 24 29  # Index R2; separate final selectivity from phase 5 onward
+  -31 24 30  # Index R3; separate final selectivity from phase 5 onward
+  -32 24 31  # Index R4; separate final selectivity from phase 5 onward
+  -33 24 32  # Index R5; separate final selectivity from phase 5 onward
 # MFCL reads bet.reg_scaling when parest flag 77 is > 0.
   1 77 11    # MVN regional-scaling penalty weight
   1 78 1    # use mean regional-scaling target

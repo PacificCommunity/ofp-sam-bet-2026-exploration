@@ -9,7 +9,7 @@
 - Source payload SHA-256: 8bdc65f02cce1871641e07e7c952b01588dad4ea3c1956a4289e71c1bbbd4196
 - Source fit: objective -192574.7988; maximum gradient 8.966e-05
 
-This model applies full fishery-specific Francis TA1.8 length-composition divisors and CPUE likelihood MLE sigma values in one refit. It retains the source model's robust-normal likelihood, 1% MFCL tail compression, no LF cutoff, SUB075 age-length data, MIX015 tag mixing, TAGF2ON, REGW1, and PTTP26 reporting-rate controls. All other inputs and controls are unchanged.
+This model applies full fishery-specific Francis TA1.8 length-composition divisors and CPUE likelihood MLE sigma values in one refit. It retains the source model's robust-normal likelihood, 1% MFCL tail compression, no LF cutoff, SUB075 age-length data, MIX015 tag mixing, TAGF2ON, REGW1, and PTTP26 reporting-rate controls. Other than the F25/F26 selectivity sensitivity documented below, all remaining inputs and controls are unchanged.
 
 ## Francis TA1.8
 
@@ -90,3 +90,13 @@ S1 uses Job 12306 model S022 with REGW11; S2 uses Job 12307 model S023 with REGW
 
 - Francis, R. I. C. C. (2011). Data weighting in statistical fisheries stock assessment models. Canadian Journal of Fisheries and Aquatic Sciences 68: 1124-1138.
 - MULTIFAN-CL User Guide, robust-normal length likelihood and survey-index likelihood controls.
+
+## F25-F26 selectivity sensitivity
+
+This branch pairs this model with parent Kflow Job ${parent_jobs[S002]} from
+BET 2026 Francis + CPUE MLE. F25 (PS.ASSOC.WEST.3) and F26
+(PS.ASSOC.EAST.4) now share selectivity group 25 and use seven cubic-spline
+nodes. Both retain fish flags 16 = 2, 3 = 25, 26 = 2, 57 = 3, and 75 = 0.
+Subsequent selectivity groups are renumbered contiguously; other fishery
+selectivity controls are unchanged. See
+[notes/f25-f26-selectivity.md](../../notes/f25-f26-selectivity.md).

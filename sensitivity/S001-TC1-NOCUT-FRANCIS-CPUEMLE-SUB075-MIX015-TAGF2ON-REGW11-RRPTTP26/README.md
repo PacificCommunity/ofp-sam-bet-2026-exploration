@@ -10,7 +10,7 @@
 
 This model applies full fishery-specific Francis TA1.8 length-composition divisors and CPUE likelihood MLE sigma values in one refit.
 
-The inherited configuration is robust-normal length likelihood, 1% MFCL tail compression, no LF cutoff, SUB075 age-length data, MIX015 tag mixing, tag flag 2 on, regional-scaling weight 11, and reporting-rate prior 26. All other inputs and controls are unchanged. Effort creep was already applied once in the inherited source input and is not reapplied here.
+The inherited configuration is robust-normal length likelihood, 1% MFCL tail compression, no LF cutoff, SUB075 age-length data, MIX015 tag mixing, tag flag 2 on, regional-scaling weight 11, and reporting-rate prior 26. Other than the F25/F26 selectivity sensitivity documented below, all remaining inputs and controls are unchanged. Effort creep was already applied once in the inherited source input and is not reapplied here.
 
 ## Francis TA1.8
 
@@ -66,3 +66,13 @@ These corrected estimates use the fishery-mean-normalized lambda convention impl
 - Francis, R. I. C. C. (2011). Data weighting in statistical fisheries stock assessment models. Canadian Journal of Fisheries and Aquatic Sciences 68: 1124-1138.
 - MULTIFAN-CL User Guide, robust-normal length likelihood and survey-index likelihood controls.
 - r4ss SSMethod.TA1.8, an independent implementation of the Francis TA1.8 point estimator.
+
+## F25-F26 selectivity sensitivity
+
+This branch pairs this model with parent Kflow Job ${parent_jobs[S001]} from
+BET 2026 Francis + CPUE MLE. F25 (PS.ASSOC.WEST.3) and F26
+(PS.ASSOC.EAST.4) now share selectivity group 25 and use seven cubic-spline
+nodes. Both retain fish flags 16 = 2, 3 = 25, 26 = 2, 57 = 3, and 75 = 0.
+Subsequent selectivity groups are renumbered contiguously; other fishery
+selectivity controls are unchanged. See
+[notes/f25-f26-selectivity.md](../../notes/f25-f26-selectivity.md).

@@ -6,8 +6,8 @@
 
 # Stable task id shown in Kflow and used by the API:
 #   /api/job/ofp-sam-bet-2026-integrated-sensitivities-20260718
-name: ofp-sam-bet-2026-sub075-regw501110-dm20-20260721
-description: Run the matched BET 2026 SUB075 regional-scaling, tag-flag, and LF-likelihood sensitivity design.
+name: ofp-sam-bet-2026-psassoc-selectivity-n7-20260722
+description: Run eight matched BET 2026 models with shared seven-node F25/F26 associated-purse-seine selectivity.
 
 # Command executed inside the Docker container after checkout.
 command: bash run.sh
@@ -31,17 +31,17 @@ exclude_slots: []
 env:
   # Default selected model folder. Override per job in the Kflow job config.
   # Examples: 01-Diag2023, 08-RegionalCPUE, 01-Diag2023,09-NewOtoliths, all
-  STEP_SELECT: "S001-TC1-NOCUT-DW10-SUB075-MIX015-TAGF2OFF-REGW50"
+  STEP_SELECT: "S001-TC1-NOCUT-FRANCIS-CPUEMLE-SUB075-MIX015-TAGF2ON-REGW11-RRPTTP26"
 
   # Default Kflow display labels for the default model. `make kflow` computes
   # these from job-config.R. When launching directly from the Kflow UI and
   # changing STEP_SELECT, update these fields too if the job list should show
   # the selected model label before the run starts.
-  JOB_TITLE: "BET 2026 mix-0.15 regional-scaling and reporting-prior fit"
-  JOB_DESCRIPTION: "Run one SUB075 mix-0.15 regional-scaling and reporting-prior sensitivity model."
-  MODEL_LABEL: "SUB075 MIX015 NOCUT DW10 TAGF2OFF REGW50 RR8/10"
-  JOB_KEY: s001-sub075-mix015-nocut-dw10-tagf2off-regw50-rr8-10
-  FLOW_GROUP: bet-2026-sub075-mix015-rrpttp26-g7oshl-dm10-20260721
+  JOB_TITLE: "BET 2026 F25-F26 selectivity sensitivity"
+  JOB_DESCRIPTION: "Run one matched model with shared seven-node F25/F26 associated-purse-seine selectivity."
+  MODEL_LABEL: "S001 Francis CPUE-MLE F25/F26 shared N7"
+  JOB_KEY: s001-francis-cpue-mle-psassoc-n7
+  FLOW_GROUP: bet-2026-psassoc-selectivity-n7-20260722
   TRIGGER_NEXT: "false"
   FLOW_SPECIES: BET
   FLOW_SPECIES_LABEL: bigeye tuna
