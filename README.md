@@ -1,97 +1,86 @@
-# BET 2026 LF-likelihood and associated-purse-seine selectivity sensitivities
+# BET 2026 DM Nmax and F25/F26 selectivity sensitivities
 
-This public branch contains twelve matched BET 2026 MFCL fits comparing the\ninitial robust-normal LF divisor pattern with a Dirichlet-multinomial observation model. All retain
-SUB075, NOCUT, mix-period 0.15, TAGF2ON, the selected 2026 effort-creep FRQ,
-the low-recapture-filtered tag file, and the SA28 selectivity baseline with a matched independent seven-node F25/F26 sensitivity.
+This public branch contains twelve matched BET 2026 MFCL Dirichlet-multinomial
+fits. The design compares Nmax 15 and 25 across REGW 11, 25, and 100 and two
+tag-reporting-rate prior settings. All models use G8PSSET grouping, common
+R1-R5 CPUE sigma controls, SUB075, NOCUT, mix-period 0.15, TAGF2ON, and
+independent seven-node F25/F26 selectivities.
 
 ## Models
 
-| IDs | LF observation model | REGW | Reporting-rate prior | Source jobs |
-| --- | --- | --- | --- | --- |
-| S001-S002 | Initial robust-normal divisors plus common CPUE sigma | 11, 25 | PTTP26 | 12306, 12307 |
-| S003-S004 | Initial robust-normal divisors plus common CPUE sigma | 11, 25 | Manual 8/10 | 12292, 12291 |
-| S005-S006 | DM G8PSSET, Nmax25 | 11, 25 | PTTP26 | 12314, 12313 |
-| S007-S008 | DM G8PSSET, Nmax25 | 11, 25 | Manual 8/10 | 12751, 12299 |
-| S009 | Initial robust-normal LF divisors | 100 | PTTP26 | 12306 |
-| S010 | Initial robust-normal LF divisors | 100 | Manual 8/10 | 12292 |
-| S011 | DM G8PSSET, Nmax25 | 100 | PTTP26 | 12314 |
-| S012 | DM G8PSSET, Nmax25 | 100 | Manual 8/10 | 12751 |
+| IDs | DM Nmax | REGW | Reporting-rate prior | Source jobs |
+| --- | ---: | ---: | --- | --- |
+| S001-S002 | 15 | 11, 25 | PTTP26 | 12314, 12313 |
+| S003-S004 | 15 | 11, 25 | Manual 8/10 | 12751, 12299 |
+| S005-S006 | 25 | 11, 25 | PTTP26 | 12314, 12313 |
+| S007-S008 | 25 | 11, 25 | Manual 8/10 | 12751, 12299 |
+| S009 | 15 | 100 | PTTP26 | 12314 |
+| S010 | 15 | 100 | Manual 8/10 | 12751 |
+| S011 | 25 | 100 | PTTP26 | 12314 |
+| S012 | 25 | 100 | Manual 8/10 | 12751 |
 
-S005-S008 and S011-S012 preserve their source controls except DM fish flag 68 and parest flag
-342. Job 12751 completed its MFCL fit but failed while building
-`model_payload.rds`; S007 therefore uses its public source definition at commit
-`8df6a0e4b9856c5cd1e06ab7010c6e71c773f428`, not an incomplete output archive.
+Job 12751 completed its MFCL fit but failed while building model_payload.rds.
+Models sourced from it therefore use its public model definition at commit
+8df6a0e4b9856c5cd1e06ab7010c6e71c773f428.
 
-## Initial robust-normal LF divisors\n\nS001-S004 use the source divisor pattern: 40 or 20 for the principal\nfisheries, 200 for F21-F23, and 40 for F29-F33. Francis TA1.8 override blocks\nare disabled. The complete mapping is in\n[notes/initial-lf-divisors.md](notes/initial-lf-divisors.md).\n\n## Common CPUE sigma
+## Nmax calibration
 
-All twelve models use the same survey-index likelihood sigma controls:\nR1-R5 fish flag 92 = 36, 25, 21, 24, 22. The continuous reference values\nare the arithmetic means of the four independently fitted S001-S004\nMFCL-equivalent MLE sigma estimates. This removes CPUE weighting differences\nfrom the matched initial-LF/DM and selectivity comparisons. The calculation is\nrecorded in [notes/common-cpue-sigma.md](notes/common-cpue-sigma.md).\n\n## F25-F26 associated-purse-seine selectivity
+Nmax is an upper bound on DM effective sample size. It is not the mean ESS.
+The comparison uses the empirical Francis ESS distribution from 2,399 positive
+LF compositions in the matched initial robust-normal fits.
 
-All twelve models apply the same targeted selectivity sensitivity. Fisheries 25
-and 26 use independent cubic-spline selectivity groups 25 and 26, respectively,
-with seven nodes each. Both retain the inherited dome-tail penalty (fish flag
-16 = 2), upper-age boundary (flag 3 = 25), age-based length-overlap option (flag
-26 = 2), and no forced zero at the youngest age (flag 75 = 0). Other fisheries
-retain five nodes and their existing shape controls. Group labels are contiguous
-through both the shared index initialization and final index ungrouping phases.
-
-This controlled change releases only the F25/F26 coefficient sharing used in
-the parent branch. It adds seven selectivity coefficients while preserving the
-same spline basis and regularisation, allowing the western and eastern
-associated-set fisheries to differ without changing other model controls. The
-full rationale and selectivity audit are in
-[notes/f25-f26-selectivity.md](notes/f25-f26-selectivity.md).
-
-## DM G8PSSET grouping
-
-Groups were defined before fitting from gear, purse-seine set type, fishery
-definition, and composition sampling process. Poor aggregate fit alone was not
-used to create a single-fishery group.
-
-| Group | Fisheries | Rationale |
-| ---: | --- | --- |
-| 1 | F1-F4, F6-F8, F10-F11 | Main longline composition process |
-| 2 | F5, F9 | Offshore longline; its earlier separation improved fit and it has a distinct sampling history |
-| 3 | F12, F17, F18 | Purse-seine fisheries without set-type separation |
-| 4 | F19, F25, F26 | Associated purse-seine fisheries |
-| 5 | F20, F27, F28 | Unassociated purse-seine fisheries |
-| 6 | F14, F15 | Handline fisheries |
-| 7 | F13, F16, F21-F24 | Other extraction fisheries, pooled for stable estimation |
-| 8 | F29-F33 | Regional indices sharing the relative-abundance reweighting procedure |
-
-```text
-1 1 1 1 2 1 1 1 2 1 1 3 7 6 6 7 3 3 4 5 7 7 7 7 4 4 5 5 8 8 8 8 8
-```
-
-The G8PSSET definition changes only flag 68. The common F25/F26 selectivity treatment is documented separately; tag-reporting groups
-(flag 32), FRQ, INI, tag, age-length, and regional-scaling inputs are unchanged.
-
-## Why Nmax is 25
-
-Nmax is an upper bound on DM effective sample size, not its mean. It was
-calibrated against 2,399 positive LF compositions in S001-S004 using the MFCL
-sample-size cap of 1,000 and committed fishery-specific Francis divisors.
-
-| Francis ESS statistic | S001-S004 range |
+| Francis ESS statistic | Range |
 | --- | ---: |
 | Mean | 9.94-10.39 |
 | Median | 8.62-10.53 |
 | 75th percentile | 12.99-13.33 |
 | 90th percentile | 20.41-20.83 |
 | 95th percentile | 22.22-23.81 |
-| Maximum | 52.63-62.50 |
 
-A cap of 25 lies just above the 95th percentile. Averaging each composition's
-ESS across S001-S004, only 2.96% exceed 25. It preserves nearly all
-Francis-supported information while preventing the small upper tail from
-letting LF data dominate conflicting CPUE information. Nmax10 would bind many
-supported compositions; Nmax40-60 would mainly accommodate the unstable tail.
+Nmax 15 is a conservative intermediate cap just above the Francis upper
+quartile. Nmax 25 is an upper-tail cap just above the Francis 95th percentile.
+The paired design tests whether reducing the active LF information cap improves
+the balance between composition and CPUE fit without changing other controls.
 
-MFCL uses `Neff = Nmax * (1 + lambda) / (Nmax + lambda)`, so realized
-information is estimated below the cap. The implementation is public in
-[`src/len_dm_nore.cpp`](https://github.com/PacificCommunity/ofp-sam-mfcl/blob/ongoing-dev/src/len_dm_nore.cpp).
+Completed Nmax25 parent fits assigned a median realized ESS of 24.57 and placed
+88.1% of compositions at ESS 24 or higher. This confirms that Nmax25 acts as an
+active regularisation cap rather than a rarely reached upper bound.
+
+MFCL uses:
+
+    Neff = Nmax * (1 + lambda) / (Nmax + lambda)
+
+The implementation is public in the ongoing-dev src/len_dm_nore.cpp source.
+
+## G8PSSET grouping
+
+| Group | Fisheries | Rationale |
+| ---: | --- | --- |
+| 1 | F1-F4, F6-F8, F10-F11 | Main longline composition process |
+| 2 | F5, F9 | Offshore longline with a distinct sampling history |
+| 3 | F12, F17, F18 | Purse-seine fisheries without set-type separation |
+| 4 | F19, F25, F26 | Associated purse-seine fisheries |
+| 5 | F20, F27, F28 | Unassociated purse-seine fisheries |
+| 6 | F14, F15 | Handline fisheries |
+| 7 | F13, F16, F21-F24 | Other extraction fisheries pooled for stable estimation |
+| 8 | F29-F33 | Regional indices sharing the relative-abundance reweighting procedure |
+
+    1 1 1 1 2 1 1 1 2 1 1 3 7 6 6 7 3 3 4 5 7 7 7 7 4 4 5 5 8 8 8 8 8
+
+## F25/F26 selectivity
+
+Fisheries 25 and 26 use independent cubic-spline selectivity groups 25 and 26
+with seven nodes each. Both retain fish flag 16 = 2, flag 3 = 25, flag 26 = 2,
+and flag 75 = 0. Other fisheries retain their existing selectivity controls.
+See notes/f25-f26-selectivity.md.
+
+## Common CPUE sigma
+
+All models use common survey-index likelihood sigma controls:
+R1-R5 fish flag 92 = 36, 25, 21, 24, 22. See notes/common-cpue-sigma.md.
 
 ## Public provenance
 
-The DM sources are in `PacificCommunity/ofp-sam-bet-2026-exploration`, branch
-`experiment/mix015-unconstrained-g7oshl-dm20-20260721`. Each model README and
-`input_manifest.csv` records source jobs, commits, and retained inputs.
+The DM source definitions are in PacificCommunity/ofp-sam-bet-2026-exploration,
+branch experiment/mix015-unconstrained-g7oshl-dm20-20260721. Each model README
+and input_manifest.csv records its source job and retained inputs.

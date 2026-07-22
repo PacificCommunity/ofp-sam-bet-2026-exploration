@@ -1,6 +1,0 @@
-fishery,index,n,lambda_raw_mean,source_sigma,source_flag92,sigma_mle,recommended_flag92,source_job,lambda_convention
-29,R1,292,1.06073133485787,0.35,35,0.381164500818654,38,12292,fishery-mean-normalized
-30,R2,292,1.02266273212514,0.24,24,0.253889662560161,25,12292,fishery-mean-normalized
-31,R3,292,0.996426248463818,0.21,21,0.196216683760998,20,12292,fishery-mean-normalized
-32,R4,290,1.04751462306105,0.24,24,0.229608279908937,23,12292,fishery-mean-normalized
-33,R5,292,0.990231135407572,0.23,23,0.212053422080719,21,12292,fishery-mean-normalized

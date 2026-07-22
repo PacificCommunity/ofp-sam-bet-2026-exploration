@@ -7,7 +7,7 @@
 # Stable task id shown in Kflow and used by the API:
 #   /api/job/ofp-sam-bet-2026-integrated-sensitivities-20260718
 name: ofp-sam-bet-2026-regw-grid-f25-f26-separate-n7-20260723
-description: Run twelve matched BET 2026 models across REGW11, REGW25, and REGW100 with initial LF divisors or DM, common CPUE sigma, and independent seven-node F25/F26 selectivities.
+description: Run twelve matched BET 2026 DM models comparing Nmax15 and Nmax25 across REGW11, REGW25, and REGW100 with common CPUE sigma and independent seven-node F25/F26 selectivities.
 
 # Command executed inside the Docker container after checkout.
 command: bash run.sh
@@ -31,16 +31,16 @@ exclude_slots: []
 env:
   # Default selected model folder. Override per job in the Kflow job config.
   # Examples: 01-Diag2023, 08-RegionalCPUE, 01-Diag2023,09-NewOtoliths, all
-  STEP_SELECT: "S001-TC1-NOCUT-INITLF-CPUEMLE-SUB075-MIX015-TAGF2ON-REGW11-RRPTTP26"
+  STEP_SELECT: "S001-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW11-RRPTTP26"
 
   # Default Kflow display labels for the default model. `make kflow` computes
   # these from job-config.R. When launching directly from the Kflow UI and
   # changing STEP_SELECT, update these fields too if the job list should show
   # the selected model label before the run starts.
-  JOB_TITLE: "BET 2026 REGW11/25/100 comparison"
-  JOB_DESCRIPTION: "Run one matched initial-LF-divisor or DM model in the REGW11/25/100 grid."
-  MODEL_LABEL: "S001 initial LF divisors F25/F26 separate N7 common CPUE sigma"
-  JOB_KEY: s001-initlf-cpue-mle-f25-f26-separate-n7
+  JOB_TITLE: "BET 2026 DM Nmax15/25 - REGW11/25/100"
+  JOB_DESCRIPTION: "Run one matched DM Nmax15 or Nmax25 model in the REGW11/25/100 grid."
+  MODEL_LABEL: "S001 DM G8PSSET Nmax15 F25/F26 separate N7 common CPUE sigma"
+  JOB_KEY: s001-dm-g8psset-nmax15-f25-f26-separate-n7
   FLOW_GROUP: bet-2026-regw-grid-f25-f26-separate-n7-20260723
   TRIGGER_NEXT: "false"
   FLOW_SPECIES: BET
