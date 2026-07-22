@@ -19,3 +19,6 @@ notes/*
 !notes/*.md
 steps/*/model/*.par
 steps/*/model/*.par[0-9]*
+
+# Python bytecode
+scripts/__pycache__/
