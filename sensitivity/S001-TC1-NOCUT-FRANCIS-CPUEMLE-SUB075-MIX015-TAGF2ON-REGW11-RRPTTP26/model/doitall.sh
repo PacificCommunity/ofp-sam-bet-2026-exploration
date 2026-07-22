@@ -59,11 +59,11 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
 # Sigma values are re-estimated from Step 12 fitted CPUE log residuals using
 # sigma^2 = mean((P - O)^2 / lambda), where lambda is the normalized freq-file
 # precision pattern used by the MFCL catch-conditioned CPUE likelihood.
-  -29 94 1 -29 92 37 -29 66 1  # Index R1, sigma 0.371 (MLE)
-  -30 94 1 -30 92 25 -30 66 1  # Index R2, sigma 0.252 (MLE)
-  -31 94 1 -31 92 20 -31 66 1  # Index R3, sigma 0.198 (MLE)
-  -32 94 1 -32 92 23 -32 66 1  # Index R4, sigma 0.227 (MLE)
-  -33 94 1 -33 92 21 -33 66 1  # Index R5, sigma 0.214 (MLE)
+  -29 94 1 -29 92 38 -29 66 1  # Index R1, MFCL-equivalent sigma 0.381872619
+  -30 94 1 -30 92 25 -30 66 1  # Index R2, MFCL-equivalent sigma 0.254966857
+  -31 94 1 -31 92 20 -31 66 1  # Index R3, MFCL-equivalent sigma 0.197775601
+  -32 94 1 -32 92 23 -32 66 1  # Index R4, MFCL-equivalent sigma 0.232217238
+  -33 94 1 -33 92 21 -33 66 1  # Index R5, MFCL-equivalent sigma 0.212907454
 # Grouping flags for survey CPUE
    -1 99 1
    -2 99 2

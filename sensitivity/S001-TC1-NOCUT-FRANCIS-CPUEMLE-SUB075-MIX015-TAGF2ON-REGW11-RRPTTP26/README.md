@@ -32,21 +32,25 @@ An independent base-R implementation reproduced the mfclkit raw multipliers to w
 
 ## CPUE likelihood MLE
 
-Job 12306 stores centered log observed and predicted CPUE in MFCLRep. For residual r_t and normalized variance multiplier lambda_t, the MFCL survey-index likelihood gives:
+MFCL reads FRQ field 7 as the CPUE precision multiplier and normalizes it within each fishery:
 
-sigma_MLE squared = mean(r_t squared / lambda_t)
+lambda_MFCL,t = lambda_raw,t / mean(lambda_raw).
+
+For centered log-residual r_t, the relevant likelihood gives:
+
+sigma_MLE squared = mean(r_t squared / lambda_MFCL,t)
 
 fishery flag 92 = round(100 * sigma_MLE)
 
-| Index | n | Existing sigma | MLE sigma | Existing flag 92 | MLE flag 92 |
+| Index | n | Source sigma | MFCL-equivalent sigma | Source flag 92 | New flag 92 |
 |---|---:|---:|---:|---:|---:|
-| R1 | 292 | 0.35 | 0.3708 | 35 | 37 |
-| R2 | 292 | 0.24 | 0.2521 | 24 | 25 |
-| R3 | 292 | 0.21 | 0.1981 | 21 | 20 |
-| R4 | 290 | 0.24 | 0.2269 | 24 | 23 |
-| R5 | 292 | 0.23 | 0.2140 | 23 | 21 |
+| R1 | 292 | 0.35 | 0.3818726195 | 35 | 38 |
+| R2 | 292 | 0.24 | 0.2549668574 | 24 | 25 |
+| R3 | 292 | 0.21 | 0.1977756009 | 21 | 20 |
+| R4 | 290 | 0.24 | 0.2322172383 | 24 | 23 |
+| R5 | 292 | 0.23 | 0.2129074544 | 23 | 21 |
 
-The closed-form estimates match direct numerical minimization of the MFCL likelihood to within 3.4e-09 in sigma. The complete audit is in model/cpue_mle.csv.
+These corrected estimates use the fishery-mean-normalized lambda convention implemented by MFCL ongoing-dev. The complete machine-readable audit is in model/cpue_mle.csv.
 
 ## Implementation provenance
 

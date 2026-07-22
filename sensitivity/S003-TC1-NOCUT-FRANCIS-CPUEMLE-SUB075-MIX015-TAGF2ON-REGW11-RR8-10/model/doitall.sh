@@ -59,11 +59,11 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
 # Sigma values are re-estimated from Step 12 fitted CPUE log residuals using
 # sigma^2 = mean((P - O)^2 / lambda), where lambda is the normalized freq-file
 # precision pattern used by the MFCL catch-conditioned CPUE likelihood.
-  -29 94 1 -29 92 38 -29 66 1  # Index R1, MFCL-equivalent sigma 0.378651437
-  -30 94 1 -30 92 26 -30 66 1  # Index R2, MFCL-equivalent sigma 0.255049656
-  -31 94 1 -31 92 20 -31 66 1  # Index R3, MFCL-equivalent sigma 0.204009092
-  -32 94 1 -32 92 23 -32 66 1  # Index R4, MFCL-equivalent sigma 0.232095460
-  -33 94 1 -33 92 22 -33 66 1  # Index R5, MFCL-equivalent sigma 0.216711580
+  -29 94 1 -29 92 38 -29 66 1  # Index R1, MFCL-equivalent sigma 0.381164501; raw-lambda sigma 0.370092043
+  -30 94 1 -30 92 25 -30 66 1  # Index R2, MFCL-equivalent sigma 0.253889663; raw-lambda sigma 0.251060739
+  -31 94 1 -31 92 20 -31 66 1  # Index R3, MFCL-equivalent sigma 0.196216684; raw-lambda sigma 0.196568241
+  -32 94 1 -32 92 23 -32 66 1  # Index R4, MFCL-equivalent sigma 0.229608280; raw-lambda sigma 0.224340404
+  -33 94 1 -33 92 21 -33 66 1  # Index R5, MFCL-equivalent sigma 0.212053422; raw-lambda sigma 0.213096834
 # Grouping flags for survey CPUE
    -1 99 1
    -2 99 2
@@ -112,55 +112,61 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   1 111 4     # set likelihood function for tags to negative binomial
   1 141 3     # set likelihood function for LF data to normal
   1 139 3     # set likelihood function for WF data to normal
-  -999 49 20  # fallback; full Francis TA1.8 overrides follow for F1-F33
-  -01 49 98
-  -02 49 179
-  -03 49 45
-  -04 49 112
-  -05 49 65
-  -06 49 24
-  -07 49 76
-  -08 49 43
-  -09 49 88
-  -10 49 120
-  -11 49 51
-  -12 49 204
-  -13 49 408
-  -14 49 16
-  -15 49 144
-  -16 49 269
-  -17 49 88
-  -18 49 148
-  -19 49 142
-  -20 49 252
-  -21 49 103
-  -22 49 419
-  -23 49 726
-  -24 49 43
-  -25 49 24
-  -26 49 19
-  -27 49 19
-  -28 49 52
-  -29 49 91
-  -30 49 59
-  -31 49 49
-  -32 49 56
-  -33 49 38
+  -999 49 20  # divide LF sample sizes by 20
+  -21 49 200  # DW10: F21 LF divisor, 10 times the global divisor 20
+  -22 49 200  # DW10: F22 LF divisor, 10 times the global divisor 20
+  -23 49 200  # DW10: F23 LF divisor, 10 times the global divisor 20
   -999 50 20  # divide WF sample sizes by 20
 # Additional LF/WF sample-size reductions retained from the inherited setup.
 # Index fisheries 29-33 are included; extraction labels need the 03 fishery map.
-  -1 50 40
-  -2 50 40
-  -4 50 40
-  -6 50 40
-  -7 50 40
-  -8 50 40
-  -10 50 40
-  -29 50 40
-  -30 50 40
-  -31 50 40
-  -32 50 40
-  -33 50 40
+   -1 49 40   -1 50 40
+   -2 49 40   -2 50 40
+   -4 49 40   -4 50 40
+   -6 49 40   -6 50 40
+   -7 49 40   -7 50 40
+   -8 49 40   -8 50 40
+  -10 49 40  -10 50 40
+  -29 49 40  -29 50 40
+  -30 49 40  -30 50 40
+  -31 49 40  -31 50 40
+  -32 49 40  -32 50 40
+  -33 49 40  -33 50 40
+# BEGIN MFCLKIT FRANCIS TA1.8 FLAG49 OVERRIDES
+# Native integer realization of original Francis TA1.8 targets.
+  -1 49 116  # Francis TA1.8 recommended LF divisor
+  -2 49 147  # Francis TA1.8 recommended LF divisor
+  -3 49 42  # Francis TA1.8 recommended LF divisor
+  -4 49 110  # Francis TA1.8 recommended LF divisor
+  -5 49 62  # Francis TA1.8 recommended LF divisor
+  -6 49 23  # Francis TA1.8 recommended LF divisor
+  -7 49 76  # Francis TA1.8 recommended LF divisor
+  -8 49 41  # Francis TA1.8 recommended LF divisor
+  -9 49 87  # Francis TA1.8 recommended LF divisor
+  -10 49 120  # Francis TA1.8 recommended LF divisor
+  -11 49 48  # Francis TA1.8 recommended LF divisor
+  -12 49 207  # Francis TA1.8 recommended LF divisor
+  -13 49 377  # Francis TA1.8 recommended LF divisor
+  -14 49 16  # Francis TA1.8 recommended LF divisor
+  -15 49 142  # Francis TA1.8 recommended LF divisor
+  -16 49 286  # Francis TA1.8 recommended LF divisor
+  -17 49 88  # Francis TA1.8 recommended LF divisor
+  -18 49 147  # Francis TA1.8 recommended LF divisor
+  -19 49 148  # Francis TA1.8 recommended LF divisor
+  -20 49 254  # Francis TA1.8 recommended LF divisor
+  -21 49 120  # Francis TA1.8 recommended LF divisor
+  -22 49 405  # Francis TA1.8 recommended LF divisor
+  -23 49 730  # Francis TA1.8 recommended LF divisor
+  -24 49 35  # Francis TA1.8 recommended LF divisor
+  -25 49 27  # Francis TA1.8 recommended LF divisor
+  -26 49 39  # Francis TA1.8 recommended LF divisor
+  -27 49 19  # Francis TA1.8 recommended LF divisor
+  -28 49 49  # Francis TA1.8 recommended LF divisor
+  -29 49 116  # Francis TA1.8 recommended LF divisor
+  -30 49 57  # Francis TA1.8 recommended LF divisor
+  -31 49 51  # Francis TA1.8 recommended LF divisor
+  -32 49 56  # Francis TA1.8 recommended LF divisor
+  -33 49 38  # Francis TA1.8 recommended LF divisor
+# END MFCLKIT FRANCIS TA1.8 FLAG49 OVERRIDES
 # Tag dynamics settings
   1 33 99    # maximum tag reporting rate for all fisheries is 0.99
   2 96 30    # pool tags after 30 quarters at liberty
@@ -352,7 +358,7 @@ $program_path bet.frq 04.par 05.par -file - <<PHASE5
   -32 24 32  # Index R4; separate final selectivity from phase 5 onward
   -33 24 33  # Index R5; separate final selectivity from phase 5 onward
 # MFCL reads bet.reg_scaling when parest flag 77 is > 0.
-  1 77 1    # MVN regional-scaling penalty weight
+  1 77 11    # MVN regional-scaling penalty weight
   1 78 1    # use mean regional-scaling target
   1 79 240  # start regional-scaling prior at period 53; 1965-1969 CPUE covariance window
   1 80 220  # end regional-scaling prior at period 72; 1965-1969 CPUE covariance window

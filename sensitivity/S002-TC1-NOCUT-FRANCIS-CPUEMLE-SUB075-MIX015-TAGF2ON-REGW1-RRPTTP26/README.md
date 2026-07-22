@@ -55,19 +55,29 @@ The calculation uses the authoritative Job 12307 fitted PAR, MFCL flags 141 = 3,
 
 ## CPUE likelihood MLE
 
-For centered log-residual `r_t` and normalized variance multiplier `lambda_t`, `sigma_MLE^2 = mean(r_t^2 / lambda_t)` and flag 92 is `round(100 * sigma_MLE)`. Closed-form estimates match direct numerical minimization of the MFCL likelihood within 2.53e-09 in sigma. The complete audit is [model/cpue_mle.csv](model/cpue_mle.csv).
+MFCL reads FRQ field 7 as the CPUE precision multiplier and normalizes it within each fishery:
 
-| Index | n | Source sigma | S1 MLE | S1 flag 92 | S2 MLE | S2 flag 92 | S2 - S1 |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| R1 | 292 | 0.35 | 0.3708 | 37 | 0.3677 | 37 | -0.0031 |
-| R2 | 292 | 0.24 | 0.2521 | 25 | 0.2522 | 25 | +0.0001 |
-| R3 | 292 | 0.21 | 0.1981 | 20 | 0.2044 | 20 | +0.0062 |
-| R4 | 290 | 0.24 | 0.2269 | 23 | 0.2268 | 23 | -0.0001 |
-| R5 | 292 | 0.23 | 0.2140 | 21 | 0.2178 | 22 | +0.0038 |
+lambda_MFCL,t = lambda_raw,t / mean(lambda_raw).
+
+For centered log-residual r_t, the relevant likelihood gives:
+
+sigma_MLE squared = mean(r_t squared / lambda_MFCL,t)
+
+fishery flag 92 = round(100 * sigma_MLE)
+
+| Index | n | Source sigma | S1 sigma | S1 flag 92 | S2 sigma | S2 flag 92 |
+|---|---:|---:|---:|---:|---:|---:|
+| R1 | 292 | 0.35 | 0.3818726195 | 38 | 0.3786514370 | 38 |
+| R2 | 292 | 0.24 | 0.2549668574 | 25 | 0.2550496561 | 26 |
+| R3 | 292 | 0.21 | 0.1977756009 | 20 | 0.2040090921 | 20 |
+| R4 | 290 | 0.24 | 0.2322172383 | 23 | 0.2320954604 | 23 |
+| R5 | 292 | 0.23 | 0.2129074544 | 21 | 0.2167115803 | 22 |
+
+The corrected estimates use the fishery-mean-normalized lambda convention implemented by MFCL ongoing-dev. Relative to S1, S2 changes flag 92 for R2 and R5. The complete machine-readable audit is in model/cpue_mle.csv.
 
 ## S1 comparison
 
-S1 uses Job 12306 model S022 with REGW11; S2 uses Job 12307 model S023 with REGW1. Static observation inputs are identical. Differences in the reweighting estimates therefore arise from the independently fitted predictions under the two regional-scaling weights. S2 changes 28 Francis flag-49 values relative to S1; CPUE flag 92 changes only for R5, from 21 to 22.
+S1 uses Job 12306 model S022 with REGW11; S2 uses Job 12307 model S023 with REGW1. Static observation inputs are identical. Differences in the reweighting estimates therefore arise from independently fitted predictions under the two regional-scaling weights. S2 changes 28 Francis flag-49 values relative to S1 and changes CPUE flag 92 for R2 and R5.
 
 ## Implementation provenance
 

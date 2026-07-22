@@ -59,11 +59,11 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
 # Sigma values are re-estimated from Step 12 fitted CPUE log residuals using
 # sigma^2 = mean((P - O)^2 / lambda), where lambda is the normalized freq-file
 # precision pattern used by the MFCL catch-conditioned CPUE likelihood.
-  -29 94 1 -29 92 38 -29 66 1  # Index R1, MFCL-equivalent sigma 0.378651437
-  -30 94 1 -30 92 26 -30 66 1  # Index R2, MFCL-equivalent sigma 0.255049656
-  -31 94 1 -31 92 20 -31 66 1  # Index R3, MFCL-equivalent sigma 0.204009092
-  -32 94 1 -32 92 23 -32 66 1  # Index R4, MFCL-equivalent sigma 0.232095460
-  -33 94 1 -33 92 22 -33 66 1  # Index R5, MFCL-equivalent sigma 0.216711580
+  -29 94 1 -29 92 38 -29 66 1  # Index R1, MFCL-equivalent sigma 0.376786184
+  -30 94 1 -30 92 26 -30 66 1  # Index R2, MFCL-equivalent sigma 0.255231477
+  -31 94 1 -31 92 20 -31 66 1  # Index R3, MFCL-equivalent sigma 0.199048451
+  -32 94 1 -32 92 23 -32 66 1  # Index R4, MFCL-equivalent sigma 0.234439881
+  -33 94 1 -33 92 21 -33 66 1  # Index R5, MFCL-equivalent sigma 0.212942049
 # Grouping flags for survey CPUE
    -1 99 1
    -2 99 2
@@ -112,55 +112,43 @@ $program_path bet.frq 00.par 01.par -file - <<PHASE1
   1 111 4     # set likelihood function for tags to negative binomial
   1 141 3     # set likelihood function for LF data to normal
   1 139 3     # set likelihood function for WF data to normal
-  -999 49 20  # fallback; full Francis TA1.8 overrides follow for F1-F33
-  -01 49 98
-  -02 49 179
-  -03 49 45
-  -04 49 112
-  -05 49 65
-  -06 49 24
-  -07 49 76
-  -08 49 43
-  -09 49 88
-  -10 49 120
-  -11 49 51
-  -12 49 204
-  -13 49 408
-  -14 49 16
-  -15 49 144
-  -16 49 269
-  -17 49 88
-  -18 49 148
-  -19 49 142
-  -20 49 252
-  -21 49 103
-  -22 49 419
-  -23 49 726
-  -24 49 43
-  -25 49 24
-  -26 49 19
-  -27 49 19
-  -28 49 52
-  -29 49 91
-  -30 49 59
-  -31 49 49
-  -32 49 56
-  -33 49 38
+  -999 49 20  # divide LF sample sizes by 20
+  -21 49 100  # DW10: F21 LF divisor, 10 times the global divisor 20
+  -22 49 403  # DW10: F22 LF divisor, 10 times the global divisor 20
+  -23 49 733  # DW10: F23 LF divisor, 10 times the global divisor 20
+  -3 49 43
+  -5 49 65
+  -9 49 90
+  -11 49 49
+  -12 49 188
+  -13 49 376
+  -14 49 15
+  -15 49 139
+  -16 49 268
+  -17 49 87
+  -18 49 144
+  -19 49 139
+  -20 49 248
+  -24 49 39
+  -25 49 25
+  -26 49 38
+  -27 49 16
+  -28 49 49
   -999 50 20  # divide WF sample sizes by 20
 # Additional LF/WF sample-size reductions retained from the inherited setup.
 # Index fisheries 29-33 are included; extraction labels need the 03 fishery map.
-  -1 50 40
-  -2 50 40
-  -4 50 40
-  -6 50 40
-  -7 50 40
-  -8 50 40
-  -10 50 40
-  -29 50 40
-  -30 50 40
-  -31 50 40
-  -32 50 40
-  -33 50 40
+   -1 49 95   -1 50 40
+   -2 49 175   -2 50 40
+   -4 49 113   -4 50 40
+   -6 49 24   -6 50 40
+   -7 49 75   -7 50 40
+   -8 49 39   -8 50 40
+  -10 49 119  -10 50 40
+  -29 49 88  -29 50 40
+  -30 49 58  -30 50 40
+  -31 49 49  -31 50 40
+  -32 49 58  -32 50 40
+  -33 49 36  -33 50 40
 # Tag dynamics settings
   1 33 99    # maximum tag reporting rate for all fisheries is 0.99
   2 96 30    # pool tags after 30 quarters at liberty
