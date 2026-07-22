@@ -345,7 +345,7 @@ def derive_model_label(model_name: str, row: dict[str, str]) -> str:
         parts.extend(
             [
                 "robust-normal LF likelihood",
-                "Francis TA1.8 fishery-specific flag-49 divisors",
+                francis_method,
                 f"MFCL tail compression {row.get('tail_compression_percent') or '0'}%",
                 "no LF cutoff" if not row.get("cutoff_cm") else cutoff_label(row["cutoff_cm"]),
             ]
@@ -388,10 +388,13 @@ def derive_model_label(model_name: str, row: dict[str, str]) -> str:
         parts.append(f"LF likelihood {likelihood}")
     cpue_method = (row.get("cpue_method") or "").strip()
     if cpue_method:
-        parts.append(
-            "CPUE likelihood MLE sigma with flag-92 "
-            f"{row.get('cpue_flag92') or 'fishery-specific values'}"
-        )
+        if cpue_method.lower().startswith("unchanged"):
+            parts.append("CPUE controls unchanged from source fit")
+        else:
+            parts.append(
+                f"{cpue_method} with flag-92 "
+                f"{row.get('cpue_flag92') or 'fishery-specific values'}"
+            )
     basis = row.get("basis")
     if basis:
         parts.append(basis)
