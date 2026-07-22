@@ -16,8 +16,7 @@ BET 2026 Francis + CPUE MLE.
 | S007 | 12832 |
 | S008 | 12834 |
 
-The paired models preserve their LF observation model, composition weights,
-regional-scaling weight, reporting-rate controls, tag inputs,
+S001-S004 restore the initial robust-normal LF divisors; S005-S008 retain\ntheir DM likelihood settings. All models preserve their regional-scaling weight, reporting-rate controls, tag inputs,
 age-length inputs, and all non-selectivity settings.
 
 ## Common CPUE sigma\n\nAll eight models use fish flag 92 values 38, 25, 20, 23, and 21 for R1-R5.\nThe continuous reference is the arithmetic mean of the four S001-S004\nMFCL-equivalent MLE sigma estimates. See common-cpue-sigma.csv in this directory.\n\n## Implemented change

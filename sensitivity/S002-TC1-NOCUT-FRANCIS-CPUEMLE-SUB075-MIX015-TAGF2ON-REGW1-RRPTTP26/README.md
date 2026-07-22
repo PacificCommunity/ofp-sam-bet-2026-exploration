@@ -9,9 +9,9 @@
 - Source payload SHA-256: 8bdc65f02cce1871641e07e7c952b01588dad4ea3c1956a4289e71c1bbbd4196
 - Source fit: objective -192574.7988; maximum gradient 8.966e-05
 
-This model applies full fishery-specific Francis TA1.8 length-composition divisors and CPUE likelihood MLE sigma values in one refit. It retains the source model's robust-normal likelihood, 1% MFCL tail compression, no LF cutoff, SUB075 age-length data, MIX015 tag mixing, TAGF2ON, REGW1, and PTTP26 reporting-rate controls. Other than the F25/F26 selectivity sensitivity documented below, all remaining inputs and controls are unchanged.
+This branch restores the source robust-normal LF divisors and applies the common CPUE sigma and F25/F26 selectivity sensitivity. It retains the source model's robust-normal likelihood, 1% MFCL tail compression, no LF cutoff, SUB075 age-length data, MIX015 tag mixing, TAGF2ON, REGW1, and PTTP26 reporting-rate controls. Other than the F25/F26 selectivity sensitivity documented below, all remaining inputs and controls are unchanged.
 
-## Francis TA1.8
+## Final LF divisor setting\n\nFrancis overrides are not applied in this branch. The final divisor pattern is\n40/20 for the principal fisheries, 200 for F21-F23, and 40 for F29-F33. See\n[notes/initial-lf-divisors.md](../../notes/initial-lf-divisors.md).\n\n## Parent Francis TA1.8 audit (not applied)
 
 The calculation uses the authoritative Job 12307 fitted PAR, MFCL flags 141 = 3, 311 = 1, 312 = 50, and 313 = 1, and the native full-support `length.fit`. Observed and predicted probabilities are pooled into the same observed 1% tail boundary bins used by MFCL `square_fita`. The unbounded Francis multiplier is applied to all 33 fisheries, including F20 with two fitted compositions, and continuous divisors are rounded to the nearest positive integer for flag 49.
 

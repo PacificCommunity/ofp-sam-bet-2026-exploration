@@ -13,9 +13,9 @@
 - Regional-scaling flag 77: 11 (standardized SD multiplier 0.3015; effective covariance Sigma/11)
 - Reporting-rate prior: manual 8/10
 
-This refit applies full fishery-specific Francis TA1.8 length-composition divisors and MFCL-equivalent CPUE likelihood MLE sigma values. It retains robust-normal length likelihood, 1% MFCL tail compression, no LF cutoff, SUB075 age-length data, MIX015 tag mixing, TAGF2ON, and all parent controls other than fishery flags 49 and 92 and the F25/F26 selectivity changes documented below. Effort creep is not reapplied.
+This branch restores the source robust-normal LF divisors and applies the common CPUE sigma and F25/F26 selectivity sensitivity. It retains robust-normal length likelihood, 1% MFCL tail compression, no LF cutoff, SUB075 age-length data, MIX015 tag mixing, TAGF2ON, and all parent controls other than the common CPUE sigma and the F25/F26 selectivity changes documented below. Effort creep is not reapplied.
 
-## Francis TA1.8
+## Final LF divisor setting\n\nFrancis overrides are not applied in this branch. The final divisor pattern is\n40/20 for the principal fisheries, 200 for F21-F23, and 40 for F29-F33. See\n[notes/initial-lf-divisors.md](../../notes/initial-lf-divisors.md).\n\n## Parent Francis TA1.8 audit (not applied)
 
 For each fitted composition y:
 

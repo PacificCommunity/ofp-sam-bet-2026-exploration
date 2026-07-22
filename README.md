@@ -1,7 +1,6 @@
-# BET 2026 composition-weighting and associated-purse-seine selectivity sensitivities
+# BET 2026 LF-likelihood and associated-purse-seine selectivity sensitivities
 
-This public branch contains eight matched BET 2026 MFCL fits comparing Francis
-TA1.8 reweighting with a Dirichlet-multinomial observation model. All retain
+This public branch contains eight matched BET 2026 MFCL fits comparing the\ninitial robust-normal LF divisor pattern with a Dirichlet-multinomial observation model. All retain
 SUB075, NOCUT, mix-period 0.15, TAGF2ON, the selected 2026 effort-creep FRQ,
 the low-recapture-filtered tag file, and the SA28 selectivity baseline with a matched F25/F26 shared seven-node sensitivity.
 
@@ -9,8 +8,8 @@ the low-recapture-filtered tag file, and the SA28 selectivity baseline with a ma
 
 | IDs | LF observation model | REGW | Reporting-rate prior | Source jobs |
 | --- | --- | --- | --- | --- |
-| S001-S002 | Francis TA1.8 plus CPUE MLE sigma | 11, 1 | PTTP26 | 12306, 12307 |
-| S003-S004 | Francis TA1.8 plus CPUE MLE sigma | 11, 1 | Manual 8/10 | 12292, 12291 |
+| S001-S002 | Initial robust-normal divisors plus common CPUE sigma | 11, 1 | PTTP26 | 12306, 12307 |
+| S003-S004 | Initial robust-normal divisors plus common CPUE sigma | 11, 1 | Manual 8/10 | 12292, 12291 |
 | S005-S006 | DM G8PSSET, Nmax25 | 11, 1 | PTTP26 | 12314, 12313 |
 | S007-S008 | DM G8PSSET, Nmax25 | 11, 1 | Manual 8/10 | 12751, 12299 |
 
@@ -19,7 +18,7 @@ S005-S008 preserve their source controls except DM fish flag 68 and parest flag
 `model_payload.rds`; S007 therefore uses its public source definition at commit
 `8df6a0e4b9856c5cd1e06ab7010c6e71c773f428`, not an incomplete output archive.
 
-## Common CPUE sigma
+## Initial robust-normal LF divisors\n\nS001-S004 use the source divisor pattern: 40 or 20 for the principal\nfisheries, 200 for F21-F23, and 40 for F29-F33. Francis TA1.8 override blocks\nare disabled. The complete mapping is in\n[notes/initial-lf-divisors.md](notes/initial-lf-divisors.md).\n\n## Common CPUE sigma
 
 All eight models use the same survey-index likelihood sigma controls:\nR1-R5 fish flag 92 = 36, 25, 21, 24, 22. The continuous reference values\nare the arithmetic means of the four independently fitted S001-S004\nMFCL-equivalent MLE sigma estimates. This removes CPUE weighting differences\nfrom the matched Francis/DM and selectivity comparisons. The calculation is\nrecorded in [notes/common-cpue-sigma.md](notes/common-cpue-sigma.md).\n\n## F25-F26 associated-purse-seine selectivity
 
