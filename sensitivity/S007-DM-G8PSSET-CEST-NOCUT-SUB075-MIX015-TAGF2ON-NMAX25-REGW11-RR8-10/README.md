@@ -10,5 +10,6 @@ Public BET 2026 DM sensitivity derived from Kflow Job 12751 and source model
 - DM grouping: G8PSSET
 - Nmax: 25
 
+The source FRQ already contains effort creep; effort creep is not reapplied.
 All source inputs and controls are retained except DM fish flag 68 and parest
 flag 342. The root README documents the G8 mapping and Nmax25 rationale.
