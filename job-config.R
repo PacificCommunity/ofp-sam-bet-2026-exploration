@@ -37,7 +37,7 @@ stepwise_models_all <- data.frame(
   reporting_rate_prior = c("Tom_Peatman_2026_PTTP", "Tom_Peatman_2026_PTTP", "manual_8_10", "manual_8_10", "Tom_Peatman_2026_PTTP", "Tom_Peatman_2026_PTTP", "manual_8_10", "manual_8_10", "Tom_Peatman_2026_PTTP", "manual_8_10", "Tom_Peatman_2026_PTTP", "manual_8_10"),
   source_job = c(12306L, 12307L, 12292L, 12291L, 12314L, 12313L, 12751L, 12299L, 12306L, 12292L, 12314L, 12751L),
   major_step = c(rep(1L, 4), rep(2L, 4), 1L, 1L, 2L, 2L), substep = 1:12,
-  change_axis = c(rep("initial robust-normal LF divisors, common R1-R5 CPUE sigma, and shared seven-node F25/F26 selectivity", 4), rep("DM set-type G8PSSET grouping with Francis-calibrated Nmax25 cap, common R1-R5 CPUE sigma, and shared seven-node F25/F26 selectivity", 4), rep("initial robust-normal LF divisors, common R1-R5 CPUE sigma, and shared seven-node F25/F26 selectivity", 2), rep("DM set-type G8PSSET grouping with Francis-calibrated Nmax25 cap, common R1-R5 CPUE sigma, and shared seven-node F25/F26 selectivity", 2)),
+  change_axis = c(rep("initial robust-normal LF divisors, common R1-R5 CPUE sigma, and shared seven-node F25/F26 selectivity", 4), rep("DM set-type G8PSSET grouping with G8PSSET Nmax25 cap, common R1-R5 CPUE sigma, and shared seven-node F25/F26 selectivity", 4), rep("initial robust-normal LF divisors, common R1-R5 CPUE sigma, and shared seven-node F25/F26 selectivity", 2), rep("DM set-type G8PSSET grouping with G8PSSET Nmax25 cap, common R1-R5 CPUE sigma, and shared seven-node F25/F26 selectivity", 2)),
   stringsAsFactors = FALSE
 )
 stepwise_models <- stepwise_models_all[stepwise_models_all$enabled, , drop = FALSE]
