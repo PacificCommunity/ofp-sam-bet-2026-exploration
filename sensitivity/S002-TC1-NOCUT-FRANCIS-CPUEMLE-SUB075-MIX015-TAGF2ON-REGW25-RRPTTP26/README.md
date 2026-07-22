@@ -117,3 +117,8 @@ This sensitivity sets MFCL parest flag 77 to 25. This is a precision
 multiplier on the external regional-scaling covariance and is equivalent to a
 standardized SD multiplier of 1/sqrt(25) = 0.2000. The regional target
 and covariance inputs are unchanged.
+
+## Effort-creep provenance
+
+The inherited FRQ already contains effort creep. Effort creep is not reapplied
+in this sensitivity fit.

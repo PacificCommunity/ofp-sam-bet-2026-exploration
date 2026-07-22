@@ -86,3 +86,8 @@ S005-S008 provide inherited fixed sigma inputs. Any earlier model-specific
 sigma table above documents the parent calculation; this median vector is the
 final setting applied by this branch. The shared calculation is in
 [notes/common-cpue-sigma.md](../../notes/common-cpue-sigma.md).
+
+## Effort-creep provenance
+
+The inherited FRQ already contains effort creep. Effort creep is not reapplied
+in this sensitivity fit.
