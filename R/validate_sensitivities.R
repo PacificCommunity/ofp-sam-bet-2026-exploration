@@ -17,6 +17,15 @@ for (i in seq_len(nrow(models))) {
   regw <- grep("^[[:space:]]*1[[:space:]]+77[[:space:]]+", x, value = TRUE)
   value <- as.integer(sub("^[[:space:]]*1[[:space:]]+77[[:space:]]+([0-9]+).*", "\\1", regw))
   if (!length(value) || any(value != models$regional_scaling_weight[i])) fail(models$step_id[i], ": parest flag 77 does not match metadata")
+  flag24 <- grep("^[[:space:]]*-[0-9]+[[:space:]]+24[[:space:]]+[0-9]+", x, value = TRUE)
+  flag24_fish <- as.integer(sub("^[[:space:]]*-([0-9]+).*", "\\1", flag24))
+  flag24_group <- as.integer(sub("^[[:space:]]*-[0-9]+[[:space:]]+24[[:space:]]+([0-9]+).*", "\\1", flag24))
+  groups_for <- function(fish) flag24_group[flag24_fish == fish]
+  if (!identical(vapply(25:28, function(fish) groups_for(fish)[1L], integer(1L)), 25:28)) fail(models$step_id[i], ": F25-F28 initial selectivity groups must be 25:28")
+  if (!identical(vapply(29:33, function(fish) groups_for(fish)[1L], integer(1L)), rep(29L, 5L))) fail(models$step_id[i], ": index initialization selectivity group must be 29")
+  if (!identical(vapply(29:33, function(fish) tail(groups_for(fish), 1L), integer(1L)), 29:33)) fail(models$step_id[i], ": final index selectivity groups must be 29:33")
+  flag61 <- grep("^[[:space:]]*-(25|26)[[:space:]]+61[[:space:]]+7([[:space:]]|$)", x, value = TRUE)
+  if (length(flag61) != 2L) fail(models$step_id[i], ": F25 and F26 must each use seven spline nodes")
   manifest <- read.csv(file.path(root, "sensitivity", models$step_id[i], "input_manifest.csv"), stringsAsFactors = FALSE)
   required_roles <- c("frq", "ini", "tag", "age_length", "reg_scaling", "doitall")
   if (!all(required_roles %in% manifest$role)) fail(models$step_id[i], ": input manifest roles are incomplete")
@@ -34,4 +43,4 @@ for (step in models$step_id[dm]) {
 }
 selection <- read.csv(file.path(root, "SENSITIVITY_SELECTION.csv"), stringsAsFactors = FALSE, check.names = FALSE)
 if (!identical(selection$model, models$step_id)) fail("SENSITIVITY_SELECTION.csv does not match job-config.R")
-message("Validated S001-S012 REGW grid, including all six G8PSSET Nmax25 models.")
+message("Validated S001-S012 REGW grid with independent seven-node F25/F26 selectivities and all six G8PSSET Nmax25 models.")

@@ -94,9 +94,9 @@ S1 uses Job 12306 model S022 with REGW11; S2 uses Job 12307 model S023 with REGW
 ## F25-F26 selectivity sensitivity
 
 This branch pairs this model with parent Kflow Job ${parent_jobs[S002]} from
-BET 2026 Francis + CPUE MLE. F25 (PS.ASSOC.WEST.3) and F26
-(PS.ASSOC.EAST.4) now share selectivity group 25 and use seven cubic-spline
-nodes. Both retain fish flags 16 = 2, 3 = 25, 26 = 2, 57 = 3, and 75 = 0.
+the parent selectivity sensitivity. F25 (PS.ASSOC.WEST.3) and F26
+(PS.ASSOC.EAST.4) use separate selectivity groups 25 and 26, respectively. Both use independent seven-node cubic-spline
+selectivities and retain fish flags 16 = 2, 3 = 25, 26 = 2, 57 = 3, and 75 = 0.
 Subsequent selectivity groups are renumbered contiguously; other fishery
 selectivity controls are unchanged. See
 [notes/f25-f26-selectivity.md](../../notes/f25-f26-selectivity.md).

@@ -6,8 +6,8 @@
 
 # Stable task id shown in Kflow and used by the API:
 #   /api/job/ofp-sam-bet-2026-integrated-sensitivities-20260718
-name: ofp-sam-bet-2026-regw-grid-n7-20260722
-description: Run twelve matched BET 2026 models across REGW11, REGW25, and REGW100 with initial LF divisors or DM, common CPUE sigma, and shared seven-node F25/F26 selectivity.
+name: ofp-sam-bet-2026-regw-grid-f25-f26-separate-n7-20260723
+description: Run twelve matched BET 2026 models across REGW11, REGW25, and REGW100 with initial LF divisors or DM, common CPUE sigma, and independent seven-node F25/F26 selectivities.
 
 # Command executed inside the Docker container after checkout.
 command: bash run.sh
@@ -39,9 +39,9 @@ env:
   # the selected model label before the run starts.
   JOB_TITLE: "BET 2026 REGW11/25/100 comparison"
   JOB_DESCRIPTION: "Run one matched initial-LF-divisor or DM model in the REGW11/25/100 grid."
-  MODEL_LABEL: "S001 initial LF divisors F25/F26 shared N7 common CPUE sigma"
-  JOB_KEY: s001-initlf-cpue-mle-psassoc-n7
-  FLOW_GROUP: bet-2026-regw-grid-n7-20260722
+  MODEL_LABEL: "S001 initial LF divisors F25/F26 separate N7 common CPUE sigma"
+  JOB_KEY: s001-initlf-cpue-mle-f25-f26-separate-n7
+  FLOW_GROUP: bet-2026-regw-grid-f25-f26-separate-n7-20260723
   TRIGGER_NEXT: "false"
   FLOW_SPECIES: BET
   FLOW_SPECIES_LABEL: bigeye tuna

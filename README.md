@@ -2,7 +2,7 @@
 
 This public branch contains twelve matched BET 2026 MFCL fits comparing the\ninitial robust-normal LF divisor pattern with a Dirichlet-multinomial observation model. All retain
 SUB075, NOCUT, mix-period 0.15, TAGF2ON, the selected 2026 effort-creep FRQ,
-the low-recapture-filtered tag file, and the SA28 selectivity baseline with a matched F25/F26 shared seven-node sensitivity.
+the low-recapture-filtered tag file, and the SA28 selectivity baseline with a matched independent seven-node F25/F26 sensitivity.
 
 ## Models
 
@@ -27,17 +27,18 @@ S005-S008 and S011-S012 preserve their source controls except DM fish flag 68 an
 All twelve models use the same survey-index likelihood sigma controls:\nR1-R5 fish flag 92 = 36, 25, 21, 24, 22. The continuous reference values\nare the arithmetic means of the four independently fitted S001-S004\nMFCL-equivalent MLE sigma estimates. This removes CPUE weighting differences\nfrom the matched initial-LF/DM and selectivity comparisons. The calculation is\nrecorded in [notes/common-cpue-sigma.md](notes/common-cpue-sigma.md).\n\n## F25-F26 associated-purse-seine selectivity
 
 All twelve models apply the same targeted selectivity sensitivity. Fisheries 25
-and 26 share one cubic-spline selectivity group with seven nodes. Both retain
-the inherited dome-tail penalty (fish flag 16 = 2), upper-age boundary (flag 3
-= 25), age-based length-overlap option (flag 26 = 2), and no forced zero at the
-youngest age (flag 75 = 0). Other fisheries retain five nodes and their existing
-shape controls. Group labels are renumbered contiguously through both the shared
-index initialization and final index ungrouping phases.
+and 26 use independent cubic-spline selectivity groups 25 and 26, respectively,
+with seven nodes each. Both retain the inherited dome-tail penalty (fish flag
+16 = 2), upper-age boundary (flag 3 = 25), age-based length-overlap option (flag
+26 = 2), and no forced zero at the youngest age (flag 75 = 0). Other fisheries
+retain five nodes and their existing shape controls. Group labels are contiguous
+through both the shared index initialization and final index ungrouping phases.
 
-This changes the two associated-purse-seine fisheries from ten independently
-estimated spline coefficients to seven shared coefficients. It therefore adds
-local shape resolution while reducing the combined parameter dimension by
-three. The full rationale and selectivity audit are in
+This controlled change releases only the F25/F26 coefficient sharing used in
+the parent branch. It adds seven selectivity coefficients while preserving the
+same spline basis and regularisation, allowing the western and eastern
+associated-set fisheries to differ without changing other model controls. The
+full rationale and selectivity audit are in
 [notes/f25-f26-selectivity.md](notes/f25-f26-selectivity.md).
 
 ## DM G8PSSET grouping
@@ -61,7 +62,7 @@ used to create a single-fishery group.
 1 1 1 1 2 1 1 1 2 1 1 3 7 6 6 7 3 3 4 5 7 7 7 7 4 4 5 5 8 8 8 8 8
 ```
 
-Only flag 68 is regrouped. Selectivity groups (flag 24), tag-reporting groups
+The G8PSSET definition changes only flag 68. The common F25/F26 selectivity treatment is documented separately; tag-reporting groups
 (flag 32), FRQ, INI, tag, age-length, and regional-scaling inputs are unchanged.
 
 ## Why Nmax is 25

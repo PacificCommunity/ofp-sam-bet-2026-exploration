@@ -1,90 +1,66 @@
-# BET 2026 F25-F26 associated-purse-seine selectivity sensitivity
+# BET 2026 independent F25-F26 selectivity sensitivity
 
 ## Scope and provenance
 
-This public sensitivity is based on all eight model fits in Kflow task
-BET 2026 Francis + CPUE MLE.
+This public sensitivity is derived from
+`experiment/s001-s012-regw-grid-initlf-20260722` at commit
+`2817578b88a5f3248750b595dca41a7890b4e644`. It retains the twelve matched
+initial-LF/DM, REGW11/25/100, and reporting-rate combinations from that branch.
 
 | Model | Parent Kflow Job |
 | --- | ---: |
-| S001 | 12774 |
-| S002 | 12793 |
-| S003 | 12794 |
-| S004 | 12795 |
-| S005 | 12835 |
-| S006 | 12833 |
-| S007 | 12832 |
-| S008 | 12834 |
+| S001 | 13201 |
+| S002 | 13199 |
+| S003 | 13200 |
+| S004 | 13198 |
+| S005 | 13202 |
+| S006 | 13203 |
+| S007 | 13204 |
+| S008 | 13205 |
+| S009 | 13206 |
+| S010 | 13207 |
+| S011 | 13208 |
+| S012 | 13209 |
 
-S001-S004 restore the initial robust-normal LF divisors; S005-S008 retain\ntheir DM likelihood settings. All models preserve their regional-scaling weight, reporting-rate controls, tag inputs,
-age-length inputs, and all non-selectivity settings.
+The parent S011 Hessian attached by Job 13312 contained one negative eigenvalue
+(-9.96497e-4). Its eigenvector was 99.9888% concentrated on
+`region_rec_diffs(4,244)`. The parameter was not at a bound and its gradient was
+small. Because F26 represents the eastern associated-set fishery in region 4,
+this branch tests whether sharing the F25/F26 selectivity indirectly induced
+that recruitment direction. This is a controlled diagnostic sensitivity, not a
+claim of causation before fitting.
 
-## Common CPUE sigma\n\nAll eight models use fish flag 92 values 38, 25, 20, 23, and 21 for R1-R5.\nThe continuous reference is the arithmetic mean of the four S001-S004\nMFCL-equivalent MLE sigma estimates. See common-cpue-sigma.csv in this directory.\n\n## Implemented change
+## Implemented change
 
-F25 (PS.ASSOC.WEST.3) and F26 (PS.ASSOC.EAST.4) now share selectivity
-group 25. Their common cubic spline uses seven nodes rather than the global
-five-node default.
+F25 (PS.ASSOC.WEST.3) and F26 (PS.ASSOC.EAST.4) retain the same cubic-spline
+basis, seven nodes, and dome-tail regularisation, but their coefficients are now
+estimated independently.
 
 | Control | F25 | F26 | Interpretation |
 | --- | ---: | ---: | --- |
-| Fish flag 24 | 25 | 25 | Common selectivity group |
+| Fish flag 24 | 25 | 26 | Independent selectivity groups |
 | Fish flag 57 | 3 | 3 | Cubic-spline selectivity |
 | Fish flag 61 | 7 | 7 | Seven spline nodes |
 | Fish flag 16 | 2 | 2 | Old-age dome-tail penalty |
 | Fish flag 3 | 25 | 25 | Upper-age boundary used by the tail treatment |
-| Fish flag 26 | 2 | 2 | Age selectivity evaluated with length-at-age overlap |
+| Fish flag 26 | 2 | 2 | Selectivity-at-age evaluated with length-at-age overlap |
 | Fish flag 75 | 0 | 0 | No youngest age forced to numerical zero |
 
-Merging two five-node groups would otherwise leave a gap in MFCL's group
-labels. F27 and F28 are therefore relabelled 26 and 27. The shared index group
-is relabelled 28 through Phase 4, and the five final index groups are relabelled
-28-32 from Phase 5. These are label-only changes outside F25/F26.
+F27 and F28 use groups 27 and 28. Regional indices share initialization group
+29 through Phase 4 and use independent final groups 29-33 from Phase 5. These
+renumberings keep MFCL group labels contiguous and do not change their
+selectivity structures.
 
-The original two independent five-node splines contained ten selectivity
-coefficients. The shared seven-node spline contains seven, adding local shape
-resolution while reducing the combined parameter dimension by three.
+The parent shared configuration estimated seven coefficients jointly for
+F25/F26. This branch estimates fourteen coefficients, adding seven parameters.
+All likelihood, DM, CPUE, tag, regional-scaling, effort-creep, age-length, and
+reporting-rate settings are unchanged.
 
-## Empirical rationale
+## Evaluation
 
-The source-model length fits showed the same persistent broad-tail mismatch in
-both associated-purse-seine fisheries. In the Job 12292 audit:
-
-| Diagnostic | F25 | F26 |
-| --- | ---: | ---: |
-| Fitted compositions | 48 | 27 |
-| Observed mean length (cm) | 53.7 | 53.9 |
-| Predicted mean length (cm) | 56.9 | 57.8 |
-| Predicted minus observed mean (cm) | 3.2 | 3.9 |
-| Observed SD (cm) | 14.5 | 13.5 |
-| Predicted SD (cm) | 17.5 | 19.3 |
-| Predicted/observed width | 1.29 | 1.52 |
-| Excess predicted probability at >=80 cm | 4.4 percentage points | 9.0 percentage points |
-
-The similarity of observed distributions supports pooling the two recent
-associated-set fisheries. Seven nodes allow the common curve to represent the
-narrow mode and upper tail more flexibly without adding net parameters.
-
-## Dome-selectivity audit
-
-MFCL fish flag 57 = 2 is the explicit double-normal form. It is not used in
-these eight models. The models use cubic splines (flag 57 = 3).
-
-MFCL labels fish flag 16 = 2 as dome-shaped selectivity, but the implementation
-is a penalty on old-age selectivity from the flag-3 boundary onward. It
-encourages a declining old-age tail; it is not a hard mathematical constraint
-to a single peak. F25 and F26 already used this treatment, and it is retained.
-
-The explicit dome-tail treatment is also retained for F12, F13, F15-F19,
-F21-F27 where configured. Longline, sparse, unassociated-set, and regional-index
-selectivities retain their existing controls. Aggregate fits for most of those
-fisheries do not show the persistent paired broad-tail pattern seen in F25/F26,
-so no broader selectivity change is made in this targeted sensitivity.
-
-## Interpretation
-
-This is a structural sensitivity, not a claim that the shared seven-node curve
-is preferred before fitting. It should be judged against the parent models
-using convergence, Hessian behavior, time-resolved F25/F26 residuals, aggregate
-length fits, CPUE fit, and changes in management quantities. The same change is
-applied to all eight models so its effect can be separated from LF likelihood,
-regional scaling, and reporting-rate assumptions.
+The change should be judged using convergence, Hessian behavior, the loading of
+`region_rec_diffs(4,244)`, time-resolved F25/F26 residuals, aggregate length
+fits, and changes in management quantities. Recovery of a positive-definite
+Hessian would support selectivity-recruitment confounding in the shared model;
+persistence of the same mode would indicate that another structural or
+numerical source should be investigated.
