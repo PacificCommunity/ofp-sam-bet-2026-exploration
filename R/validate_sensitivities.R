@@ -17,6 +17,9 @@ for (i in seq_len(nrow(models))) {
   regw <- grep("^[[:space:]]*1[[:space:]]+77[[:space:]]+", x, value = TRUE)
   value <- as.integer(sub("^[[:space:]]*1[[:space:]]+77[[:space:]]+([0-9]+).*", "\\1", regw))
   if (!length(value) || any(value != models$regional_scaling_weight[i])) fail(models$step_id[i], ": parest flag 77 does not match metadata")
+  manifest <- read.csv(file.path(root, "sensitivity", models$step_id[i], "input_manifest.csv"), stringsAsFactors = FALSE)
+  required_roles <- c("frq", "ini", "tag", "age_length", "reg_scaling", "doitall")
+  if (!all(required_roles %in% manifest$role)) fail(models$step_id[i], ": input manifest roles are incomplete")
 }
 expected_group <- as.integer(c(1,1,1,1,2,1,1,1,2,1,1,3,7,6,6,7,3,3,4,5,7,7,7,7,4,4,5,5,8,8,8,8,8))
 for (step in models$step_id[dm]) {
