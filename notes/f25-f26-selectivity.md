@@ -17,10 +17,10 @@ BET 2026 Francis + CPUE MLE.
 | S008 | 12834 |
 
 The paired models preserve their LF observation model, composition weights,
-CPUE sigma, regional-scaling weight, reporting-rate controls, tag inputs,
+regional-scaling weight, reporting-rate controls, tag inputs,
 age-length inputs, and all non-selectivity settings.
 
-## Implemented change
+## Common CPUE sigma\n\nAll eight models use fish flag 92 values 38, 25, 20, 23, and 21 for R1-R5.\nThe continuous reference is the arithmetic mean of the four S001-S004\nMFCL-equivalent MLE sigma estimates. See common-cpue-sigma.csv in this directory.\n\n## Implemented change
 
 F25 (PS.ASSOC.WEST.3) and F26 (PS.ASSOC.EAST.4) now share selectivity
 group 25. Their common cubic spline uses seven nodes rather than the global

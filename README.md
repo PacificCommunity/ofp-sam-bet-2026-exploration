@@ -19,7 +19,9 @@ S005-S008 preserve their source controls except DM fish flag 68 and parest flag
 `model_payload.rds`; S007 therefore uses its public source definition at commit
 `8df6a0e4b9856c5cd1e06ab7010c6e71c773f428`, not an incomplete output archive.
 
-## F25-F26 associated-purse-seine selectivity
+## Common CPUE sigma
+
+All eight models use the same survey-index likelihood sigma controls:\nR1-R5 fish flag 92 = 36, 25, 21, 24, 22. The continuous reference values\nare the arithmetic means of the four independently fitted S001-S004\nMFCL-equivalent MLE sigma estimates. This removes CPUE weighting differences\nfrom the matched Francis/DM and selectivity comparisons. The calculation is\nrecorded in [notes/common-cpue-sigma.md](notes/common-cpue-sigma.md).\n\n## F25-F26 associated-purse-seine selectivity
 
 All eight models apply the same targeted selectivity sensitivity. Fisheries 25
 and 26 share one cubic-spline selectivity group with seven nodes. Both retain

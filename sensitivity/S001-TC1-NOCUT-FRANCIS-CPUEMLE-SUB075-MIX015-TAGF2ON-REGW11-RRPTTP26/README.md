@@ -76,3 +76,13 @@ nodes. Both retain fish flags 16 = 2, 3 = 25, 26 = 2, 57 = 3, and 75 = 0.
 Subsequent selectivity groups are renumbered contiguously; other fishery
 selectivity controls are unchanged. See
 [notes/f25-f26-selectivity.md](../../notes/f25-f26-selectivity.md).
+
+## Common CPUE sigma
+
+For the matched eight-model comparison, R1-R5 use common fish flag 92 values
+36, 25, 21, 24, and 22. These are the rounded index-wise medians across the
+eight parent settings. S001-S004 provide MFCL-equivalent MLE estimates and
+S005-S008 provide inherited fixed sigma inputs. Any earlier model-specific
+sigma table above documents the parent calculation; this median vector is the
+final setting applied by this branch. The shared calculation is in
+[notes/common-cpue-sigma.md](../../notes/common-cpue-sigma.md).
