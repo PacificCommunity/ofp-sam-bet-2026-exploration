@@ -1,16 +1,16 @@
-# BET 2026 S010: Francis TA1.8 and CPUE MLE
+# BET 2026 S004: Initial LF divisors and common CPUE sigma
 
 ## Model
 
-- Model: S010-TC1-NOCUT-FRANCIS-CPUEMLE-SUB075-MIX015-TAGF2ON-REGW100-RR8-10
-- Source fitted model: S006-TC1-NOCUT-DW10-SUB075-MIX015-TAGF2ON-REGW11
-- Source fitted result: Kflow Job 12292
+- Model: S004-TC1-NOCUT-INITLF-CPUEMLE-SUB075-MIX015-TAGF2ON-REGW25-RR8-10
+- Source fitted model: S007-TC1-NOCUT-DW10-SUB075-MIX015-TAGF2ON-REGW1
+- Source fitted result: Kflow Job 12291
 - Source repository commit: 84afb5a52536b1043c47a66dc65c0c4f054ee44e
-- Source payload SHA-256: 9fe718ec7cd280e4a5b12f7717e76461cf31c1a0d8a1845a65997de1a1b7ee9d
-- Source archive SHA-256: eba1ccb4b7955d2afeee0ea9bd4d01c610944ab5a35438e8a83aa850d394aff2
-- Source fit objective: -192694.065589759
-- Source fit maximum gradient: 9.11968249580936e-05
-- Regional-scaling flag 77: 11 (standardized SD multiplier 0.3015; effective covariance Sigma/11)
+- Source payload SHA-256: d9880c240702c3ff97846ae477e5a2a645f6076be67717e39acfb87ead78dc79
+- Source archive SHA-256: 3d963ae69c97aad11934bb65a6b8b395ae7af986e6d9dbcd491c64bfde705afe
+- Source fit objective: -192819.890726332
+- Source fit maximum gradient: 9.92683937919524e-05
+- Regional-scaling flag 77: 1 (standardized SD multiplier 1.0000; empirical covariance Sigma)
 - Reporting-rate prior: manual 8/10
 
 This branch restores the source robust-normal LF divisors and applies the common CPUE sigma and F25/F26 selectivity sensitivity. It retains robust-normal length likelihood, 1% MFCL tail compression, no LF cutoff, SUB075 age-length data, MIX015 tag mixing, TAGF2ON, and all parent controls other than the common CPUE sigma and the F25/F26 selectivity changes documented below. Effort creep is not reapplied.
@@ -31,39 +31,39 @@ The original unbounded Francis multiplier is applied to all 33 fisheries, includ
 
 | Fishery | n | Old divisor | Continuous divisor | New flag 49 |
 |---:|---:|---:|---:|---:|
-| 1 | 179 | 40 | 115.867488 | 116 |
-| 2 | 124 | 40 | 147.404661 | 147 |
-| 3 | 80 | 20 | 41.964901 | 42 |
-| 4 | 142 | 40 | 110.357336 | 110 |
-| 5 | 28 | 20 | 61.606430 | 62 |
-| 6 | 50 | 40 | 23.410083 | 23 |
-| 7 | 202 | 40 | 75.777477 | 76 |
-| 8 | 70 | 40 | 41.204370 | 41 |
-| 9 | 128 | 20 | 86.596554 | 87 |
-| 10 | 26 | 40 | 119.960279 | 120 |
-| 11 | 106 | 20 | 47.915335 | 48 |
-| 12 | 10 | 20 | 207.201598 | 207 |
-| 13 | 45 | 20 | 377.457380 | 377 |
-| 14 | 26 | 20 | 15.901603 | 16 |
-| 15 | 108 | 20 | 142.428831 | 142 |
-| 16 | 17 | 20 | 286.057402 | 286 |
-| 17 | 13 | 20 | 88.334898 | 88 |
-| 18 | 31 | 20 | 146.761309 | 147 |
-| 19 | 18 | 20 | 148.091178 | 148 |
-| 20 | 2 | 20 | 254.090595 | 254 |
-| 21 | 15 | 200 | 119.807990 | 120 |
-| 22 | 125 | 200 | 405.063919 | 405 |
-| 23 | 21 | 200 | 730.431002 | 730 |
-| 24 | 17 | 20 | 35.065596 | 35 |
-| 25 | 48 | 20 | 27.310585 | 27 |
-| 26 | 27 | 20 | 39.344749 | 39 |
-| 27 | 21 | 20 | 18.669337 | 19 |
-| 28 | 23 | 20 | 49.448748 | 49 |
-| 29 | 218 | 40 | 115.749746 | 116 |
-| 30 | 126 | 40 | 56.837354 | 57 |
-| 31 | 243 | 40 | 50.716138 | 51 |
-| 32 | 89 | 40 | 56.303628 | 56 |
-| 33 | 21 | 40 | 38.469070 | 38 |
+| 1 | 179 | 40 | 94.947691 | 95 |
+| 2 | 124 | 40 | 174.542535 | 175 |
+| 3 | 80 | 20 | 43.041493 | 43 |
+| 4 | 142 | 40 | 112.554217 | 113 |
+| 5 | 28 | 20 | 64.729263 | 65 |
+| 6 | 50 | 40 | 23.735112 | 24 |
+| 7 | 202 | 40 | 74.620496 | 75 |
+| 8 | 70 | 40 | 39.470987 | 39 |
+| 9 | 128 | 20 | 90.277612 | 90 |
+| 10 | 26 | 40 | 119.144755 | 119 |
+| 11 | 106 | 20 | 48.862819 | 49 |
+| 12 | 10 | 20 | 188.026766 | 188 |
+| 13 | 45 | 20 | 376.118617 | 376 |
+| 14 | 26 | 20 | 14.792568 | 15 |
+| 15 | 108 | 20 | 139.489421 | 139 |
+| 16 | 17 | 20 | 267.788562 | 268 |
+| 17 | 13 | 20 | 87.083641 | 87 |
+| 18 | 31 | 20 | 144.256840 | 144 |
+| 19 | 18 | 20 | 138.812881 | 139 |
+| 20 | 2 | 20 | 248.079474 | 248 |
+| 21 | 15 | 200 | 100.392521 | 100 |
+| 22 | 125 | 200 | 403.094672 | 403 |
+| 23 | 21 | 200 | 733.298637 | 733 |
+| 24 | 17 | 20 | 38.755080 | 39 |
+| 25 | 48 | 20 | 24.636257 | 25 |
+| 26 | 27 | 20 | 38.363467 | 38 |
+| 27 | 21 | 20 | 16.200541 | 16 |
+| 28 | 23 | 20 | 48.841930 | 49 |
+| 29 | 218 | 40 | 87.822796 | 88 |
+| 30 | 126 | 40 | 58.236911 | 58 |
+| 31 | 243 | 40 | 49.058007 | 49 |
+| 32 | 89 | 40 | 58.311481 | 58 |
+| 33 | 21 | 40 | 36.315531 | 36 |
 
 ## CPUE likelihood MLE
 
@@ -79,23 +79,23 @@ fishery flag 92 = round(100 * sigma_MLE)
 
 | Index | n | Mean raw lambda | Source sigma | MFCL-equivalent sigma | New flag 92 |
 |---|---:|---:|---:|---:|---:|
-| R1 | 292 | 1.060731334858 | 0.35 | 0.381164500819 | 38 |
-| R2 | 292 | 1.022662732125 | 0.24 | 0.253889662560 | 25 |
-| R3 | 292 | 0.996426248464 | 0.21 | 0.196216683761 | 20 |
-| R4 | 290 | 1.047514623061 | 0.24 | 0.229608279909 | 23 |
-| R5 | 292 | 0.990231135408 | 0.23 | 0.212053422081 | 21 |
+| R1 | 292 | 1.060731334858 | 0.35 | 0.376786183915 | 38 |
+| R2 | 292 | 1.022662732125 | 0.24 | 0.255231476956 | 26 |
+| R3 | 292 | 0.996426248464 | 0.21 | 0.199048451326 | 20 |
+| R4 | 290 | 1.047514623061 | 0.24 | 0.234439881267 | 23 |
+| R5 | 292 | 0.990231135408 | 0.23 | 0.212942049415 | 21 |
 
 The complete machine-readable audits are in model/francis_weights.csv and model/cpue_mle.csv.
 
 ## Preserved controls
 
-- Regional scaling flags 77-81: 11, 1, 240, 220, 1
+- Regional scaling flags 77-81: 1, 1, 240, 220, 1
 - Reporting-rate prior: manual 8/10, retained byte-for-byte in bet.ini
 - Maximum reporting rate: flag 1 33 99
 - Release-group reporting rates active: flag 2 198 1
 - Tag likelihood: negative binomial, flag 1 111 4
 - Tag mixing treatment: tag flag 2 on
-- Source Job 12292 phase 10/11 convergence setting: -4; source fitted MFCL executable commit: 1321ccd196ba55d60b12ddf4baf2bf4599ad3723
+- Source fitted MFCL implementation audited at ongoing-dev commit de4abeca920063bf234ce66ec3a0f043c56e885f
 
 ## Implementation provenance
 
@@ -118,7 +118,7 @@ MFCL source references:
 
 ## F25-F26 selectivity sensitivity
 
-This branch pairs this model with parent Kflow Job ${parent_jobs[S003]} from
+This branch pairs this model with parent Kflow Job ${parent_jobs[S004]} from
 BET 2026 Francis + CPUE MLE. F25 (PS.ASSOC.WEST.3) and F26
 (PS.ASSOC.EAST.4) now share selectivity group 25 and use seven cubic-spline
 nodes. Both retain fish flags 16 = 2, 3 = 25, 26 = 2, 57 = 3, and 75 = 0.
@@ -138,7 +138,7 @@ final setting applied by this branch. The shared calculation is in
 
 ## Regional-scaling sensitivity
 
-This sensitivity sets MFCL parest flag 77 to 100. This is a precision
+This sensitivity sets MFCL parest flag 77 to 25. This is a precision
 multiplier on the external regional-scaling covariance and is equivalent to a
-standardized SD multiplier of 1/sqrt(100) = 0.1000. The regional target and
-covariance inputs are unchanged.
+standardized SD multiplier of 1/sqrt(25) = 0.2000. The regional target
+and covariance inputs are unchanged.

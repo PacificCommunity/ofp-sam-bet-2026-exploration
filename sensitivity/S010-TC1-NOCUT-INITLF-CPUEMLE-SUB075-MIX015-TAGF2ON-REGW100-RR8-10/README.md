@@ -1,8 +1,8 @@
-# BET 2026 S003: Francis TA1.8 and CPUE MLE
+# BET 2026 S010: Initial LF divisors and common CPUE sigma
 
 ## Model
 
-- Model: S003-TC1-NOCUT-FRANCIS-CPUEMLE-SUB075-MIX015-TAGF2ON-REGW11-RR8-10
+- Model: S010-TC1-NOCUT-INITLF-CPUEMLE-SUB075-MIX015-TAGF2ON-REGW100-RR8-10
 - Source fitted model: S006-TC1-NOCUT-DW10-SUB075-MIX015-TAGF2ON-REGW11
 - Source fitted result: Kflow Job 12292
 - Source repository commit: 84afb5a52536b1043c47a66dc65c0c4f054ee44e
@@ -135,3 +135,10 @@ S005-S008 provide inherited fixed sigma inputs. Any earlier model-specific
 sigma table above documents the parent calculation; this median vector is the
 final setting applied by this branch. The shared calculation is in
 [notes/common-cpue-sigma.md](../../notes/common-cpue-sigma.md).
+
+## Regional-scaling sensitivity
+
+This sensitivity sets MFCL parest flag 77 to 100. This is a precision
+multiplier on the external regional-scaling covariance and is equivalent to a
+standardized SD multiplier of 1/sqrt(100) = 0.1000. The regional target and
+covariance inputs are unchanged.

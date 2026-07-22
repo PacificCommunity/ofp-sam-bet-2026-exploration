@@ -358,15 +358,25 @@ def derive_model_label(model_name: str, row: dict[str, str]) -> str:
                 divisor = str(int(float(downweight)) * 20)
             except ValueError:
                 pass
-        parts.extend(
-            [
-                "normal LF likelihood",
-                f"tail compression {row.get('tail_compression_percent') or '0'}%",
-                cutoff_label(row.get("cutoff_cm", "")),
-                f"F21/F22/F23 LF downweight {downweight}x"
-                + (f" with flag-49 divisor {divisor}" if divisor else ""),
-            ]
-        )
+        if "40/20/200" in divisor:
+            parts.extend(
+                [
+                    "robust-normal LF likelihood",
+                    "initial flag-49 divisors 40/20; F21-F23=200",
+                    f"MFCL tail compression {row.get('tail_compression_percent') or '0'}%",
+                    cutoff_label(row.get("cutoff_cm", "")),
+                ]
+            )
+        else:
+            parts.extend(
+                [
+                    "normal LF likelihood",
+                    f"tail compression {row.get('tail_compression_percent') or '0'}%",
+                    cutoff_label(row.get("cutoff_cm", "")),
+                    f"F21/F22/F23 LF downweight {downweight}x"
+                    + (f" with flag-49 divisor {divisor}" if divisor else ""),
+                ]
+            )
     elif likelihood in {"dm_nore", "dm_no_re"}:
         grouping = row.get("dm_grouping") or "unspecified grouping"
         concentration = (row.get("dm_concentration") or "").lower()

@@ -31,7 +31,7 @@ exclude_slots: []
 env:
   # Default selected model folder. Override per job in the Kflow job config.
   # Examples: 01-Diag2023, 08-RegionalCPUE, 01-Diag2023,09-NewOtoliths, all
-  STEP_SELECT: "S001-TC1-NOCUT-FRANCIS-CPUEMLE-SUB075-MIX015-TAGF2ON-REGW11-RRPTTP26"
+  STEP_SELECT: "S001-TC1-NOCUT-INITLF-CPUEMLE-SUB075-MIX015-TAGF2ON-REGW11-RRPTTP26"
 
   # Default Kflow display labels for the default model. `make kflow` computes
   # these from job-config.R. When launching directly from the Kflow UI and
@@ -40,7 +40,7 @@ env:
   JOB_TITLE: "BET 2026 REGW11/25/100 comparison"
   JOB_DESCRIPTION: "Run one matched initial-LF-divisor or DM model in the REGW11/25/100 grid."
   MODEL_LABEL: "S001 initial LF divisors F25/F26 shared N7 common CPUE sigma"
-  JOB_KEY: s001-francis-cpue-mle-psassoc-n7
+  JOB_KEY: s001-initlf-cpue-mle-psassoc-n7
   FLOW_GROUP: bet-2026-regw-grid-n7-20260722
   TRIGGER_NEXT: "false"
   FLOW_SPECIES: BET
