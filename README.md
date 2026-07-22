@@ -1,133 +1,75 @@
-# BET 2026 mix-0.15 unconstrained regional-scaling sensitivities
+# BET 2026 composition-weighting sensitivities
 
-This branch contains 32 NOCUT MFCL models based on
-**PacificCommunity/ofp-sam-bet-2026-exploration@81a456fa5c36ef1be5bd9da38308ef07ebc55ff4** (**experiment/normal-francis-initial-20260719**). All models use the SUB075
-age-length input, the upstream mix-period 0.15 INI, and corrected SA28-N5
-selectivity baseline. The F9-only non-decreasing constraint is removed, so no
-fishery uses fish flag 16=1. CUT90 is excluded.
-All models use **PacificCommunity/ofp-sam-2026-BET-YFT-tag-prep@44f804341a8e1d9b46e8e6c147dee884c476c28d/BET/bet.2026.low.recaps.removed.tag**, the
-current low-recapture-filtered BET tag input (SHA-256 b140e66eb52f2b7e022ef2c562134f8bc9baf3dede18ce95283a001acd2b013f).
-The retained Job 5319 FRQ already contains the selected 2026 effort-creep
-adjustment, and the build never reapplies effort creep.
+This public branch contains eight matched BET 2026 MFCL fits comparing Francis
+TA1.8 reweighting with a Dirichlet-multinomial observation model. All retain
+SUB075, NOCUT, mix-period 0.15, TAGF2ON, the selected 2026 effort-creep FRQ,
+the low-recapture-filtered tag file, and SA28-N5 selectivity.
 
-## Model design
+## Models
 
-| IDs | LF likelihood and weighting | Tag flag column 2 | REGW sequence |
-| --- | --- | ---: | --- |
-| S001-S004 | Robust normal; F21/F22/F23 DW10 | 0 (OFF) | 50, 11, 1, 0 |
-| S005-S008 | Robust normal; F21/F22/F23 DW10 | 1 (ON) | 50, 11, 1, 0 |
-| S009-S012 | DM G7OSHL-CEST; Nmax10 | 0 (OFF) | 50, 11, 1, 0 |
-| S013-S016 | DM G7OSHL-CEST; Nmax10 | 1 (ON) | 50, 11, 1, 0 |
-| S017-S020 | Robust normal; F21/F22/F23 DW10; PTTP26 prior | 0 (OFF) | 50, 11, 1, 0 |
-| S021-S024 | Robust normal; F21/F22/F23 DW10; PTTP26 prior | 1 (ON) | 50, 11, 1, 0 |
-| S025-S028 | DM G7OSHL-CEST; Nmax10; PTTP26 prior | 0 (OFF) | 50, 11, 1, 0 |
-| S029-S032 | DM G7OSHL-CEST; Nmax10; PTTP26 prior | 1 (ON) | 50, 11, 1, 0 |
+| IDs | LF observation model | REGW | Reporting-rate prior | Source jobs |
+| --- | --- | --- | --- | --- |
+| S001-S002 | Francis TA1.8 plus CPUE MLE sigma | 11, 1 | PTTP26 | 12306, 12307 |
+| S003-S004 | Francis TA1.8 plus CPUE MLE sigma | 11, 1 | Manual 8/10 | 12292, 12291 |
+| S005-S006 | DM G8PSSET, Nmax25 | 11, 1 | PTTP26 | 12314, 12313 |
+| S007-S008 | DM G8PSSET, Nmax25 | 11, 1 | Manual 8/10 | 12751, 12299 |
 
-The four REGW values occur in the displayed order within every ID range. This
-gives matched comparisons for LF likelihood, tag flag column 2, and regional-
-scaling weight. Within each OFF/ON pair, all 98 values in tag flag column 2
-change from 0 to 1; the other INI fields and model data are unchanged.
+S005-S008 preserve their source controls except DM fish flag 68 and parest flag
+342. Job 12751 completed its MFCL fit but failed while building
+`model_payload.rds`; S007 therefore uses its public source definition at commit
+`8df6a0e4b9856c5cd1e06ab7010c6e71c773f428`, not an incomplete output archive.
 
-## PTTP-derived RTTP/PTTP reporting-rate prior sensitivity
+## DM G8PSSET grouping
 
-The original S001-S016 models retain the upstream manual reporting-rate
-penalties. S017-S032 are exact matched copies that propagate the 2026
-PTTP-derived regional purse-seine priors to corresponding active
-program-specific RTTP and PTTP/pooled groups. JPTP retains its upstream prior.
+Groups were defined before fitting from gear, purse-seine set type, fishery
+definition, and composition sampling process. Poor aggregate fit alone was not
+used to create a single-fishery group.
 
-| Region | Fisheries | Active groups receiving Tom prior | JPTP handling | Inactive groups retained at zero | S017-S032 mean / target | S017-S032 penalty |
-| --- | --- | --- | --- | --- | --- | ---: |
-| 2 | F19/F20 | RTTP 7; PTTP 14 | Group 26 inactive | JPTP 26 | 0.4962 / 49.62 | 354.5 |
-| 3 | F25/F27 | RTTP 10; PTTP 17 | Group 29 retains 0.5 / 50 / 1 | None | 0.5121 / 51.21 | 739.2 |
-| 4 | F26/F28 | PTTP 18 | Group 30 inactive | RTTP 11; JPTP 30 | 0.5282 / 52.82 | 231.2 |
+| Group | Fisheries | Rationale |
+| ---: | --- | --- |
+| 1 | F1-F4, F6-F8, F10-F11 | Main longline composition process |
+| 2 | F5, F9 | Offshore longline; its earlier separation improved fit and it has a distinct sampling history |
+| 3 | F12, F17, F18 | Purse-seine fisheries without set-type separation |
+| 4 | F19, F25, F26 | Associated purse-seine fisheries |
+| 5 | F20, F27, F28 | Unassociated purse-seine fisheries |
+| 6 | F14, F15 | Handline fisheries |
+| 7 | F13, F16, F21-F24 | Other extraction fisheries, pooled for stable estimation |
+| 8 | F29-F33 | Regional indices sharing the relative-abundance reweighting procedure |
 
-The mix-0.15 INI already maps these strata to separate program-by-region
-groups, so the sensitivity changes prior values without changing membership.
-The generator assigns values by reporting-group ID across the complete tag
-matrix, but only where the corresponding parameter is active. Active flags are
-unchanged. Inactive groups must retain zero initial, target, and penalty values
-for native MFCL compatibility and are not activated by this sensitivity.
+```text
+1 1 1 1 2 1 1 1 2 1 1 3 7 6 6 7 3 3 4 5 7 7 7 7 4 4 5 5 8 8 8 8 8
+```
 
-The 2026 report directly estimates priors from 2007-2024 PTTP tag-seeding data;
-it does not estimate separate RTTP or JPTP priors. Applying the PTTP-derived
-values to corresponding RTTP groups is therefore an explicit modelling
-sensitivity, not a recommendation attributed to the report. JPTP retains its
-program-specific upstream prior. Domestic Indonesian and Philippines purse-
-seine groups remain unchanged, consistent with the report's recommendation
-that these priors are not representative of them.
+Only flag 68 is regrouped. Selectivity groups (flag 24), tag-reporting groups
+(flag 32), FRQ, INI, tag, age-length, and regional-scaling inputs are unchanged.
 
-The source report is WCPFC-SC22-2026-SA-IP05, which reports PTTP purse-seine
-means and penalties by assessment region. Exact project input values were
-cross-checked against BET/bet.2026.single.region.ini in the 2026 INI-build
-repository. The model input itself remains bet.2026.mix-0.15.ini, including its
-existing separate Region 3 and Region 4 reporting-group membership:
+## Why Nmax is 25
 
-https://meetings.wcpfc.int/node/32332
+Nmax is an upper bound on DM effective sample size, not its mean. It was
+calibrated against 2,399 positive LF compositions in S001-S004 using the MFCL
+sample-size cap of 1,000 and committed fishery-specific Francis divisors.
 
-For robust-normal models, DW10 means F21/F22/F23 flag-49 divisor 200 against
-the global divisor 20. It is not applied to DM models because fixed flag-49
-divisors are not the DM observation-weight parameter. For DM models, Nmax10 is
-the phase-1 maximum LF sample-size control. It is not a statement that the
-realized effective sample size is exactly 20; realized information also
-depends on the estimated DM concentration and relative sample-size exponent.
+| Francis ESS statistic | S001-S004 range |
+| --- | ---: |
+| Mean | 9.94-10.39 |
+| Median | 8.62-10.53 |
+| 75th percentile | 12.99-13.33 |
+| 90th percentile | 20.41-20.83 |
+| 95th percentile | 22.22-23.81 |
+| Maximum | 52.63-62.50 |
 
-## DM G7OSHL grouping
+A cap of 25 lies just above the 95th percentile. Averaging each composition's
+ESS across S001-S004, only 2.96% exceed 25. It preserves nearly all
+Francis-supported information while preventing the small upper tail from
+letting LF data dominate conflicting CPUE information. Nmax10 would bind many
+supported compositions; Nmax40-60 would mainly accommodate the unstable tail.
 
-| Group | Fisheries |
-| --- | --- |
-| Remaining longline | F1-F4, F6-F8, F10-F11 |
-| Offshore longline | F5, F9 |
-| Large-scale purse seine | F12, F19-F20, F25-F28 |
-| Domestic purse seine | F17-F18 |
-| Handline | F14-F15 |
-| Other extraction | F13, F16, F21-F24 |
-| Index | F29-F33 |
+MFCL uses `Neff = Nmax * (1 + lambda) / (Nmax + lambda)`, so realized
+information is estimated below the cap. The implementation is public in
+[`src/len_dm_nore.cpp`](https://github.com/PacificCommunity/ofp-sam-mfcl/blob/ongoing-dev/src/len_dm_nore.cpp).
 
-This changes only DM fish flag 68. Tag-reporting groups (flag 32), selectivity
-groups (flag 24), the FRQ, and other model data are unchanged.
+## Public provenance
 
-## Tag data provenance
-
-Every model uses the same byte-identical
-**bet.2026.low.recaps.removed.tag** input from
-**PacificCommunity/ofp-sam-2026-BET-YFT-tag-prep@44f804341a8e1d9b46e8e6c147dee884c476c28d/BET/bet.2026.low.recaps.removed.tag**. This update replaces
-the previous tag-data snapshot only. It does not change the mix-0.15 INI,
-reporting-rate group membership or priors, FRQ, age-length input, selectivity,
-regional-scaling data, or likelihood settings.
-
-## INI provenance
-
-The model INI is derived from
-**PacificCommunity/ofp-sam-2026-BET-YFT-build-ini@86627214cbac6db5766841e404bb32ea4f6afe61/BET/ini.mix-period/bet.2026.mix-0.15.ini**. TAGF2ON retains the
-upstream tag flags. TAGF2OFF changes only all 98 values in tag flag column 2
-from 1 to 0.
-
-## Regional-scaling weights
-
-| REGW | Effective covariance | Standardized SD multiplier | Role in this design |
-| ---: | ---: | ---: | --- |
-| 50 | Sigma / 50 | 0.1414 | Inherited strong constraint |
-| 11 | Sigma / 11 | 0.3015 | Intermediate constraint |
-| 1 | Sigma | 1.0000 | Empirical covariance without an extra precision multiplier |
-| 0 | Not applicable | Not applicable | Regional-scaling penalty disabled |
-
-The active regional-scaling data are 20 quarterly regional CPUE values for
-1965-1969. MFCL converts each row to regional proportions, calculates their
-mean and covariance, removes Region 5 as the MVN reference dimension, and uses
-
-    penalty = 0.5 * weight * d' * Sigma^-1 * d.
-
-Thus weights 50, 11, and 1 give standardized SD multipliers of 0.1414,
-0.3015, and 1.0000 relative to the empirical MVN covariance; weight 0 disables
-the regional-scaling penalty. These are penalty-strength interpretations, not
-literal CVs on regional biomass or on each regional target mean.
-
-The derivation, source/manual references, and distinction from target-relative
-marginal CV are documented in
-**notes/regional-scaling-weight-interpretation.md**.
-
-## Rebuild
-
-    bash scripts/build_regional_scaling_weight_sensitivities.sh
-
-Generated inputs and file-level provenance are under **sensitivity/**.
+The DM sources are in `PacificCommunity/ofp-sam-bet-2026-exploration`, branch
+`experiment/mix015-unconstrained-g7oshl-dm20-20260721`. Each model README and
+`input_manifest.csv` records source jobs, commits, and retained inputs.

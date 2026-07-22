@@ -1,51 +1,27 @@
-# BET 2026 Francis TA1.8 and MFCL-equivalent CPUE MLE refits
-# S001/S002 use PTTP26 reporting-rate priors; S003/S004 use manual 8/10 priors.
+# BET 2026 public composition-weighting comparison.
 stepwise_models_all <- data.frame(
   step_id = c(
     "S001-TC1-NOCUT-FRANCIS-CPUEMLE-SUB075-MIX015-TAGF2ON-REGW11-RRPTTP26",
     "S002-TC1-NOCUT-FRANCIS-CPUEMLE-SUB075-MIX015-TAGF2ON-REGW1-RRPTTP26",
     "S003-TC1-NOCUT-FRANCIS-CPUEMLE-SUB075-MIX015-TAGF2ON-REGW11-RR8-10",
-    "S004-TC1-NOCUT-FRANCIS-CPUEMLE-SUB075-MIX015-TAGF2ON-REGW1-RR8-10"
+    "S004-TC1-NOCUT-FRANCIS-CPUEMLE-SUB075-MIX015-TAGF2ON-REGW1-RR8-10",
+    "S005-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW11-RRPTTP26",
+    "S006-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW1-RRPTTP26",
+    "S007-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW11-RR8-10",
+    "S008-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW1-RR8-10"
   ),
-  enabled = rep(TRUE, 4),
-  model_label = c(
-    "SUB075 NOCUT full Francis TA1.8 + CPUE MLE TAGF2ON REGW11 PTTP26",
-    "SUB075 NOCUT full Francis TA1.8 + CPUE MLE TAGF2ON REGW1 PTTP26",
-    "SUB075 NOCUT full Francis TA1.8 + CPUE MLE TAGF2ON REGW11 RR8/10",
-    "SUB075 NOCUT full Francis TA1.8 + CPUE MLE TAGF2ON REGW1 RR8/10"
-  ),
-  run_mode = rep("doitall", 4),
-  frq = rep("bet.frq", 4),
-  region_count = rep(5L, 4),
-  age_length_variant = rep("SUB075", 4),
-  cutoff_code = rep("NOCUT", 4),
-  tag_flag2 = rep(1L, 4),
-  lf_likelihood = rep("normal", 4),
-  lf_downweight_factor = rep(NA_real_, 4),
-  lf_size_divisor = rep(NA_real_, 4),
-  dm_grouping = rep(NA_character_, 4),
-  dm_concentration = rep(NA_character_, 4),
-  dm_nmax = rep(NA_integer_, 4),
-  regional_scaling_weight = c(11L, 1L, 11L, 1L),
-  reporting_rate_prior = c(
-    "Tom_Peatman_2026_PTTP",
-    "Tom_Peatman_2026_PTTP",
-    "manual_8_10",
-    "manual_8_10"
-  ),
-  major_step = rep(1L, 4),
-  substep = 1:4,
-  change_axis = rep(
-    "full Francis TA1.8 LF divisors plus MFCL-equivalent normalized-lambda CPUE MLE sigma",
-    4
-  ),
+  enabled = rep(TRUE, 8),
+  model_label = c("Francis TA1.8 + CPUE MLE, REGW11, PTTP26", "Francis TA1.8 + CPUE MLE, REGW1, PTTP26", "Francis TA1.8 + CPUE MLE, REGW11, RR8/10", "Francis TA1.8 + CPUE MLE, REGW1, RR8/10", "DM G8PSSET Nmax25, REGW11, PTTP26", "DM G8PSSET Nmax25, REGW1, PTTP26", "DM G8PSSET Nmax25, REGW11, RR8/10", "DM G8PSSET Nmax25, REGW1, RR8/10"),
+  run_mode = rep("doitall", 8), frq = rep("bet.frq", 8), region_count = rep(5L, 8),
+  age_length_variant = rep("SUB075", 8), cutoff_code = rep("NOCUT", 8), tag_flag2 = rep(1L, 8),
+  lf_likelihood = c(rep("normal", 4), rep("dm_no_re", 4)), lf_downweight_factor = rep(NA_real_, 8), lf_size_divisor = rep(NA_real_, 8),
+  dm_grouping = c(rep(NA_character_, 4), rep("G8PSSET", 4)), dm_concentration = c(rep(NA_character_, 4), rep("group-specific", 4)), dm_nmax = c(rep(NA_integer_, 4), rep(25L, 4)),
+  regional_scaling_weight = rep(c(11L, 1L), 4),
+  reporting_rate_prior = rep(c("Tom_Peatman_2026_PTTP", "Tom_Peatman_2026_PTTP", "manual_8_10", "manual_8_10"), 2),
+  source_job = c(12306L, 12307L, 12292L, 12291L, 12314L, 12313L, 12751L, 12299L),
+  major_step = c(rep(1L, 4), rep(2L, 4)), substep = 1:8,
+  change_axis = c(rep("full Francis TA1.8 LF divisors plus MFCL-equivalent normalized-lambda CPUE MLE sigma", 4), rep("DM set-type G8PSSET grouping with Francis-calibrated Nmax25 cap", 4)),
   stringsAsFactors = FALSE
 )
-
 stepwise_models <- stepwise_models_all[stepwise_models_all$enabled, , drop = FALSE]
-
-stepwise_run <- list(
-  default_step_select = "all",
-  flow_group = "bet-2026-francis-cpue-mle-20260722",
-  trigger_next = FALSE
-)
+stepwise_run <- list(default_step_select = "all", flow_group = "bet-2026-francis-cpue-mle-20260722", trigger_next = FALSE)
