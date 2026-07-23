@@ -8,12 +8,12 @@ This file keeps the operational Kflow/local-run details out of the root README.
 
 | `setting` | `value` | `meaning` |
 | --- | --- | --- |
-| `default_step_select` | `12-EffortCreep,13-DataWeighting` | Model selection used when `STEP_SELECT` is not supplied. |
-| `flow_group` | `bet-2026-stepwise-skip-opr-lengthsel` | Kflow group label used to connect stepwise, results, and report jobs. |
+| `default_step_select` | `all` | Model selection used when `STEP_SELECT` is not supplied. |
+| `flow_group` | `bet-2026-regw-grid-f25-f26-separate-n7-20260723` | Kflow group label used to connect stepwise, results, and report jobs. |
 | `trigger_next` | `false` | Whether command-line Kflow submissions keep the downstream results/report chain. |
-| `docker_image` | `ghcr.io/pacificcommunity/tuna-flow:v2.4` | Docker image used by Kflow and local Docker runs. |
+| `docker_image` | `ghcr.io/pacificcommunity/tuna-flow:v2.5@sha256:c87f1f6d9d4f62dc447844b58afe35f96af175bf933cb6cffbbbe39a59172360` | Docker image used by Kflow and local Docker runs. |
 | `program_path` | `/home/mfcl/mfclo64` | MFCL executable path inside the Docker image. |
-| `stepwise_save_final_par` | `false` | Optional: copy the final `.par` back into `steps/<step_id>/model/`. Off by default; Kflow outputs always include `outputs/models/<step_id>/final.par`. |
+| `stepwise_save_final_par` | `false` | Optional: copy the final `.par` back into `sensitivity/<step_id>/model/`. Off by default; Kflow outputs always include `outputs/models/<step_id>/final.par`. |
 | `stepwise_save_raw_mfcl_inputs` | `true` | Preserve the full raw MFCL input folder under `outputs/models/<step_id>/mfcl-inputs/` for native-style auditability. |
 | `stepwise_commit_final_pars` | `false` | Optional: create a narrow KflowBot commit containing saved final `.par` files. Off by default to avoid concurrent job push conflicts. |
 | `stepwise_push_final_pars` | `false` | Optional: push the saved final `.par` commit to the current branch. Off by default. |
@@ -26,24 +26,20 @@ This file keeps the operational Kflow/local-run details out of the root README.
 
 <!-- This section is generated from job-config.R. It is refreshed by Makefile targets and the local pre-commit hook once a Makefile target has run. -->
 
-| `step_id` | `enabled` | `major_step` | `substep` | `change_axis` | `model_label` | `job_title` | `job_key` | `run_mode` | `mfcl_program_path` | `input_par` | `frq` | `output_par` | `expected_final_par` |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `01-Diag2023` | `TRUE` | 01-Diagnostic | 01a | historical diagnostic | Diag2023 | 01 Diag2023 | `01-diag2023` | `doitall` | /home/mfcl/mfclo64_2023_diagnostic_2.2.2.0 | `blank` | `bet.frq` | `blank` | 11.par |
-| `02a-NewExe` | `TRUE` | 02-Executable | 02a | current MFCL executable with 1003 ini | NewExe 1003 | 02a NewExe 1003 | `02a-newexe` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
-| `02b-Ini1007` | `TRUE` | 02-Executable | 02b | promote diagnostic ini to 1007 | Ini 1007 | 02b Ini 1007 | `02b-ini1007` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
-| `02c-LengthWeight` | `TRUE` | 02-Executable | 02c | bias-corrected 2026 length-weight parameters | Length-weight | 02c Length-weight | `02c-lengthweight` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
-| `03-FixM` | `TRUE` | 03-FixM | 03a | fixed natural mortality from mgc=-5 diagnostic after 02c | FixM | 03 FixM | `03-fixm` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
-| `04-NewStructure` | `TRUE` | 04-NewStructure | 04 | 5-region structure with global CPUE | New structure | 04 New structure | `04-newstructure` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
-| `04a-SelectivityReview` | `TRUE` | 04-SelectivityReview | 04a | reviewed fishery-level LF/selectivity controls | Selectivity review | 04a Selectivity review | `04a-selectivityreview` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
-| `05-ConvertToLength` | `TRUE` | 05-ConvertToLength | 05a | convert weight compositions to length | Convert to length | 05 Convert to length | `05-converttolength` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
-| `06-LengthPlusLength` | `TRUE` | 06-LengthPlusLength | 06a | add additional length compositions | Length plus length | 06 Length plus length | `06-lengthpluslength` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
-| `07-DataTo2024` | `TRUE` | 07-DataTo2024 | 07a | 2024 data with global CPUE | Data to 2024 | 07 Data to 2024 | `07-datato2024` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
-| `08-RegionalCPUE` | `TRUE` | 08-RegionalCPUE | 08a | regional CPUE and regional-scaling prior | Regional CPUE | 08 Regional CPUE | `08-regionalcpue` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
-| `09-NewOtoliths` | `TRUE` | 09-NewOtoliths | 09a | new otolith/CAAL input | New otoliths | 09 New otoliths | `09-newotoliths` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
-| `10-TagMixingKS` | `TRUE` | 10-TagMixing | 10a | release-specific tag mixing periods | Tag mixing KS | 10 Tag mixing KS | `10-tagmixingks` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
-| `11-TimeVaryingCV` | `TRUE` | 11-TimeVaryingCV | 11a | time-varying CPUE CV | Time-varying CV | 11 Time-varying CV | `11-timevaryingcv` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
-| `12-EffortCreep` | `TRUE` | 12-EffortCreep | 12a | effort creep without OPR or length-based selectivity | Effort creep | 12 Effort creep (no OPR/length selectivity) | `12-effortcreep` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
-| `13-DataWeighting` | `TRUE` | 13-DataWeighting | 13a | data weighting without OPR or length-based selectivity | Data weighting | 13 Data weighting (no OPR/length selectivity) | `13-dataweighting` | `doitall` | blank | `blank` | `bet.frq` | `blank` | 11.par |
+| `step_id` | `enabled` | `major_step` | `substep` | `change_axis` | `model_label` | `run_mode` | `frq` |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `S001-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW11-RRPTTP26` | `TRUE` | 1 |  1 | DM G8PSSET Nmax15 cap, common R1-R5 CPUE sigma, and independent seven-node F25/F26 selectivities | DM G8PSSET Nmax15, REGW11, PTTP26, F25/F26 separate N7, common CPUE sigma | `doitall` | `bet.frq` |
+| `S002-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW25-RRPTTP26` | `TRUE` | 1 |  2 | DM G8PSSET Nmax15 cap, common R1-R5 CPUE sigma, and independent seven-node F25/F26 selectivities | DM G8PSSET Nmax15, REGW25, PTTP26, F25/F26 separate N7, common CPUE sigma | `doitall` | `bet.frq` |
+| `S003-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW11-RR8-10` | `TRUE` | 1 |  3 | DM G8PSSET Nmax15 cap, common R1-R5 CPUE sigma, and independent seven-node F25/F26 selectivities | DM G8PSSET Nmax15, REGW11, RR8/10, F25/F26 separate N7, common CPUE sigma | `doitall` | `bet.frq` |
+| `S004-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW25-RR8-10` | `TRUE` | 1 |  4 | DM G8PSSET Nmax15 cap, common R1-R5 CPUE sigma, and independent seven-node F25/F26 selectivities | DM G8PSSET Nmax15, REGW25, RR8/10, F25/F26 separate N7, common CPUE sigma | `doitall` | `bet.frq` |
+| `S005-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW11-RRPTTP26` | `TRUE` | 2 |  5 | DM G8PSSET Nmax25 cap, common R1-R5 CPUE sigma, and independent seven-node F25/F26 selectivities | DM G8PSSET Nmax25, REGW11, PTTP26, F25/F26 separate N7, common CPUE sigma | `doitall` | `bet.frq` |
+| `S006-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW25-RRPTTP26` | `TRUE` | 2 |  6 | DM G8PSSET Nmax25 cap, common R1-R5 CPUE sigma, and independent seven-node F25/F26 selectivities | DM G8PSSET Nmax25, REGW25, PTTP26, F25/F26 separate N7, common CPUE sigma | `doitall` | `bet.frq` |
+| `S007-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW11-RR8-10` | `TRUE` | 2 |  7 | DM G8PSSET Nmax25 cap, common R1-R5 CPUE sigma, and independent seven-node F25/F26 selectivities | DM G8PSSET Nmax25, REGW11, RR8/10, F25/F26 separate N7, common CPUE sigma | `doitall` | `bet.frq` |
+| `S008-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW25-RR8-10` | `TRUE` | 2 |  8 | DM G8PSSET Nmax25 cap, common R1-R5 CPUE sigma, and independent seven-node F25/F26 selectivities | DM G8PSSET Nmax25, REGW25, RR8/10, F25/F26 separate N7, common CPUE sigma | `doitall` | `bet.frq` |
+| `S009-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW100-RRPTTP26` | `TRUE` | 1 |  9 | DM G8PSSET Nmax15 cap, common R1-R5 CPUE sigma, and independent seven-node F25/F26 selectivities | DM G8PSSET Nmax15, REGW100, PTTP26, F25/F26 separate N7, common CPUE sigma | `doitall` | `bet.frq` |
+| `S010-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW100-RR8-10` | `TRUE` | 1 | 10 | DM G8PSSET Nmax15 cap, common R1-R5 CPUE sigma, and independent seven-node F25/F26 selectivities | DM G8PSSET Nmax15, REGW100, RR8/10, F25/F26 separate N7, common CPUE sigma | `doitall` | `bet.frq` |
+| `S011-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW100-RRPTTP26` | `TRUE` | 2 | 11 | DM G8PSSET Nmax25 cap, common R1-R5 CPUE sigma, and independent seven-node F25/F26 selectivities | DM G8PSSET Nmax25, REGW100, PTTP26, F25/F26 separate N7, common CPUE sigma | `doitall` | `bet.frq` |
+| `S012-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW100-RR8-10` | `TRUE` | 2 | 12 | DM G8PSSET Nmax25 cap, common R1-R5 CPUE sigma, and independent seven-node F25/F26 selectivities | DM G8PSSET Nmax25, REGW100, RR8/10, F25/F26 separate N7, common CPUE sigma | `doitall` | `bet.frq` |
 
 
 ## Folder Checks
@@ -52,22 +48,18 @@ This file keeps the operational Kflow/local-run details out of the root README.
 
 | `step_id` | `expected_source_folder` | `status` |
 | --- | --- | --- |
-| `01-Diag2023` | `steps/01-Diag2023/model` | `exists` |
-| `02a-NewExe` | `steps/02a-NewExe/model` | `exists` |
-| `02b-Ini1007` | `steps/02b-Ini1007/model` | `exists` |
-| `02c-LengthWeight` | `steps/02c-LengthWeight/model` | `exists` |
-| `03-FixM` | `steps/03-FixM/model` | `exists` |
-| `04-NewStructure` | `steps/04-NewStructure/model` | `exists` |
-| `04a-SelectivityReview` | `steps/04a-SelectivityReview/model` | `exists` |
-| `05-ConvertToLength` | `steps/05-ConvertToLength/model` | `exists` |
-| `06-LengthPlusLength` | `steps/06-LengthPlusLength/model` | `exists` |
-| `07-DataTo2024` | `steps/07-DataTo2024/model` | `exists` |
-| `08-RegionalCPUE` | `steps/08-RegionalCPUE/model` | `exists` |
-| `09-NewOtoliths` | `steps/09-NewOtoliths/model` | `exists` |
-| `10-TagMixingKS` | `steps/10-TagMixingKS/model` | `exists` |
-| `11-TimeVaryingCV` | `steps/11-TimeVaryingCV/model` | `exists` |
-| `12-EffortCreep` | `steps/12-EffortCreep/model` | `exists` |
-| `13-DataWeighting` | `steps/13-DataWeighting/model` | `exists` |
+| `S001-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW11-RRPTTP26` | `steps/S001-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW11-RRPTTP26/model` | `missing` |
+| `S002-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW25-RRPTTP26` | `steps/S002-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW25-RRPTTP26/model` | `missing` |
+| `S003-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW11-RR8-10` | `steps/S003-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW11-RR8-10/model` | `missing` |
+| `S004-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW25-RR8-10` | `steps/S004-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW25-RR8-10/model` | `missing` |
+| `S005-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW11-RRPTTP26` | `steps/S005-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW11-RRPTTP26/model` | `missing` |
+| `S006-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW25-RRPTTP26` | `steps/S006-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW25-RRPTTP26/model` | `missing` |
+| `S007-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW11-RR8-10` | `steps/S007-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW11-RR8-10/model` | `missing` |
+| `S008-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW25-RR8-10` | `steps/S008-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW25-RR8-10/model` | `missing` |
+| `S009-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW100-RRPTTP26` | `steps/S009-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW100-RRPTTP26/model` | `missing` |
+| `S010-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW100-RR8-10` | `steps/S010-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX15-REGW100-RR8-10/model` | `missing` |
+| `S011-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW100-RRPTTP26` | `steps/S011-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW100-RRPTTP26/model` | `missing` |
+| `S012-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW100-RR8-10` | `steps/S012-DM-G8PSSET-CEST-NOCUT-SUB075-MIX015-TAGF2ON-NMAX25-REGW100-RR8-10/model` | `missing` |
 
 
 ## Useful Kflow Config
